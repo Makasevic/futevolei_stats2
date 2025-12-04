@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">ranking em tempo real</p>
+        <h1>Redinha Stats</h1>
+        <p>
+            Um painel repaginado com visual claro, tipografia forte e destaques
+            em gradiente. Feito para entregar leitura rápida e elegante das
+            estatísticas e do ranking em qualquer período.
+        </p>
+    </div>
+</header>
+
+<form class="filter-bar" method="get">
+    <label class="badge" for="modo">Filtro</label>
+    <select id="modo" name="modo" class="select">
+        <option value="Dias" {% if modo == 'Dias' %}selected{% endif %}>Dias</option>
+        <option value="Ano" {% if modo == 'Ano' %}selected{% endif %}>Ano</option>
+        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/Ano</option>
+        <option value="Intervalo" {% if modo == 'Intervalo' %}selected{% endif %}>Intervalo personalizado</option>
+    </select>
+
+    <div class="filter-group" data-mode="Dias">
+        <label class="badge" for="periodo">Período rápido</label>
+        <select id="periodo" name="periodo" class="select">
+            {% for opcao in periodos %}
+                <option value="{{ opcao }}" {% if opcao == periodo_escolhido %}selected{% endif %}>{{ opcao }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Ano">
+        <label class="badge" for="ano">Ano</label>
+        <select id="ano" name="ano" class="select">
+            {% for ano in anos %}
+                <option value="{{ ano }}" {% if ano == ano_selecionado %}selected{% endif %}>{{ ano }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Mês/Ano">
+        <label class="badge" for="mes">Mês/Ano</label>
+        <select id="mes" name="mes" class="select">
+            {% for mes in meses %}
+                <option value="{{ mes }}" {% if mes == mes_selecionado %}selected{% endif %}>{{ mes }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Intervalo">
+        <label class="badge" for="inicio">Início</label>
+        <input type="date" id="inicio" name="inicio" class="select" value="{{ inicio }}" />
+        <label class="badge" for="fim">Fim</label>
+        <input type="date" id="fim" name="fim" class="select" value="{{ fim }}" />
+    </div>
+
+    <button class="btn-refresh" type="submit">Atualizar ranking</button>
+</form>
+
+<section class="panel">
+    <div class="section-title">
+        <h2>Destaques do período</h2>
+        <span class="meta">Top 3 do ranking individual</span>
+    </div>
+    <div class="highlight-grid">
+        {% for atleta in destaques %}
+        <article class="highlight-card">
+            <div class="highlight-content">
+                <h3>{{ atleta.medal }} {{ atleta.nome }}</h3>
+                <p class="meta">{{ atleta.vitorias }}V • {{ atleta.derrotas }}D • saldo {{ atleta.saldo }}</p>
+                <p class="score">Aproveitamento {{ atleta.score }}</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="panel" style="margin-top: 18px;">
+    <div class="section-title">
+        <h2>Ranking</h2>
+        <span class="badge">{{ periodo_legenda }}</span>
+    </div>
+
+    <div class="tab-switch">
+        <button class="tab-button active" type="button" data-target="tab-individual">Individual</button>
+        <button class="tab-button" type="button" data-target="tab-duplas">Duplas</button>
+    </div>
+
+    <div class="tab-content active" id="tab-individual">
+        <div class="table-wrapper">
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Posição</th>
+                        <th>Jogador</th>
+                        <th>Score</th>
+                        <th>Vitórias</th>
+                        <th>Derrotas</th>
+                        <th>Saldo</th>
+                        <th>Jogos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linha in jogadores %}
+                    <tr>
+                        <td class="tag">{{ linha.posicao }}</td>
+                        <td class="name">{{ linha.nome }}</td>
+                        <td class="score">{{ linha.score }}</td>
+                        <td>{{ linha.vitorias }}</td>
+                        <td>{{ linha.derrotas }}</td>
+                        <td>{{ linha.saldo }}</td>
+                        <td>{{ linha.jogos }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if jogadores|length == 0 %}
+                    <tr>
+                        <td colspan="7" class="meta">Nenhuma partida encontrada para o período selecionado.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-content" id="tab-duplas">
+        <div class="table-wrapper">
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Posição</th>
+                        <th>Dupla</th>
+                        <th>Score</th>
+                        <th>Vitórias</th>
+                        <th>Derrotas</th>
+                        <th>Saldo</th>
+                        <th>Jogos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linha in duplas %}
+                    <tr>
+                        <td class="tag">{{ linha.posicao }}</td>
+                        <td class="name">{{ linha.nome }}</td>
+                        <td class="score">{{ linha.score }}</td>
+                        <td>{{ linha.vitorias }}</td>
+                        <td>{{ linha.derrotas }}</td>
+                        <td>{{ linha.saldo }}</td>
+                        <td>{{ linha.jogos }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if duplas|length == 0 %}
+                    <tr>
+                        <td colspan="7" class="meta">Nenhuma dupla encontrada para o período selecionado.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script>
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const modoSelect = document.getElementById('modo');
+    const filterGroups = document.querySelectorAll('.filter-group');
+
+    tabButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+
+            tabButtons.forEach((btn) => btn.classList.remove('active'));
+            tabContents.forEach((tab) => tab.classList.remove('active'));
+
+            button.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    function toggleFilters() {
+        const selected = modoSelect.value;
+        filterGroups.forEach((group) => {
+            const shouldShow = group.getAttribute('data-mode') === selected;
+            group.style.display = shouldShow ? 'flex' : 'none';
+        });
+    }
+
+    modoSelect.addEventListener('change', toggleFilters);
+    toggleFilters();
+</script>
+{% endblock %}

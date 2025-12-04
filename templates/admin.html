@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero admin-hero">
+    <div class="hero__copy">
+        <p class="badge">Administração</p>
+        <h1>Gerencie partidas direto no Supabase</h1>
+        <p>
+            Cadastro rápido de novos jogos e manutenção do histórico existente.
+            Use a lista de jogadores para evitar digitação duplicada e mantenha
+            o calendário sempre atualizado.
+        </p>
+    </div>
+</header>
+
+{% if feedback %}
+<div class="alert {{ 'success' if feedback.status == 'success' else 'error' }}">
+    {{ feedback.message }}
+</div>
+{% endif %}
+
+{% if requires_auth and not authenticated %}
+<section class="panel">
+    <div class="section-title">
+        <h2>Área restrita</h2>
+        <span class="meta">Informe a senha para continuar</span>
+    </div>
+    <form class="form-grid" method="post">
+        <input type="hidden" name="action" value="login" />
+        <label>
+            <span class="badge">Senha</span>
+            <input type="password" name="password" placeholder="Digite a senha" class="input" required />
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Entrar</button>
+        </div>
+    </form>
+</section>
+{% else %}
+<section class="panel">
+    <div class="section-title">
+        <h2>Cadastrar nova partida</h2>
+        <span class="meta">Preencha os quatro jogadores e a data do jogo</span>
+    </div>
+    <form class="form-grid" method="post">
+        <input type="hidden" name="action" value="create" />
+        <datalist id="players-list">
+            {% for player in players %}
+            <option value="{{ player }}"></option>
+            {% endfor %}
+        </datalist>
+        <label>
+            <span class="badge">Vencedor 1</span>
+            <input class="input" name="winner1" list="players-list" placeholder="Nome" required />
+        </label>
+        <label>
+            <span class="badge">Vencedor 2</span>
+            <input class="input" name="winner2" list="players-list" placeholder="Nome" required />
+        </label>
+        <label>
+            <span class="badge">Perdedor 1</span>
+            <input class="input" name="loser1" list="players-list" placeholder="Nome" required />
+        </label>
+        <label>
+            <span class="badge">Perdedor 2</span>
+            <input class="input" name="loser2" list="players-list" placeholder="Nome" required />
+        </label>
+        <label>
+            <span class="badge">Data</span>
+            <input class="input" type="date" name="date" value="{{ today }}" required />
+        </label>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Cadastrar partida</button>
+            {% if role != 'full' %}
+            <p class="meta">Edição e exclusão ficam disponíveis apenas para administradores completos.</p>
+            {% endif %}
+        </div>
+    </form>
+</section>
+
+<section class="panel" style="margin-top: 18px;">
+    <div class="section-title">
+        <h2>Partidas cadastradas</h2>
+        <span class="meta">Atualize ou remova registros diretamente</span>
+    </div>
+    {% if matches %}
+    <div class="match-grid">
+        {% for match in matches %}
+        <form class="match-card" method="post">
+            <input type="hidden" name="match_id" value="{{ match._identifier_value }}" />
+            <input type="hidden" name="id_field" value="{{ match._identifier_field }}" />
+            <div class="match-card__header">
+                <div>
+                    <p class="badge">{{ match.date.isoformat() if match.date else 'Sem data' }}</p>
+                    <strong>{{ match.winner1 }} &amp; {{ match.winner2 }} x {{ match.loser1 }} &amp; {{ match.loser2 }}</strong>
+                    {% if match.identifier_display %}
+                    <p class="meta">ID: {{ match.identifier_display }}</p>
+                    {% endif %}
+                </div>
+                <div class="match-card__actions">
+                    <button class="btn-primary" type="submit" name="action" value="update" {% if role != 'full' %}disabled{% endif %}>Salvar</button>
+                    <button class="btn-secondary" type="submit" name="action" value="delete" {% if role != 'full' %}disabled{% endif %}>Excluir</button>
+                </div>
+            </div>
+            <div class="form-grid compact">
+                <label>
+                    <span class="badge">Vencedor 1</span>
+                    <input class="input" name="winner1" list="players-list" value="{{ match.winner1 }}" required {% if role != 'full' %}readonly{% endif %} />
+                </label>
+                <label>
+                    <span class="badge">Vencedor 2</span>
+                    <input class="input" name="winner2" list="players-list" value="{{ match.winner2 }}" required {% if role != 'full' %}readonly{% endif %} />
+                </label>
+                <label>
+                    <span class="badge">Perdedor 1</span>
+                    <input class="input" name="loser1" list="players-list" value="{{ match.loser1 }}" required {% if role != 'full' %}readonly{% endif %} />
+                </label>
+                <label>
+                    <span class="badge">Perdedor 2</span>
+                    <input class="input" name="loser2" list="players-list" value="{{ match.loser2 }}" required {% if role != 'full' %}readonly{% endif %} />
+                </label>
+                <label>
+                    <span class="badge">Data</span>
+                    <input class="input" type="date" name="date" value="{{ match.date.isoformat() if match.date else '' }}" required {% if role != 'full' %}readonly{% endif %} />
+                </label>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="meta">Nenhuma partida cadastrada até o momento.</p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if authenticated and requires_auth %}
+<form method="post" class="logout-form">
+    <input type="hidden" name="action" value="logout" />
+    <button type="submit" class="btn-secondary">Encerrar sessão</button>
+</form>
+{% endif %}
+{% endblock %}

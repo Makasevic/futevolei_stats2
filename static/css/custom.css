@@ -1,0 +1,21 @@
+/* static/css/custom.css */
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navbar-brand {
+  letter-spacing: 0.05em;
+}
+
+.table-dark tbody tr:nth-child(odd) {
+  background-color: #202020;
+}
+
+.table-dark tbody tr:nth-child(even) {
+  background-color: #181818;
+}
+
+.table-dark thead th {
+  border-bottom-width: 2px;
+}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">curiosidades e recordes</p>
+        <h1>Infos</h1>
+        <p>
+            Um painel leve para ver quem brilhou, quem colecionou vexames e quais duplas
+            se encaixaram melhor. Tudo resumido em cards elegantes, sem ruído visual.
+        </p>
+    </div>
+</header>
+
+<section class="info-section">
+    <div class="info-section__header">
+        <div>
+            <p class="eyebrow">melhores e piores</p>
+            <h2>Quem brilhou (ou não)</h2>
+            <p class="section-meta">Mesmos filtros de participação mínima da aba original.</p>
+        </div>
+    </div>
+    <div class="info-grid">
+        {% for card in destaques_primarios %}
+        <article class="info-card">
+            <div class="info-card__badge">{{ card.title }}</div>
+            <h3>{{ card.value }}</h3>
+            <p>{{ card.detail }}</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="info-section">
+    <div class="info-section__header">
+        <div>
+            <p class="eyebrow">recordes e parcerias</p>
+            <h2>Recordes e parcerias</h2>
+            <p class="section-meta">Do maior vexame à dupla mais entrosada.</p>
+        </div>
+    </div>
+    <div class="info-grid">
+        {% for card in destaques_secundarios %}
+        <article class="info-card">
+            <div class="info-card__badge">{{ card.title }}</div>
+            <h3>{{ card.value }}</h3>
+            <p>{{ card.detail }}</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

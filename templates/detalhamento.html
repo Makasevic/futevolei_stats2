@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">análise profunda</p>
+        <h1>Detalhamento</h1>
+        <p>
+            Explore o desempenho individual ou de uma dupla específica. Os mesmos
+            cálculos da aba original foram trazidos para este layout web: ranking por
+            período, parceiros favoritos, fregueses, carrascos e a tendência de score
+            ao longo do tempo.
+        </p>
+    </div>
+</header>
+
+<form class="filter-bar" method="get" id="detalhamento-form">
+    <label class="badge" for="tipo">Análise</label>
+    <select id="tipo" name="tipo" class="select">
+        <option value="Jogador" {% if tipo == 'Jogador' %}selected{% endif %}>Jogador</option>
+        <option value="Dupla" {% if tipo == 'Dupla' %}selected{% endif %}>Dupla</option>
+    </select>
+
+    {% if tipo == 'Jogador' %}
+        <label class="badge" for="jogador">Jogador</label>
+        <select id="jogador" name="jogador" class="select">
+            <option value="">Selecione um jogador</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if nome == jogador_escolhido %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        <label class="badge" for="j1">Jogador 1</label>
+        <select id="j1" name="j1" class="select">
+            <option value="">Selecione</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if nome == jogador1 %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="badge" for="j2">Jogador 2</label>
+        <select id="j2" name="j2" class="select" {% if parceiros_validos|length == 0 %}disabled{% endif %}>
+            <option value="">Selecione</option>
+            {% for nome in parceiros_validos %}
+                <option value="{{ nome }}" {% if nome == jogador2 %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
+
+    <button class="btn-refresh" type="submit">Ver detalhamento</button>
+</form>
+
+{% if tipo == 'Jogador' %}
+    {% if detalhes %}
+        {% set metricas = detalhes.metricas %}
+        <section class="panel xray-panel">
+            <div class="xray-card">
+                <div class="xray-card__header">
+                    <div>
+                        <p class="badge">🔮 Tendência: {{ metricas.tendencia }}{% if metricas.tendencia_observacao %} · {{ metricas.tendencia_observacao }}{% endif %}</p>
+                        <h3 class="xray-card__title">{{ metricas.medalha }} {{ metricas.jogador }}</h3>
+                        <p class="meta">🎮 {{ metricas.jogos }} jogos · {{ metricas.vitorias }}V · {{ metricas.derrotas }}D · saldo {{ metricas.saldo }}</p>
+                    </div>
+                    <div class="pill-row xray-card__chips">
+                        <span class="pill">🎯 Score {{ metricas.score|round(1) }}%</span>
+                        <span class="pill">📆 Assiduidade {{ metricas.assiduidade_texto }}</span>
+                        <span class="pill">🔁 Rotatividade {{ metricas.rotatividade_texto }}</span>
+                    </div>
+                </div>
+
+                <div class="xray-list">
+                    <div class="xray-item">
+                        <span class="xray-icon">🏆</span>
+                        <div>
+                            <p class="xray-label">Ranking</p>
+                            <p class="xray-value">{{ metricas.rankings_periodo['geral'] or '—' }}</p>
+                            <p class="meta">30d: {{ metricas.rankings_periodo['30'] or '—' }} · 60d: {{ metricas.rankings_periodo['60'] or '—' }} · 90d: {{ metricas.rankings_periodo['90'] or '—' }}</p>
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">🤝</span>
+                        <div>
+                            <p class="xray-label">Parceiro fiel</p>
+                            <p class="xray-value">
+                                {% if metricas.parceiro_frequente %}
+                                    {{ metricas.parceiro_frequente.nome }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </p>
+                            <p class="meta">{{ metricas.parceiro_frequente.jogos if metricas.parceiro_frequente else 'Sem jogos registrados' }}</p>
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">💫</span>
+                        <div>
+                            <p class="xray-label">Melhor entrosamento</p>
+                            {% if metricas.parceiro_entrosado %}
+                                <p class="xray-value">{{ metricas.parceiro_entrosado.nome }}</p>
+                                <p class="meta">{{ metricas.parceiro_entrosado.score|round(1) }}% em {{ metricas.parceiro_entrosado.jogos }} jogos</p>
+                            {% else %}
+                                <p class="xray-value">—</p>
+                                <p class="meta">mínimo de {{ metricas.min_jogos_entrosamento }} jogos</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">📅</span>
+                        <div>
+                            <p class="xray-label">Assiduidade e média diária</p>
+                            <p class="xray-value">{{ metricas.assiduidade_texto }}</p>
+                            <p class="meta">{{ metricas.media_partidas_por_dia_texto }}</p>
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">😇</span>
+                        <div>
+                            <p class="xray-label">Maior freguês</p>
+                            {% if metricas.maior_pato %}
+                                <p class="xray-value">{{ metricas.maior_pato.nome }}</p>
+                                <p class="meta">Saldo {{ metricas.maior_pato.saldo }}</p>
+                            {% else %}
+                                <p class="xray-value">—</p>
+                                <p class="meta">Sem registro</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">⚔️</span>
+                        <div>
+                            <p class="xray-label">Maior carrasco</p>
+                            {% if metricas.maior_carrasco %}
+                                <p class="xray-value">{{ metricas.maior_carrasco.nome }}</p>
+                                <p class="meta">Saldo {{ metricas.maior_carrasco.saldo }}</p>
+                            {% else %}
+                                <p class="xray-value">—</p>
+                                <p class="meta">Sem registro</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+            <div class="section-title">
+                <h2>Score ao longo do tempo</h2>
+                <span class="meta">Últimos registros do aproveitamento diário</span>
+            </div>
+            {% if detalhes.score_series|length == 0 %}
+                <p class="meta">Sem partidas suficientes para calcular o score.</p>
+            {% else %}
+                <div class="chart-card">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+            <div class="section-title">
+                <h2>Confrontos</h2>
+                <span class="meta">Top fregueses e carrascos</span>
+            </div>
+            <div class="split-grid">
+                <div>
+                    <p class="badge">Maiores fregueses</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Jogador</th><th>Saldo</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.fregueses %}
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.fregueses|length == 0 %}
+                                    <tr><td colspan="2" class="meta">Sem confrontos positivos registrados.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <p class="badge">Maiores carrascos</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Jogador</th><th>Saldo</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.carrascos %}
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.carrascos|length == 0 %}
+                                    <tr><td colspan="2" class="meta">Sem confrontos negativos registrados.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+            <div class="section-title">
+                <h2>Parcerias</h2>
+                <span class="meta">Quem mais joga junto e quem pouco se entrosa</span>
+            </div>
+            <div class="split-grid">
+                <div>
+                    <p class="badge">Adora jogar com</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Participação</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.parcerias_top %}
+                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.participacao }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.parcerias_top|length == 0 %}
+                                    <tr><td colspan="3" class="meta">Sem parcerias registradas.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <p class="badge">Odeia jogar com</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Participação</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.parcerias_bottom %}
+                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.participacao }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.parcerias_bottom|length == 0 %}
+                                    <tr><td colspan="3" class="meta">Sem parceiros suficientes para listar.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% else %}
+        <section class="panel">
+            <p class="meta">Selecione um jogador para visualizar o detalhamento.</p>
+        </section>
+    {% endif %}
+{% else %}
+    {% if detalhes %}
+        {% set metricas = detalhes.metricas %}
+        <section class="panel xray-panel">
+            <div class="xray-card">
+                <div class="xray-card__header">
+                    <div>
+                        <p class="badge">🔮 Tendência: {{ metricas.tendencia }}{% if metricas.tendencia_observacao %} · {{ metricas.tendencia_observacao }}{% endif %}</p>
+                        <h3 class="xray-card__title">{{ metricas.dupla }}</h3>
+                        <p class="meta">🎮 {{ metricas.jogos }} jogos · {{ metricas.vitorias }}V · {{ metricas.derrotas }}D · saldo {{ metricas.saldo }}</p>
+                    </div>
+                    <div class="pill-row xray-card__chips">
+                        <span class="pill">🎯 Score {{ metricas.score|round(1) }}%</span>
+                        <span class="pill">📅 Último jogo {{ metricas.ultimo_jogo }}</span>
+                        <span class="pill">🗓️ Dias juntos {{ metricas.dias_dupla_texto }}</span>
+                    </div>
+                </div>
+
+                <div class="xray-list">
+                    <div class="xray-item">
+                        <span class="xray-icon">🤝</span>
+                        <div>
+                            <p class="xray-label">Presença conjunta</p>
+                            <p class="xray-value">{{ metricas.percentual_dias_texto }}</p>
+                            <p class="meta">Juntos em {{ metricas.dias_juntos_texto }}</p>
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">😇</span>
+                        <div>
+                            <p class="xray-label">Maior freguês</p>
+                            {% if metricas.maior_fregues %}
+                                <p class="xray-value">{{ metricas.maior_fregues.nome }}</p>
+                                <p class="meta">Saldo {{ metricas.maior_fregues.saldo }}</p>
+                            {% else %}
+                                <p class="xray-value">—</p>
+                                <p class="meta">Sem registro</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">⚔️</span>
+                        <div>
+                            <p class="xray-label">Maior carrasco</p>
+                            {% if metricas.maior_carrasco %}
+                                <p class="xray-value">{{ metricas.maior_carrasco.nome }}</p>
+                                <p class="meta">Saldo {{ metricas.maior_carrasco.saldo }}</p>
+                            {% else %}
+                                <p class="xray-value">—</p>
+                                <p class="meta">Sem registro</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+            <div class="section-title">
+                <h2>Score da dupla</h2>
+                <span class="meta">Aproveitamento diário e média móvel</span>
+            </div>
+            {% if detalhes.score_series|length == 0 %}
+                <p class="meta">Sem partidas suficientes para calcular o score.</p>
+            {% else %}
+                <div class="chart-card">
+                    <canvas id="scoreChartDupla"></canvas>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="panel" style="margin-top:18px;">
+            <div class="section-title">
+                <h2>Confrontos de duplas</h2>
+                <span class="meta">Saldo frente a frente</span>
+            </div>
+            <div class="split-grid">
+                <div>
+                    <p class="badge">Maiores fregueses</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Dupla</th><th>Saldo</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.fregueses %}
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.fregueses|length == 0 %}
+                                    <tr><td colspan="2" class="meta">Sem confrontos positivos registrados.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <p class="badge">Maiores carrascos</p>
+                    <div class="table-wrapper">
+                        <table class="ranking-table">
+                            <thead><tr><th>Dupla</th><th>Saldo</th></tr></thead>
+                            <tbody>
+                                {% for linha in detalhes.carrascos %}
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                {% endfor %}
+                                {% if detalhes.carrascos|length == 0 %}
+                                    <tr><td colspan="2" class="meta">Sem confrontos negativos registrados.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+{% else %}
+        <section class="panel">
+            <p class="meta">Selecione dois jogadores que já atuaram juntos para visualizar o detalhamento da dupla.</p>
+        </section>
+    {% endif %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('detalhamento-form');
+        if (!form) return;
+
+        const submitForm = () => {
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
+        };
+
+        const bindChangeSubmit = (selector) => {
+            const field = form.querySelector(selector);
+            if (field) {
+                field.addEventListener('change', submitForm);
+            }
+        };
+
+        bindChangeSubmit('#tipo');
+        bindChangeSubmit('#jogador');
+        bindChangeSubmit('#j1');
+        bindChangeSubmit('#j2');
+
+        const serieScore = {{ detalhes.score_series|tojson if detalhes else '[]' }};
+
+        const createScoreChart = (canvasId, series) => {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !window.Chart || !Array.isArray(series) || series.length === 0) return;
+
+            const labels = series.map((item) => item.data);
+            const scores = series.map((item) => item.score ?? null);
+            const mediasMoveis = series.map((item) => item.media_movel ?? null);
+
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Score (%)',
+                            data: scores,
+                            borderColor: '#2f6bff',
+                            backgroundColor: 'rgba(47, 107, 255, 0.12)',
+                            tension: 0.25,
+                            fill: false,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                        },
+                        {
+                            label: 'Média móvel 90d (%)',
+                            data: mediasMoveis,
+                            borderColor: '#13b6a7',
+                            backgroundColor: 'rgba(19, 182, 167, 0.14)',
+                            borderDash: [6, 4],
+                            tension: 0.2,
+                            fill: false,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 100,
+                            ticks: {
+                                callback: (value) => `${value}%`,
+                            },
+                            grid: { color: 'rgba(31, 51, 84, 0.08)' },
+                        },
+                        x: {
+                            grid: { color: 'rgba(31, 51, 84, 0.04)' },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y;
+                                    if (value === null || Number.isNaN(value)) return `${context.dataset.label}: —`;
+                                    return `${context.dataset.label}: ${value.toFixed(1)}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        };
+
+        createScoreChart('scoreChart', serieScore);
+        createScoreChart('scoreChartDupla', serieScore);
+    });
+</script>
+{% endblock %}

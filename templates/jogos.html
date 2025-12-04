@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">agenda das partidas</p>
+        <h1>Jogos registrados</h1>
+        <p>
+            Visualize o histórico de partidas com filtros rápidos por período e
+            selecione jogadores específicos para encontrar confrontos. Os
+            resultados são ordenados do mais recente para o mais antigo.
+        </p>
+    </div>
+</header>
+
+<form class="filter-bar" method="get">
+    <label class="badge" for="modo">Modo de filtro</label>
+    <select id="modo" name="modo" class="select">
+        <option value="Dias" {% if modo == 'Dias' %}selected{% endif %}>Dias</option>
+        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/Ano</option>
+        <option value="Ano" {% if modo == 'Ano' %}selected{% endif %}>Ano</option>
+    </select>
+
+    <div class="filter-group" data-mode="Dias">
+        <label class="badge" for="periodo">Período</label>
+        <select id="periodo" name="periodo" class="select">
+            {% for opcao in periodos %}
+                <option value="{{ opcao }}" {% if opcao == periodo_escolhido %}selected{% endif %}>{{ opcao }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Data">
+        <label class="badge" for="data">Data</label>
+        <select id="data" name="data" class="select" {% if datas|length == 0 %}disabled{% endif %}>
+            {% if datas|length == 0 %}
+                <option>Sem datas disponíveis</option>
+            {% else %}
+                {% for dia in datas %}
+                    <option value="{{ dia }}" {% if dia == data_selecionada %}selected{% endif %}>{{ dia }}</option>
+                {% endfor %}
+            {% endif %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Mês/Ano">
+        <label class="badge" for="mes">Mês/Ano</label>
+        <select id="mes" name="mes" class="select">
+            {% for item in meses %}
+                <option value="{{ item }}" {% if item == mes_selecionado %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Ano">
+        <label class="badge" for="ano">Ano</label>
+        <select id="ano" name="ano" class="select">
+            {% for item in anos %}
+                <option value="{{ item }}" {% if item == ano_selecionado %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Jogadores">
+        <label class="badge" for="jogadores">Jogadores</label>
+        <select id="jogadores" name="jogadores" class="select" multiple size="5">
+            {% for jogador in jogadores %}
+                <option value="{{ jogador }}" {% if jogador in jogadores_selecionados %}selected{% endif %}>{{ jogador }}</option>
+            {% endfor %}
+        </select>
+        <p class="meta">Selecione até quatro nomes para encontrar partidas em comum.</p>
+    </div>
+
+    <button class="btn-refresh" type="submit">Aplicar filtros</button>
+</form>
+
+{% if mensagem_limite %}
+    <div class="panel" style="margin-top: 16px;">
+        <p class="meta">{{ mensagem_limite }}</p>
+    </div>
+{% endif %}
+
+<section class="panel" style="margin-top: 18px;">
+    <div class="section-title">
+        <h2>Partidas</h2>
+        <span class="badge">{{ periodo_legenda }}</span>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Vencedores</th>
+                    <th>Perdedores</th>
+                    <th>Placar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for jogo in partidas %}
+                <tr>
+                    <td class="tag">{{ jogo.data }}</td>
+                    <td class="name">{{ jogo.vencedores }}</td>
+                    <td class="name">{{ jogo.perdedores }}</td>
+                    <td class="score">{{ jogo.score }}</td>
+                </tr>
+                {% endfor %}
+                {% if partidas|length == 0 %}
+                <tr>
+                    <td colspan="4" class="meta">Nenhuma partida encontrada para o filtro selecionado.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+    const modoSelect = document.getElementById('modo');
+    const periodoSelect = document.getElementById('periodo');
+    const filterGroups = document.querySelectorAll('.filter-group');
+
+    function toggleFilters() {
+        const selectedMode = modoSelect.value;
+        const selectedPeriodo = periodoSelect.value;
+
+        filterGroups.forEach((group) => {
+            const groupMode = group.getAttribute('data-mode');
+            const isDataGroup = groupMode === 'Data' && selectedMode === 'Dias' && selectedPeriodo === 'Data';
+            const shouldShow = groupMode === selectedMode || isDataGroup || groupMode === 'Jogadores';
+            group.style.display = shouldShow ? 'flex' : 'none';
+        });
+    }
+
+    modoSelect.addEventListener('change', toggleFilters);
+    periodoSelect.addEventListener('change', toggleFilters);
+    document.addEventListener('DOMContentLoaded', toggleFilters);
+</script>
+{% endblock %}

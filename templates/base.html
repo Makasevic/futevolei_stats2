@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redinha Stats</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar__inner">
+            <div class="brand">
+                <div class="brand__mark">RS</div>
+                <div class="brand__text">
+                    <strong>Redinha Stats</strong>
+                    <span>Inteligência em quadra, visual de vitrine</span>
+                </div>
+            </div>
+            <nav class="menu">
+                <a href="/" class="menu__item {% if active_page == 'ranking' %}is-active{% endif %}">Ranking</a>
+                <a href="/infos" class="menu__item {% if active_page == 'infos' %}is-active{% endif %}">Infos</a>
+                <a href="/detalhamento" class="menu__item {% if active_page == 'detalhamento' %}is-active{% endif %}">Detalhamento</a>
+                <a href="/jogos" class="menu__item {% if active_page == 'jogos' %}is-active{% endif %}">Jogos</a>
+                <a href="#" class="menu__item">Config</a>
+                <a href="/admin" class="menu__item {% if active_page == 'admin' %}is-active{% endif %}">Admin</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container page">
+        {% block content %}{% endblock %}
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            function getCellValue(row, index) {
+                const cell = row.cells[index];
+                const text = (cell?.textContent || '').trim();
+                const numeric = parseFloat(text.replace(/[^0-9.,-]/g, '').replace(',', '.'));
+
+                if (!Number.isNaN(numeric) && /[0-9]/.test(text)) {
+                    return numeric;
+                }
+
+                return text.toLowerCase();
+            }
+
+            function sortTable(table, columnIndex, header) {
+                const tbody = table.querySelector('tbody');
+                const headers = table.querySelectorAll('th');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const newDirection = header.classList.contains('sort-asc') ? 'desc' : 'asc';
+
+                headers.forEach((th) => th.classList.remove('sort-asc', 'sort-desc'));
+                header.classList.add(newDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+
+                const sortedRows = rows.sort((rowA, rowB) => {
+                    const valueA = getCellValue(rowA, columnIndex);
+                    const valueB = getCellValue(rowB, columnIndex);
+
+                    if (valueA === valueB) return 0;
+
+                    const isNumber = (val) => typeof val === 'number' && !Number.isNaN(val);
+
+                    if (isNumber(valueA) && isNumber(valueB)) {
+                        return newDirection === 'asc' ? valueA - valueB : valueB - valueA;
+                    }
+
+                    return newDirection === 'asc'
+                        ? String(valueA).localeCompare(String(valueB))
+                        : String(valueB).localeCompare(String(valueA));
+                });
+
+                sortedRows.forEach((row) => tbody.appendChild(row));
+            }
+
+            document.querySelectorAll('.ranking-table').forEach((table) => {
+                const headers = table.querySelectorAll('th');
+
+                headers.forEach((header, index) => {
+                    header.addEventListener('click', () => sortTable(table, index, header));
+                });
+            });
+        });
+    </script>
+</body>
+</html>
