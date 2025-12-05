@@ -16,6 +16,11 @@
                     <span>Inteligência em quadra, visual de vitrine</span>
                 </div>
             </div>
+            <button class="menu__toggle" type="button" aria-label="Alternar menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <nav class="menu">
                 <a href="/" class="menu__item {% if active_page == 'ranking' %}is-active{% endif %}">Ranking</a>
                 <a href="/infos" class="menu__item {% if active_page == 'infos' %}is-active{% endif %}">Infos</a>
@@ -31,6 +36,27 @@
     </main>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.querySelector('.menu__toggle');
+            const menu = document.querySelector('.menu');
+
+            if (menuToggle && menu) {
+                menuToggle.addEventListener('click', () => {
+                    const isOpen = menu.classList.toggle('is-open');
+                    menuToggle.classList.toggle('is-active', isOpen);
+                    menuToggle.setAttribute('aria-expanded', isOpen);
+                });
+
+                menu.querySelectorAll('a').forEach((link) => {
+                    link.addEventListener('click', () => {
+                        if (window.innerWidth <= 900 && menu.classList.contains('is-open')) {
+                            menu.classList.remove('is-open');
+                            menuToggle.classList.remove('is-active');
+                            menuToggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                });
+            }
+
             function getCellValue(row, index) {
                 const cell = row.cells[index];
                 const text = (cell?.textContent || '').trim();
