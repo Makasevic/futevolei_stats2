@@ -595,12 +595,14 @@ header.hero::after {
 .ranking-table td {
     padding: 12px 12px;
     text-align: left;
+    font-weight: var(--font-regular);
 }
 
 .ranking-table th {
     cursor: pointer;
     position: relative;
     user-select: none;
+    font-weight: var(--font-medium);
 }
 
 .ranking-table th::after {
@@ -631,13 +633,13 @@ header.hero::after {
     border-radius: 10px;
     background: rgba(31, 51, 84, 0.05);
     border: 1px solid var(--border);
-    font-weight: var(--font-semibold);
+    font-weight: var(--font-medium);
 }
 
-.score { color: var(--accent); font-weight: var(--font-bold); }
+.score { color: var(--accent); font-weight: var(--font-semibold); }
 
 .name {
-    font-weight: var(--font-semibold);
+    font-weight: var(--font-medium);
     letter-spacing: -0.01em;
 }
 
