@@ -87,18 +87,76 @@ h1, h2, h3, h4, h5, h6, strong, b {
 .menu__dropdown {
     display: none;
     margin-left: auto;
+    position: relative;
 }
 
-.menu__select {
+.menu__dropdown-toggle {
     background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
-    font-weight: var(--font-semibold);
-    color: var(--text);
-    min-width: 170px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 24px rgba(31, 51, 84, 0.12);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 42px;
+    box-shadow: 0 10px 25px rgba(31, 51, 84, 0.12);
 }
+
+.menu__dropdown-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.menu__dropdown-icon {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 9px solid var(--text);
+}
+
+.menu__dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 32px rgba(31, 51, 84, 0.12);
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1;
+}
+
+.menu__dropdown-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: var(--font-medium);
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.7);
+    transition: all 140ms ease;
+}
+
+.menu__dropdown-item:hover,
+.menu__dropdown-item:focus-visible {
+    color: var(--text);
+    border-color: var(--border);
+    box-shadow: 0 10px 25px rgba(31, 51, 84, 0.1);
+    outline: none;
+}
+
+.menu__dropdown-item.is-active {
+    color: #ffffff;
+    background: linear-gradient(135deg, #2f6bff, #13b6a7);
+    border-color: transparent;
+    box-shadow: 0 12px 32px rgba(47, 107, 255, 0.32);
+}
+
+.menu__dropdown.is-open .menu__dropdown-menu { display: flex; }
 
 .sr-only {
     position: absolute;
@@ -826,11 +884,7 @@ header.hero::after {
     .menu__toggle { display: none; }
 
     .menu__dropdown { display: flex; }
-
-    .menu__select {
-        width: 100%;
-        min-width: 0;
-    }
+    .menu__dropdown-toggle { width: 48px; }
 }
 
 .alert {
