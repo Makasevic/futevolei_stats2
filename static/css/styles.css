@@ -1536,15 +1536,14 @@ header.hero::after {
     .highlight-card { grid-template-columns: 1fr; }
     .info-hero { padding: 18px; }
 }
-
 /* FORÇAR SELECTS A TEREM ALTURA DECENTE NO iOS */
 .select {
     -webkit-appearance: none !important;
     appearance: none !important;
     line-height: 1.4 !important;
     padding: 14px 16px !important;
-    height: 52px !important;
-    min-height: 52px !important;
+    height: 44px !important;
+    min-height: 44px !important;
 }
 
 /* Opcional: seta personalizada */
@@ -1554,4 +1553,15 @@ header.hero::after {
     background-position: right 12px center;
     background-size: 14px;
     padding-right: 34px !important;
+}
+
+/* MOBILE (iOS/Android) — aumentar fonte e altura */
+@media (max-width: 600px) {
+    .select {
+        font-size: 17px !important;
+        line-height: 1.4 !important;
+        padding: 16px 18px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+    }
 }
