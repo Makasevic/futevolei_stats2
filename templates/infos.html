@@ -23,7 +23,7 @@
     <div class="info-grid">
         {% for card in destaques_primarios %}
         <article class="info-card">
-            <div class="info-card__badge">{{ card.title }}</div>
+            <div class="info-card__badge info-card__badge--positive">{{ card.title }}</div>
             <h3>{{ card.value }}</h3>
             <p>{{ card.detail }}</p>
         </article>
@@ -42,7 +42,7 @@
     <div class="info-grid">
         {% for card in destaques_secundarios %}
         <article class="info-card">
-            <div class="info-card__badge">{{ card.title }}</div>
+            <div class="info-card__badge info-card__badge--negative">{{ card.title }}</div>
             <h3>{{ card.value }}</h3>
             <p>{{ card.detail }}</p>
         </article>

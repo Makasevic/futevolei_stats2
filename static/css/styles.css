@@ -1039,6 +1039,18 @@ header.hero::after {
     text-transform: uppercase;
 }
 
+.info-card__badge--positive {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #166534;
+}
+
+.info-card__badge--negative {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #991b1b;
+}
+
 .info-card h3 {
     margin: 10px 0 6px;
     font-size: 20px;

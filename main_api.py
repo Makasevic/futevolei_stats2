@@ -955,14 +955,14 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
 
     destaques_primarios = [
         _melhor_aproveitamento("O mais brabo"),
-        _melhor_aproveitamento("Ninguém quer jogar com", pior=True),
         _mais_fominha(),
+        _dupla_entrosada(),
     ]
 
     destaques_secundarios = [
+        _melhor_aproveitamento("Ninguém quer jogar com", pior=True),
         _maior_vexame(),
         _mais_paneleiro(),
-        _dupla_entrosada(),
     ]
 
     return {
