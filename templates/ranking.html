@@ -93,13 +93,13 @@
             <table class="ranking-table">
                 <thead>
                     <tr>
-                        <th>Posição</th>
-                        <th>Jogador</th>
-                        <th>Score</th>
-                        <th>Vitórias</th>
-                        <th>Derrotas</th>
-                        <th>Saldo</th>
-                        <th>Jogos</th>
+                        <th><span class="label-full">Posição</span><span class="label-short">Pos</span></th>
+                        <th><span class="label-full">Jogador</span><span class="label-short">Jog</span></th>
+                        <th><span class="label-full">Score</span><span class="label-short">%</span></th>
+                        <th><span class="label-full">Vitórias</span><span class="label-short">V</span></th>
+                        <th><span class="label-full">Derrotas</span><span class="label-short">D</span></th>
+                        <th class="hide-mobile">Saldo</th>
+                        <th class="hide-mobile">Jogos</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,8 +110,8 @@
                         <td class="score">{{ linha.score }}</td>
                         <td>{{ linha.vitorias }}</td>
                         <td>{{ linha.derrotas }}</td>
-                        <td>{{ linha.saldo }}</td>
-                        <td>{{ linha.jogos }}</td>
+                        <td class="hide-mobile">{{ linha.saldo }}</td>
+                        <td class="hide-mobile">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if jogadores|length == 0 %}
@@ -129,13 +129,13 @@
             <table class="ranking-table">
                 <thead>
                     <tr>
-                        <th>Posição</th>
-                        <th>Dupla</th>
-                        <th>Score</th>
-                        <th>Vitórias</th>
-                        <th>Derrotas</th>
-                        <th>Saldo</th>
-                        <th>Jogos</th>
+                        <th><span class="label-full">Posição</span><span class="label-short">Pos</span></th>
+                        <th><span class="label-full">Dupla</span><span class="label-short">Dupla</span></th>
+                        <th><span class="label-full">Score</span><span class="label-short">%</span></th>
+                        <th><span class="label-full">Vitórias</span><span class="label-short">V</span></th>
+                        <th><span class="label-full">Derrotas</span><span class="label-short">D</span></th>
+                        <th class="hide-mobile">Saldo</th>
+                        <th class="hide-mobile">Jogos</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -146,8 +146,8 @@
                         <td class="score">{{ linha.score }}</td>
                         <td>{{ linha.vitorias }}</td>
                         <td>{{ linha.derrotas }}</td>
-                        <td>{{ linha.saldo }}</td>
-                        <td>{{ linha.jogos }}</td>
+                        <td class="hide-mobile">{{ linha.saldo }}</td>
+                        <td class="hide-mobile">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if duplas|length == 0 %}
