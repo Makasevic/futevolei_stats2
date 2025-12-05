@@ -121,9 +121,13 @@ def _descricao_periodo(
 def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
     medalhas = ["🥇", "🥈", "🥉"]
     linhas: List[Dict[str, str]] = []
+    total_linhas = len(df)
 
     for idx, linha in df.iterrows():
-        posicao = medalhas[idx] if idx < len(medalhas) else f"#{idx + 1:02d}"
+        if idx < len(medalhas):
+            posicao = medalhas[idx]
+        else:
+            posicao = "😱" if idx == total_linhas - 1 else f"{idx + 1:02d}"
         linhas.append(
             {
                 "posicao": posicao,
