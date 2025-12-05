@@ -1,8 +1,8 @@
 """Configurações de marca e parâmetros de interface customizáveis."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Tuple
+from dataclasses import dataclass, field, replace
+from typing import Any, Iterable, Mapping, Tuple
 
 
 @dataclass(frozen=True)
@@ -72,10 +72,63 @@ class UiConfig:
 UI_CONFIG = UiConfig()
 
 
-def get_ui_config() -> UiConfig:
+def _normalize_tuple(values: Iterable[str] | str | None, *, default: Tuple[str, ...]) -> Tuple[str, ...]:
+    if values is None:
+        return default
+
+    if isinstance(values, str):
+        items = [values]
+    else:
+        items = list(values)
+
+    return tuple(str(item) for item in items if str(item)) or default
+
+
+def build_ui_config(overrides: Mapping[str, Any] | None = None) -> UiConfig:
+    """Cria uma instância de :class:`UiConfig` mesclando *overrides* opcionais."""
+
+    if not overrides:
+        return UI_CONFIG
+
+    branding_override = overrides.get("branding")
+    branding_cfg = (
+        replace(UI_CONFIG.branding, **branding_override)
+        if isinstance(branding_override, Mapping)
+        else UI_CONFIG.branding
+    )
+
+    ranking_periods = _normalize_tuple(
+        overrides.get("ranking_periods"), default=UI_CONFIG.ranking_periods
+    )
+    games_periods = _normalize_tuple(
+        overrides.get("games_periods"), default=UI_CONFIG.games_periods
+    )
+    excluded_players = _normalize_tuple(
+        overrides.get("excluded_players"), default=UI_CONFIG.excluded_players
+    )
+
+    return replace(
+        UI_CONFIG,
+        branding=branding_cfg,
+        ranking_periods=ranking_periods,
+        games_periods=games_periods,
+        default_ranking_period=overrides.get(
+            "default_ranking_period", UI_CONFIG.default_ranking_period
+        ),
+        default_games_period=overrides.get(
+            "default_games_period", UI_CONFIG.default_games_period
+        ),
+        excluded_players=excluded_players,
+        average_match_minutes=int(
+            overrides.get("average_match_minutes", UI_CONFIG.average_match_minutes)
+        ),
+    )
+
+
+def get_ui_config(overrides: Mapping[str, Any] | None = None) -> UiConfig:
     """Retorna a configuração imutável de UI usada pelo Flask."""
 
-    return UI_CONFIG
+    return build_ui_config(overrides)
 
 
 __all__ = ["NavigationLink", "BrandingConfig", "UiConfig", "UI_CONFIG", "get_ui_config"]

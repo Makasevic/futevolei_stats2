@@ -11,17 +11,25 @@ from typing import Any, Dict, Iterable, List, Tuple
 import pandas as pd
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
-from app_settings import get_config
+from app_settings import get_config, update_config
 from config import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
 from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
 from extraction import get_matches
 from preparation import preparar_dataframe
 from processing import filtrar_dados, preparar_dados_duplas, preparar_dados_individuais
 from data_access.supabase_repository import delete_match, insert_match, update_match
+from ui_config import get_ui_config
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
+
+
+def _current_ui_config():
+    """Retorna a configuração de UI considerando ajustes salvos na sessão."""
+
+    overrides = session.get("ui_config_overrides", {})
+    return get_ui_config(overrides)
 
 
 # --------------------------------- Dados ----------------------------------
@@ -72,6 +80,11 @@ def _filtrar_por_intervalo(
     return filtrado
 
 
+def _excluded_players() -> set:
+    config = _current_ui_config()
+    return set(config.excluded_players)
+
+
 def _filter_rankings(
     modo: str,
     periodo: str | None,
@@ -94,8 +107,10 @@ def _filter_rankings(
     jogadores = preparar_dados_individuais(df_filtrado)
     duplas = preparar_dados_duplas(df_filtrado)
 
-    jogadores = jogadores[~jogadores["jogadores"].str.contains("Outro", na=False)]
-    duplas = duplas[~duplas["duplas"].str.contains("Outro", na=False)]
+    excluidos = _excluded_players()
+    if excluidos:
+        jogadores = jogadores[~jogadores["jogadores"].isin(excluidos)]
+        duplas = duplas[~duplas["duplas"].isin(excluidos)]
 
     # Garantir que os índices sejam contínuos após filtros, para não quebrar as medalhas
     jogadores = jogadores.reset_index(drop=True)
@@ -285,18 +300,11 @@ def _reset_cache() -> None:
 # -------------------------------- Rotas -----------------------------------
 @app.route("/")
 def home():
-    periodos_disponiveis = [
-        "1 dia",
-        "30 dias",
-        "60 dias",
-        "90 dias",
-        "180 dias",
-        "360 dias",
-        "Todos",
-    ]
+    ui_config = _current_ui_config()
+    periodos_disponiveis = list(ui_config.ranking_periods)
 
     modo = request.args.get("modo", "Dias")
-    periodo = request.args.get("periodo", "1 dia")
+    periodo = request.args.get("periodo", ui_config.default_ranking_period)
     inicio = request.args.get("inicio")
     fim = request.args.get("fim")
 
@@ -356,6 +364,98 @@ def infos():
     )
 
 
+def _parse_list(value: str | None) -> Tuple[str, ...]:
+    if not value:
+        return tuple()
+    return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _safe_int(value: str | None, default: int) -> int:
+    try:
+        return int(value) if value is not None else default
+    except ValueError:
+        return default
+
+
+def _safe_float(value: str | None, default: float) -> float:
+    try:
+        return float(value) if value is not None else default
+    except ValueError:
+        return default
+
+
+@app.route("/config", methods=["GET", "POST"])
+def config_page():
+    ui_config = _current_ui_config()
+    app_config = get_config()
+    mensagem = None
+
+    if request.method == "POST":
+        ranking_periods = _parse_list(request.form.get("ranking_periods"))
+        games_periods = _parse_list(request.form.get("games_periods"))
+        default_ranking = request.form.get(
+            "default_ranking_period", ui_config.default_ranking_period
+        )
+        default_games = request.form.get("default_games_period", ui_config.default_games_period)
+        excluded_players = _parse_list(request.form.get("excluded_players"))
+        average_minutes = _safe_int(
+            request.form.get("average_match_minutes"), ui_config.average_match_minutes
+        )
+
+        if default_ranking and default_ranking not in ranking_periods:
+            ranking_periods = ranking_periods + (default_ranking,)
+        if default_games and default_games not in games_periods:
+            games_periods = games_periods + (default_games,)
+
+        session["ui_config_overrides"] = {
+            "ranking_periods": ranking_periods or ui_config.ranking_periods,
+            "games_periods": games_periods or ui_config.games_periods,
+            "default_ranking_period": default_ranking or ui_config.default_ranking_period,
+            "default_games_period": default_games or ui_config.default_games_period,
+            "excluded_players": excluded_players or ui_config.excluded_players,
+            "average_match_minutes": average_minutes,
+        }
+
+        update_config(
+            min_participation_ratio=_safe_float(
+                request.form.get("min_participation_ratio"), app_config.min_participation_ratio
+            ),
+            min_duo_matches=_safe_int(
+                request.form.get("min_duo_matches"), app_config.min_duo_matches
+            ),
+            tendencia_short_months=_safe_int(
+                request.form.get("tendencia_short_months"), app_config.tendencia_short_months
+            ),
+            tendencia_long_months=_safe_int(
+                request.form.get("tendencia_long_months"), app_config.tendencia_long_months
+            ),
+            tendencia_threshold=_safe_float(
+                request.form.get("tendencia_threshold"), app_config.tendencia_threshold
+            ),
+        )
+
+        ui_config = _current_ui_config()
+        app_config = get_config()
+        mensagem = "Configurações atualizadas com sucesso!"
+
+    return render_template(
+        "config.html",
+        active_page="config",
+        ranking_periods=", ".join(ui_config.ranking_periods),
+        default_ranking_period=ui_config.default_ranking_period,
+        games_periods=", ".join(ui_config.games_periods),
+        default_games_period=ui_config.default_games_period,
+        excluded_players=", ".join(ui_config.excluded_players),
+        average_match_minutes=ui_config.average_match_minutes,
+        min_participation_ratio=app_config.min_participation_ratio,
+        min_duo_matches=app_config.min_duo_matches,
+        tendencia_short_months=app_config.tendencia_short_months,
+        tendencia_long_months=app_config.tendencia_long_months,
+        tendencia_threshold=app_config.tendencia_threshold,
+        mensagem=mensagem,
+    )
+
+
 def _descricao_jogos(
     modo: str, periodo: str | None, ano: str | None, mes: str | None, data: str | None
 ) -> str:
@@ -400,19 +500,11 @@ def _formatar_partidas(df: pd.DataFrame) -> List[Dict[str, str]]:
 
 @app.route("/jogos")
 def jogos():
-    periodos_disponiveis = [
-        "1 dia",
-        "30 dias",
-        "60 dias",
-        "90 dias",
-        "180 dias",
-        "360 dias",
-        "Todos",
-        "Data",
-    ]
+    ui_config = _current_ui_config()
+    periodos_disponiveis = list(ui_config.games_periods)
 
     modo = request.args.get("modo", "Dias")
-    periodo = request.args.get("periodo", "1 dia")
+    periodo = request.args.get("periodo", ui_config.default_games_period)
     data_escolhida = request.args.get("data")
 
     base_df = _fetch_base_dataframe()
@@ -732,6 +824,7 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
     """Reproduz a lógica da antiga aba de infos em formato não-Streamlit."""
 
     config = get_config()
+    excluidos = _excluded_players()
 
     df_jog = preparar_dados_individuais(df)
     df_jog = df_jog[~df_jog["jogadores"].str.contains("Outro", na=False)].copy()
@@ -754,14 +847,12 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
     dias_jogados = pd.to_datetime(df.index, errors="coerce").normalize().nunique()
 
     def _melhor_aproveitamento(label: str, pior: bool = False) -> Dict[str, str]:
-        EXCLUIR = {"Outro_1", "Outro_2"}
-
         v = df_jog["vitórias"]
         d = df_jog["derrotas"]
         jogos = v + d
         stats = df_jog.copy()
         stats["jogos"] = jogos
-        stats = stats.drop(index=list(EXCLUIR), errors="ignore")
+        stats = stats.drop(index=list(excluidos), errors="ignore")
 
         if stats.empty:
             return {"title": label, "value": "-", "detail": "-"}
@@ -804,8 +895,6 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
         }
 
     def _maior_vexame() -> Dict[str, str]:
-        EXCLUIR = {"Outro_1", "Outro_2"}
-
         registros: List[Dict[str, object]] = []
         df_dias = df.copy()
         df_dias.index = pd.to_datetime(df_dias.index, errors="coerce")
@@ -815,8 +904,8 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
             vitorias_dia = pd.Series(df_dia.iloc[:, 0:2].values.ravel()).value_counts()
             derrotas_dia = pd.Series(df_dia.iloc[:, 2:4].values.ravel()).value_counts()
 
-            vitorias_dia = vitorias_dia.drop(list(EXCLUIR), errors="ignore")
-            derrotas_dia = derrotas_dia.drop(list(EXCLUIR), errors="ignore")
+            vitorias_dia = vitorias_dia.drop(list(excluidos), errors="ignore")
+            derrotas_dia = derrotas_dia.drop(list(excluidos), errors="ignore")
 
             jogadores_dia = sorted(set(vitorias_dia.index) | set(derrotas_dia.index))
             jogadores_dia = [j for j in jogadores_dia if j in jogadores_validos]

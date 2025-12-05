@@ -54,8 +54,6 @@
         <label class="badge" for="fim">Fim</label>
         <input type="date" id="fim" name="fim" class="select" value="{{ fim }}" />
     </div>
-
-    <button class="btn-refresh" type="submit">Atualizar ranking</button>
 </form>
 
 <section class="panel">
@@ -164,6 +162,8 @@
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const modoSelect = document.getElementById('modo');
+    const filterForm = document.querySelector('.filter-bar');
+    const filterInputs = filterForm.querySelectorAll('select, input');
     const filterGroups = document.querySelectorAll('.filter-group');
 
     tabButtons.forEach((button) => {
@@ -187,6 +187,12 @@
     }
 
     modoSelect.addEventListener('change', toggleFilters);
+    filterInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            toggleFilters();
+            filterForm.requestSubmit();
+        });
+    });
     toggleFilters();
 </script>
 {% endblock %}

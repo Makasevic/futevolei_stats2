@@ -419,6 +419,49 @@ header.hero::after {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 10px 20px rgba(47, 107, 255, 0.16);
 }
 
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.config-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+}
+
+.config-group h3 {
+    margin: 0 0 4px;
+}
+
+.config-group label {
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.config-group input {
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--stroke);
+    background: var(--bg);
+    color: var(--text);
+}
+
+.alert {
+    margin: 10px 0 18px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(50, 213, 131, 0.12);
+    border: 1px solid rgba(50, 213, 131, 0.5);
+    color: var(--text);
+    font-weight: 600;
+}
+
 .badge {
     background: rgba(47, 107, 255, 0.1);
     color: #1d3f99;
