@@ -783,9 +783,9 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
     df_duplas = preparar_dados_duplas(df)
     df_duplas = df_duplas[~df_duplas["duplas"].str.contains("Outro", na=False)].copy()
 
-    media_jogos = df_jog["jogos"].mean()
-    if media_jogos > 0:
-        limiar = media_jogos * config.min_participation_ratio
+    media_top_10 = df_jog["jogos"].nlargest(10).mean()
+    if media_top_10 > 0:
+        limiar = media_top_10 * config.min_participation_ratio
         df_jog = df_jog[df_jog["jogos"] >= limiar]
 
     df_jog["saldo"] = df_jog["vitórias"] - df_jog["derrotas"]

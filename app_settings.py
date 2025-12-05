@@ -17,7 +17,7 @@ _STATE_KEY = "app_config"
 class AppConfig:
     """Parâmetros ajustáveis do aplicativo com valores padrão."""
 
-    min_participation_ratio: float = 0.40
+    min_participation_ratio: float = 0.20
     min_duo_matches: int = 5
     tendencia_short_months: int = 3
     tendencia_long_months: int = 12

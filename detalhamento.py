@@ -80,9 +80,9 @@ def _aplicar_regras_ranking(tabela: pd.DataFrame, config) -> pd.DataFrame:
     if ranking.empty:
         return ranking
 
-    media_jogos = ranking["jogos"].mean()
-    if media_jogos > 0:
-        limiar = media_jogos * config.min_participation_ratio
+    media_top_10 = ranking["jogos"].nlargest(10).mean()
+    if media_top_10 > 0:
+        limiar = media_top_10 * config.min_participation_ratio
         ranking = ranking[ranking["jogos"] >= limiar].copy()
 
     if ranking.empty:
