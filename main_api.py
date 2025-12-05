@@ -93,6 +93,7 @@ def _filter_rankings(
     fim: str | None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     base_df = _fetch_base_dataframe()
+    config = get_config()
 
     if modo == "Ano" and ano:
         df_filtrado = filtrar_dados(base_df, "Ano", ano)
@@ -110,6 +111,14 @@ def _filter_rankings(
     if excluidos:
         jogadores = jogadores[~jogadores["jogadores"].isin(excluidos)]
         duplas = duplas[~duplas["duplas"].isin(excluidos)]
+
+    media_top_10 = jogadores["jogos"].nlargest(10).mean()
+    if media_top_10 > 0:
+        limiar = media_top_10 * config.min_participation_ratio
+        jogadores = jogadores[jogadores["jogos"] >= limiar]
+
+    if config.min_duo_matches > 0:
+        duplas = duplas[duplas["jogos"] >= config.min_duo_matches]
 
     # Garantir que os índices sejam contínuos após filtros, para não quebrar as medalhas
     jogadores = jogadores.reset_index(drop=True)
