@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
     --bg: #f6f8fb;
     --card: #ffffff;
@@ -8,12 +10,18 @@
     --muted: #4a5668;
     --border: #e4e9f2;
     --shadow: 0 18px 60px rgba(31, 51, 84, 0.12);
+    --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-regular: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
 }
 
 * { box-sizing: border-box; }
 
 body {
-    font-family: 'SF Pro Display', 'SF Pro Text', 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: var(--font-family-base);
+    font-weight: var(--font-regular);
     background: radial-gradient(140% 120% at 10% 10%, #dce6ff 0%, rgba(220, 230, 255, 0.15) 36%, transparent 42%),
                 radial-gradient(120% 120% at 90% 0%, #d0f3f0 0%, rgba(208, 243, 240, 0.35) 32%, transparent 45%),
                 var(--bg);
@@ -21,6 +29,10 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6, strong, b {
+    font-weight: var(--font-semibold);
 }
 
 .topbar {
@@ -57,7 +69,7 @@ body {
     border-radius: 12px;
     background: linear-gradient(145deg, #2f6bff, #6da6ff);
     color: #ffffff;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     letter-spacing: 0.04em;
     box-shadow: 0 10px 25px rgba(47, 107, 255, 0.35);
 }
@@ -82,7 +94,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     color: var(--text);
     min-width: 170px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 24px rgba(31, 51, 84, 0.12);
@@ -135,7 +147,7 @@ body {
     border: 1px solid transparent;
     background: rgba(255, 255, 255, 0.6);
     transition: all 140ms ease;
-    font-weight: 600;
+    font-weight: var(--font-medium);
 }
 
 .menu__item:hover {
@@ -216,7 +228,7 @@ header.hero::after {
     margin-left: 10px;
     padding: 7px 12px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     color: #0f3d70;
     background: linear-gradient(135deg, rgba(47, 107, 255, 0.18), rgba(19, 182, 167, 0.18));
     border: 1px solid rgba(47, 107, 255, 0.25);
@@ -299,7 +311,7 @@ header.hero::after {
     border-radius: 12px;
     outline: none;
     min-width: 170px;
-    font-weight: 600;
+    font-weight: var(--font-medium);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
@@ -309,7 +321,7 @@ header.hero::after {
     border: none;
     padding: 12px 18px;
     border-radius: 14px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
     box-shadow: 0 12px 30px rgba(47, 107, 255, 0.32);
@@ -336,7 +348,7 @@ header.hero::after {
     letter-spacing: 0.1em;
     font-size: 11px;
     color: #1d3f99;
-    font-weight: 800;
+    font-weight: var(--font-bold);
 }
 
 .section-divider {
@@ -356,7 +368,7 @@ header.hero::after {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    font-weight: 800;
+    font-weight: var(--font-bold);
 }
 
 .panel {
@@ -382,7 +394,7 @@ header.hero::after {
     border: none;
     padding: 10px 14px;
     border-radius: 10px;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     letter-spacing: -0.01em;
     cursor: pointer;
     transition: all 140ms ease;
@@ -436,7 +448,7 @@ header.hero::after {
 .highlight-card__label {
     margin: 0;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     letter-spacing: -0.01em;
     color: #1d3f99;
     text-transform: uppercase;
@@ -516,13 +528,13 @@ header.hero::after {
     border-radius: 10px;
     background: rgba(31, 51, 84, 0.05);
     border: 1px solid var(--border);
-    font-weight: 700;
+    font-weight: var(--font-semibold);
 }
 
-.score { color: var(--accent); font-weight: 800; }
+.score { color: var(--accent); font-weight: var(--font-bold); }
 
 .name {
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     letter-spacing: -0.01em;
 }
 
@@ -568,7 +580,7 @@ header.hero::after {
 }
 
 .compact-label {
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 13px;
     letter-spacing: -0.01em;
     color: var(--muted);
@@ -576,7 +588,7 @@ header.hero::after {
 }
 
 .compact-value {
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 18px;
     margin-bottom: 2px;
 }
@@ -597,7 +609,7 @@ header.hero::after {
     border: 1px solid var(--border);
     padding: 6px 10px;
     border-radius: 999px;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     color: var(--muted);
     line-height: 1.2;
 }
@@ -629,7 +641,7 @@ header.hero::after {
     border-radius: 999px;
     background: rgba(47, 107, 255, 0.1);
     border: 1px solid rgba(47, 107, 255, 0.2);
-    font-weight: 800;
+    font-weight: var(--font-bold);
     color: #1d3f99;
     margin: 0;
 }
@@ -686,13 +698,13 @@ header.hero::after {
 
 .profile-row .label {
     margin: 0;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     color: var(--muted);
 }
 
 .profile-row .value {
     margin: 2px 0 0;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 17px;
 }
 
@@ -738,7 +750,7 @@ header.hero::after {
 }
 
 .raiox-label {
-    font-weight: 800;
+    font-weight: var(--font-bold);
     color: var(--text);
     letter-spacing: -0.01em;
 }
@@ -748,7 +760,7 @@ header.hero::after {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     color: var(--text);
 }
 
@@ -807,7 +819,7 @@ header.hero::after {
     border-radius: 12px;
     border: 1px solid var(--border);
     margin-bottom: 16px;
-    font-weight: 600;
+    font-weight: var(--font-medium);
     background: var(--card);
     box-shadow: var(--shadow);
 }
@@ -851,7 +863,7 @@ header.hero::after {
     color: #1d3f99;
     border: 1px solid var(--border);
     border-radius: 999px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 11px;
@@ -958,7 +970,7 @@ header.hero::after {
     border: 1px solid rgba(47, 107, 255, 0.3);
     border-radius: 999px;
     color: #1d3f99;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 12px;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -999,7 +1011,7 @@ header.hero::after {
     border: 1px solid var(--border);
     background: #fff;
     color: var(--text);
-    font-weight: 600;
+    font-weight: var(--font-medium);
 }
 
 .form-actions { display: flex; gap: 10px; align-items: center; }
@@ -1009,7 +1021,7 @@ header.hero::after {
     border: none;
     border-radius: 12px;
     padding: 11px 14px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     cursor: pointer;
 }
 
@@ -1113,7 +1125,7 @@ header.hero::after {
 
 .xray-value {
     margin: 2px 0 4px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 18px;
 }
 
@@ -1182,7 +1194,7 @@ header.hero::after {
 
 .xray-value {
     margin: 2px 0 4px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     font-size: 18px;
 }
 
@@ -1295,8 +1307,8 @@ header.hero::after {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.hero-stat__label { margin: 0; color: var(--muted); font-weight: 700; letter-spacing: 0.01em; }
-.hero-stat__value { margin: 2px 0 0; font-size: 24px; font-weight: 800; }
+.hero-stat__label { margin: 0; color: var(--muted); font-weight: var(--font-semibold); letter-spacing: 0.01em; }
+.hero-stat__value { margin: 2px 0 0; font-size: 24px; font-weight: var(--font-bold); }
 
 .info-section {
     background: #ffffff;
@@ -1338,7 +1350,7 @@ header.hero::after {
     border-radius: 999px;
     background: rgba(47, 107, 255, 0.12);
     color: #1d3f99;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     letter-spacing: 0.03em;
     text-transform: uppercase;
     font-size: 12px;
@@ -1352,7 +1364,7 @@ header.hero::after {
     gap: 6px;
     padding: 8px 12px;
     border-radius: 999px;
-    font-weight: 800;
+    font-weight: var(--font-bold);
     letter-spacing: 0.03em;
     text-transform: uppercase;
     border: 1px solid var(--border);
