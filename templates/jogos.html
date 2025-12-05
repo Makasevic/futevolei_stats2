@@ -92,7 +92,6 @@
                     <th>Data</th>
                     <th>Vencedores</th>
                     <th>Perdedores</th>
-                    <th>Placar</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,12 +100,11 @@
                     <td class="tag" data-label="Data">{{ jogo.data }}</td>
                     <td class="name" data-label="Vencedores">{{ jogo.vencedores }}</td>
                     <td class="name" data-label="Perdedores">{{ jogo.perdedores }}</td>
-                    <td class="score" data-label="Placar">{{ jogo.score }}</td>
                 </tr>
                 {% endfor %}
                 {% if partidas|length == 0 %}
                 <tr>
-                    <td colspan="4" class="meta">Nenhuma partida encontrada para o filtro selecionado.</td>
+                    <td colspan="3" class="meta">Nenhuma partida encontrada para o filtro selecionado.</td>
                 </tr>
                 {% endif %}
             </tbody>
