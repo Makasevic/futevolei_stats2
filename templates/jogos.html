@@ -99,10 +99,10 @@
             <tbody>
                 {% for jogo in partidas %}
                 <tr>
-                    <td class="tag">{{ jogo.data }}</td>
-                    <td class="name">{{ jogo.vencedores }}</td>
-                    <td class="name">{{ jogo.perdedores }}</td>
-                    <td class="score">{{ jogo.score }}</td>
+                    <td class="tag" data-label="Data">{{ jogo.data }}</td>
+                    <td class="name" data-label="Vencedores">{{ jogo.vencedores }}</td>
+                    <td class="name" data-label="Perdedores">{{ jogo.perdedores }}</td>
+                    <td class="score" data-label="Placar">{{ jogo.score }}</td>
                 </tr>
                 {% endfor %}
                 {% if partidas|length == 0 %}

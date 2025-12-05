@@ -105,13 +105,13 @@
                 <tbody>
                     {% for linha in jogadores %}
                     <tr>
-                        <td class="tag">{{ linha.posicao }}</td>
-                        <td class="name">{{ linha.nome }}</td>
-                        <td class="score">{{ linha.score }}</td>
-                        <td>{{ linha.vitorias }}</td>
-                        <td>{{ linha.derrotas }}</td>
-                        <td>{{ linha.saldo }}</td>
-                        <td>{{ linha.jogos }}</td>
+                        <td class="tag" data-label="Pos.">{{ linha.posicao }}</td>
+                        <td class="name" data-label="Jogador">{{ linha.nome }}</td>
+                        <td class="score" data-label="Score">{{ linha.score }}</td>
+                        <td data-label="Vitórias">{{ linha.vitorias }}</td>
+                        <td data-label="Derrotas">{{ linha.derrotas }}</td>
+                        <td data-label="Saldo">{{ linha.saldo }}</td>
+                        <td data-label="Jogos">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if jogadores|length == 0 %}
@@ -141,13 +141,13 @@
                 <tbody>
                     {% for linha in duplas %}
                     <tr>
-                        <td class="tag">{{ linha.posicao }}</td>
-                        <td class="name">{{ linha.nome }}</td>
-                        <td class="score">{{ linha.score }}</td>
-                        <td>{{ linha.vitorias }}</td>
-                        <td>{{ linha.derrotas }}</td>
-                        <td>{{ linha.saldo }}</td>
-                        <td>{{ linha.jogos }}</td>
+                        <td class="tag" data-label="Pos.">{{ linha.posicao }}</td>
+                        <td class="name" data-label="Dupla">{{ linha.nome }}</td>
+                        <td class="score" data-label="Score">{{ linha.score }}</td>
+                        <td data-label="Vitórias">{{ linha.vitorias }}</td>
+                        <td data-label="Derrotas">{{ linha.derrotas }}</td>
+                        <td data-label="Saldo">{{ linha.saldo }}</td>
+                        <td data-label="Jogos">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if duplas|length == 0 %}

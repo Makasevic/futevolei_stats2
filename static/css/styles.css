@@ -540,6 +540,25 @@ header.hero::after {
 
 .meta { color: var(--muted); font-size: 13px; }
 
+@media (max-width: 720px) {
+    .container { padding: 24px 18px 90px; }
+    header.hero { grid-template-columns: 1fr; padding: 18px; gap: 14px; }
+    .tab-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .tab-button { width: 100%; justify-content: center; }
+    .table-wrapper { overflow: visible; }
+    .ranking-table { border: none; }
+    .ranking-table thead { display: none; }
+    .ranking-table tbody { display: grid; gap: 12px; }
+    .ranking-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 28px rgba(31, 51, 84, 0.1); padding: 6px; background: #ffffff; }
+    .ranking-table tbody tr td { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: none; }
+    .ranking-table tbody tr td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; font-weight: var(--font-semibold); }
+    .ranking-table tbody tr td[colspan] { grid-column: 1 / -1; align-items: flex-start; }
+    .ranking-table tbody tr td.name { grid-column: 1 / -1; font-size: 15px; }
+    .ranking-table tbody tr td.meta { grid-column: 1 / -1; text-align: left; }
+    .ranking-table tbody tr td.score { font-size: 18px; }
+    .ranking-table tbody tr td.tag { align-self: flex-start; }
+}
+
 .detail-header {
     display: flex;
     align-items: flex-start;
