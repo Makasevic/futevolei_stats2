@@ -19,13 +19,13 @@ class BrandingConfig:
     """Textos e elementos de identidade visual."""
 
     site_name: str = "Redinha Stats"
-    site_tagline: str = "Inteligência em quadra, visual de vitrine"
+    site_tagline: str = "Jogos feios, site bonito."
     brand_mark: str = "RS"
     hero_eyebrow: str = "ranking em tempo real"
     hero_title: str = "Redinha Stats"
     hero_description: str = (
-        "Um painel repaginado com visual claro, tipografia forte e destaques em gradiente. "
-        "Feito para entregar leitura rápida e elegante das estatísticas e do ranking em qualquer período."
+        "Aqui mora a verdade: sai o blá-blá-blá, entram os números."
+        """In God we trust. All others must bring data."""
     )
 
 

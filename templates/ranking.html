@@ -23,7 +23,7 @@
     </select>
 
     <div class="filter-group" data-mode="Dias">
-        <label class="badge" for="periodo">Período rápido</label>
+        <label class="badge" for="periodo">Período</label>
         <select id="periodo" name="periodo" class="select">
             {% for opcao in periodos %}
                 <option value="{{ opcao }}" {% if opcao == periodo_escolhido %}selected{% endif %}>{{ opcao }}</option>
