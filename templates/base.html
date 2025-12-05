@@ -21,6 +21,17 @@
                 <span></span>
                 <span></span>
             </button>
+            <div class="menu__dropdown">
+                <label class="sr-only" for="mobile-menu">Navegação</label>
+                <select id="mobile-menu" class="menu__select">
+                    <option value="/" {% if active_page == 'ranking' %}selected{% endif %}>Ranking</option>
+                    <option value="/infos" {% if active_page == 'infos' %}selected{% endif %}>Infos</option>
+                    <option value="/detalhamento" {% if active_page == 'detalhamento' %}selected{% endif %}>Detalhamento</option>
+                    <option value="/jogos" {% if active_page == 'jogos' %}selected{% endif %}>Jogos</option>
+                    <option value="#">Config</option>
+                    <option value="/admin" {% if active_page == 'admin' %}selected{% endif %}>Admin</option>
+                </select>
+            </div>
             <nav class="menu">
                 <a href="/" class="menu__item {% if active_page == 'ranking' %}is-active{% endif %}">Ranking</a>
                 <a href="/infos" class="menu__item {% if active_page == 'infos' %}is-active{% endif %}">Infos</a>
@@ -38,6 +49,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const menuToggle = document.querySelector('.menu__toggle');
             const menu = document.querySelector('.menu');
+            const mobileMenu = document.getElementById('mobile-menu');
 
             if (menuToggle && menu) {
                 menuToggle.addEventListener('click', () => {
@@ -54,6 +66,15 @@
                             menuToggle.setAttribute('aria-expanded', 'false');
                         }
                     });
+                });
+            }
+
+            if (mobileMenu) {
+                mobileMenu.addEventListener('change', (event) => {
+                    const value = event.target.value;
+                    if (value && value !== '#') {
+                        window.location.href = value;
+                    }
                 });
             }
 
