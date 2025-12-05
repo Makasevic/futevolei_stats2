@@ -1558,10 +1558,10 @@ header.hero::after {
 /* MOBILE (iOS/Android) — aumentar fonte e altura */
 @media (max-width: 600px) {
     .select {
-        font-size: 17px !important;
+        font-size: 15px !important;
         line-height: 1.4 !important;
         padding: 14px 14px !important;
-        height: 56px !important;
-        min-height: 56px !important;
+        height: 50px !important;
+        min-height: 50px !important;
     }
 }
