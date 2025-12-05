@@ -64,8 +64,8 @@ class UiConfig:
         "Data",
     )
     default_ranking_period: str = "1 dia"
-    default_games_period: str = "90 dias"
-    excluded_players: Tuple[str, ...] = ("Outro_1", "Outro_2")
+    default_games_period: str = "1 dia"
+    excluded_players: Tuple[str, ...] = ("Outro_1", "Outro_2", "Outro_3", "Outro_4")
     average_match_minutes: int = 20
 
 

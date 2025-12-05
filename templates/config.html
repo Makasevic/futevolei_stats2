@@ -14,48 +14,12 @@
     <form class="config-form" method="post">
         <div class="config-grid">
             <div class="config-group">
-                <h3>Filtros do ranking</h3>
-                <label for="ranking_periods">Períodos disponíveis (separe por vírgula)</label>
-                <input type="text" id="ranking_periods" name="ranking_periods" value="{{ ranking_periods }}" />
-
-                <label for="default_ranking_period">Padrão do ranking</label>
-                <input type="text" id="default_ranking_period" name="default_ranking_period" value="{{ default_ranking_period }}" />
-            </div>
-
-            <div class="config-group">
-                <h3>Filtros de jogos</h3>
-                <label for="games_periods">Períodos disponíveis (separe por vírgula)</label>
-                <input type="text" id="games_periods" name="games_periods" value="{{ games_periods }}" />
-
-                <label for="default_games_period">Padrão de jogos</label>
-                <input type="text" id="default_games_period" name="default_games_period" value="{{ default_games_period }}" />
-            </div>
-
-            <div class="config-group">
-                <h3>Exclusões e tempos</h3>
-                <label for="excluded_players">Jogadores ignorados (separe por vírgula)</label>
-                <input type="text" id="excluded_players" name="excluded_players" value="{{ excluded_players }}" />
-
-                <label for="average_match_minutes">Duração média das partidas (min)</label>
-                <input type="number" id="average_match_minutes" name="average_match_minutes" min="1" value="{{ average_match_minutes }}" />
-            </div>
-
-            <div class="config-group">
                 <h3>Regras de cálculo</h3>
                 <label for="min_participation_ratio">Mínimo de participação (0-1)</label>
                 <input type="number" step="0.01" id="min_participation_ratio" name="min_participation_ratio" value="{{ min_participation_ratio }}" />
 
                 <label for="min_duo_matches">Mínimo de jogos da dupla</label>
                 <input type="number" id="min_duo_matches" name="min_duo_matches" min="0" value="{{ min_duo_matches }}" />
-
-                <label for="tendencia_short_months">Janela curta (meses)</label>
-                <input type="number" id="tendencia_short_months" name="tendencia_short_months" min="1" value="{{ tendencia_short_months }}" />
-
-                <label for="tendencia_long_months">Janela longa (meses)</label>
-                <input type="number" id="tendencia_long_months" name="tendencia_long_months" min="1" value="{{ tendencia_long_months }}" />
-
-                <label for="tendencia_threshold">Sensibilidade da tendência</label>
-                <input type="number" step="0.1" id="tendencia_threshold" name="tendencia_threshold" value="{{ tendencia_threshold }}" />
             </div>
         </div>
 
