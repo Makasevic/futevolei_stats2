@@ -93,25 +93,25 @@
             <table class="ranking-table">
                 <thead>
                     <tr>
-                        <th>Posição</th>
+                        <th><span class="is-mobile-hidden">Posição</span><span class="is-mobile-only" aria-hidden="true"></span></th>
                         <th>Jogador</th>
                         <th>Score</th>
-                        <th>Vitórias</th>
+                        <th><span class="is-mobile-hidden">Vitórias</span><span class="is-mobile-only" aria-hidden="true">V</span></th>
                         <th class="is-mobile-hidden">Derrotas</th>
                         <th class="is-mobile-hidden">Saldo</th>
-                        <th>Jogos</th>
+                        <th><span class="is-mobile-hidden">Jogos</span><span class="is-mobile-only" aria-hidden="true">J</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for linha in jogadores %}
                     <tr>
-                        <td class="tag" data-label="Pos.">{{ linha.posicao }}</td>
+                        <td class="tag" data-label="">{{ linha.posicao }}</td>
                         <td class="name" data-label="Jogador">{{ linha.nome }}</td>
                         <td class="score" data-label="Score">{{ linha.score }}</td>
-                        <td data-label="Vitórias">{{ linha.vitorias }}</td>
+                        <td data-label="V">{{ linha.vitorias }}</td>
                         <td class="is-mobile-hidden" data-label="Derrotas">{{ linha.derrotas }}</td>
                         <td class="is-mobile-hidden" data-label="Saldo">{{ linha.saldo }}</td>
-                        <td data-label="Jogos">{{ linha.jogos }}</td>
+                        <td data-label="J">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if jogadores|length == 0 %}
@@ -129,25 +129,25 @@
             <table class="ranking-table">
                 <thead>
                     <tr>
-                        <th>Posição</th>
+                        <th><span class="is-mobile-hidden">Posição</span><span class="is-mobile-only" aria-hidden="true"></span></th>
                         <th>Dupla</th>
                         <th>Score</th>
-                        <th>Vitórias</th>
+                        <th><span class="is-mobile-hidden">Vitórias</span><span class="is-mobile-only" aria-hidden="true">V</span></th>
                         <th class="is-mobile-hidden">Derrotas</th>
                         <th class="is-mobile-hidden">Saldo</th>
-                        <th>Jogos</th>
+                        <th><span class="is-mobile-hidden">Jogos</span><span class="is-mobile-only" aria-hidden="true">J</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for linha in duplas %}
                     <tr>
-                        <td class="tag" data-label="Pos.">{{ linha.posicao }}</td>
+                        <td class="tag" data-label="">{{ linha.posicao }}</td>
                         <td class="name" data-label="Dupla">{{ linha.nome }}</td>
                         <td class="score" data-label="Score">{{ linha.score }}</td>
-                        <td data-label="Vitórias">{{ linha.vitorias }}</td>
+                        <td data-label="V">{{ linha.vitorias }}</td>
                         <td class="is-mobile-hidden" data-label="Derrotas">{{ linha.derrotas }}</td>
                         <td class="is-mobile-hidden" data-label="Saldo">{{ linha.saldo }}</td>
-                        <td data-label="Jogos">{{ linha.jogos }}</td>
+                        <td data-label="J">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
                     {% if duplas|length == 0 %}
