@@ -1541,9 +1541,9 @@ header.hero::after {
     -webkit-appearance: none !important;
     appearance: none !important;
     line-height: 1.4 !important;
-    padding: 14px 16px !important;
-    height: 44px !important;
-    min-height: 44px !important;
+    padding: 10px 10px !important;
+    height: 42px !important;
+    min-height: 42px !important;
 }
 
 /* Opcional: seta personalizada */
@@ -1560,7 +1560,7 @@ header.hero::after {
     .select {
         font-size: 17px !important;
         line-height: 1.4 !important;
-        padding: 16px 18px !important;
+        padding: 14px 14px !important;
         height: 56px !important;
         min-height: 56px !important;
     }
