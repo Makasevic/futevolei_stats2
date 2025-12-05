@@ -643,6 +643,19 @@ header.hero::after {
     letter-spacing: -0.01em;
 }
 
+.ranking-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ranking-link:hover,
+.ranking-table tbody tr:hover .ranking-link {
+    color: var(--accent);
+}
+
 .meta { color: var(--muted); font-size: 13px; }
 
 @media (max-width: 720px) {

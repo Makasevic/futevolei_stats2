@@ -103,7 +103,9 @@
                     {% for linha in jogadores %}
                     <tr>
                         <td class="tag" data-label="">{{ linha.posicao }}</td>
-                        <td class="name" data-label="Jogador">{{ linha.nome }}</td>
+                        <td class="name" data-label="Jogador">
+                            <a class="ranking-link" href="{{ url_for('detalhamento', tipo='Jogador', jogador=linha.nome) }}">{{ linha.nome }}</a>
+                        </td>
                         <td class="score" data-label="Score">{{ linha.score }}</td>
                         <td data-label="V">{{ linha.vitorias }}</td>
                         <td class="is-mobile-hidden" data-label="Derrotas">{{ linha.derrotas }}</td>
