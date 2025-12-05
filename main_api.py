@@ -675,6 +675,16 @@ def admin():
             _set_admin_feedback("error", "Acesso não autorizado. Informe a senha para continuar.")
             return redirect(url_for("admin"))
 
+        if action == "refresh":
+            try:
+                _reset_cache()
+                _fetch_base_dataframe()
+                _set_admin_feedback("success", "Cache atualizado com sucesso!")
+            except Exception as exc:  # pragma: no cover - feedback exibido na interface
+                _set_admin_feedback("error", f"Erro ao atualizar cache: {exc}")
+
+            return redirect(url_for("admin"))
+
         if role == "limited" and action in {"update", "delete"}:
             _set_admin_feedback(
                 "error", "Somente administradores completos podem editar ou excluir partidas."

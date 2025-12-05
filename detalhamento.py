@@ -18,7 +18,7 @@ from processing import (
 
 def _formatar_estrelas(percentual: Optional[float]) -> str:
     if percentual is None or pd.isna(percentual):
-        return ""
+        return "—"
 
     rating = 1
     for limite in (20, 40, 60, 80):
@@ -384,10 +384,7 @@ def _obter_metricas_jogador(
         media_partidas_por_dia_texto = f"{media_partidas_por_dia:.2f} jogos/dia"
 
     if rotatividade_media is not None:
-        if rotatividade_percentil is not None:
-            rotatividade_texto = f"P{rotatividade_percentil:.0f} · média diária {rotatividade_media:.2f}"
-        else:
-            rotatividade_texto = "N/A"
+        rotatividade_texto = _formatar_estrelas(rotatividade_percentil)
 
     maior_pato = None
     maior_carrasco = None

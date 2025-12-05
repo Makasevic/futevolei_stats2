@@ -39,6 +39,17 @@
 {% else %}
 <section class="panel">
     <div class="section-title">
+        <h2>Atualizar dados</h2>
+        <span class="meta">Recarregue o cache de partidas do Supabase</span>
+    </div>
+    <form method="post" class="form-actions">
+        <input type="hidden" name="action" value="refresh" />
+        <button class="btn-secondary" type="submit">Atualizar dados do Supabase</button>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="section-title">
         <h2>Cadastrar nova partida</h2>
         <span class="meta">Preencha os quatro jogadores e a data do jogo</span>
     </div>
