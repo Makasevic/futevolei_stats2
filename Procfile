@@ -1,0 +1,1 @@
+web: gunicorn main_api:app --preload --bind 0.0.0.0:$PORT
