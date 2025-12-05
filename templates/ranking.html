@@ -97,8 +97,8 @@
                         <th>Jogador</th>
                         <th>Score</th>
                         <th>Vitórias</th>
-                        <th>Derrotas</th>
-                        <th>Saldo</th>
+                        <th class="is-mobile-hidden">Derrotas</th>
+                        <th class="is-mobile-hidden">Saldo</th>
                         <th>Jogos</th>
                     </tr>
                 </thead>
@@ -109,8 +109,8 @@
                         <td class="name" data-label="Jogador">{{ linha.nome }}</td>
                         <td class="score" data-label="Score">{{ linha.score }}</td>
                         <td data-label="Vitórias">{{ linha.vitorias }}</td>
-                        <td data-label="Derrotas">{{ linha.derrotas }}</td>
-                        <td data-label="Saldo">{{ linha.saldo }}</td>
+                        <td class="is-mobile-hidden" data-label="Derrotas">{{ linha.derrotas }}</td>
+                        <td class="is-mobile-hidden" data-label="Saldo">{{ linha.saldo }}</td>
                         <td data-label="Jogos">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
@@ -133,8 +133,8 @@
                         <th>Dupla</th>
                         <th>Score</th>
                         <th>Vitórias</th>
-                        <th>Derrotas</th>
-                        <th>Saldo</th>
+                        <th class="is-mobile-hidden">Derrotas</th>
+                        <th class="is-mobile-hidden">Saldo</th>
                         <th>Jogos</th>
                     </tr>
                 </thead>
@@ -145,8 +145,8 @@
                         <td class="name" data-label="Dupla">{{ linha.nome }}</td>
                         <td class="score" data-label="Score">{{ linha.score }}</td>
                         <td data-label="Vitórias">{{ linha.vitorias }}</td>
-                        <td data-label="Derrotas">{{ linha.derrotas }}</td>
-                        <td data-label="Saldo">{{ linha.saldo }}</td>
+                        <td class="is-mobile-hidden" data-label="Derrotas">{{ linha.derrotas }}</td>
+                        <td class="is-mobile-hidden" data-label="Saldo">{{ linha.saldo }}</td>
                         <td data-label="Jogos">{{ linha.jogos }}</td>
                     </tr>
                     {% endfor %}
