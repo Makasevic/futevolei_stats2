@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">cara a cara</p>
+        <h1>Versus</h1>
+        <p>Escolha dois jogadores e veja quem leva vantagem. Compare números gerais e o saldo direto nos últimos 12 meses.</p>
+    </div>
+</header>
+
+<form class="filter-bar" method="get" id="versus-form">
+    <label class="badge" for="j1">Jogador A</label>
+    <select id="j1" name="j1" class="select">
+        <option value="">Selecione</option>
+        {% for nome in jogadores %}
+            <option value="{{ nome }}" {% if nome == jogador1 %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+    </select>
+
+    <label class="badge" for="j2">Jogador B</label>
+    <select id="j2" name="j2" class="select" {% if jogadores|length == 0 %}disabled{% endif %}>
+        <option value="">Selecione</option>
+        {% for nome in jogadores %}
+            <option value="{{ nome }}" {% if nome == jogador2 %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+{% if estatisticas and confronto %}
+<section class="panel">
+    <div class="section-title">
+        <h2>Comparativo geral</h2>
+        <span class="meta">Resumo dos números históricos de cada jogador</span>
+    </div>
+    <div class="split-grid">
+        {% for chave, resumo in estatisticas.items() %}
+            <div class="card">
+                <p class="badge">{{ resumo.jogador }}</p>
+                <h3>{{ resumo.vitorias }}V · {{ resumo.derrotas }}D</h3>
+                <p class="meta">{{ resumo.jogos }} jogos · saldo {{ resumo.saldo }}</p>
+                <div class="pill-row" style="margin-top: 10px;">
+                    <span class="pill">Aproveitamento {{ resumo.aproveitamento|round(1) }}%</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="panel" style="margin-top:18px;">
+    <div class="section-title">
+        <h2>Confronto direto</h2>
+        <span class="meta">Saldo considerando apenas partidas entre {{ jogador1 }} e {{ jogador2 }}</span>
+    </div>
+    <div class="split-grid">
+        <div class="card">
+            <p class="badge">Resumo</p>
+            <h3>{{ confronto.vitorias_j1 }} x {{ confronto.vitorias_j2 }}</h3>
+            <p class="meta">Total de jogos: {{ confronto.total }} · Saldo {{ confronto.saldo }}</p>
+        </div>
+        <div class="chart-card">
+            <canvas id="versusChart" aria-label="Evolução do saldo mensal"></canvas>
+        </div>
+    </div>
+</section>
+{% else %}
+    <section class="panel" style="margin-top:18px;">
+        <p class="meta">Selecione dois jogadores diferentes para ver o confronto direto.</p>
+    </section>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('versus-form');
+        form?.addEventListener('change', () => form.submit());
+
+        const serieMensal = {{ confronto.serie_mensal|tojson if confronto else '[]' }};
+        const chartCanvas = document.getElementById('versusChart');
+
+        if (chartCanvas && Array.isArray(serieMensal) && serieMensal.length > 0 && window.Chart) {
+            const labels = serieMensal.map((ponto) => ponto.label);
+            const mensal = serieMensal.map((ponto) => ponto.saldo);
+            const acumulado = serieMensal.map((ponto) => ponto.acumulado);
+
+            new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Saldo mensal (Jogador A)',
+                            data: mensal,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            fill: true,
+                            tension: 0.2,
+                        },
+                        {
+                            label: 'Saldo acumulado',
+                            data: acumulado,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            fill: true,
+                            tension: 0.2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(31, 51, 84, 0.08)' },
+                        },
+                        x: {
+                            grid: { color: 'rgba(31, 51, 84, 0.04)' },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+                            },
+                        },
+                    },
+                },
+            });
+        }
+    });
+</script>
+{% endblock %}

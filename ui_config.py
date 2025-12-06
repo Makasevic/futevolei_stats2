@@ -39,6 +39,7 @@ class UiConfig:
             NavigationLink("Ranking", "/", "ranking"),
             NavigationLink("Infos", "/infos", "infos"),
             NavigationLink("Detalhamento", "/detalhamento", "detalhamento"),
+            NavigationLink("Versus", "/versus", "versus"),
             NavigationLink("Jogos", "/jogos", "jogos"),
             NavigationLink("Config", "#", "config"),
             NavigationLink("Admin", "/admin", "admin"),

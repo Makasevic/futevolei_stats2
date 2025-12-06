@@ -178,6 +178,109 @@ def _build_highlights(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
     return destaques
 
 
+def _jogadores_disponiveis(df: pd.DataFrame) -> List[str]:
+    jogadores = {
+        j
+        for j in df[["winner1", "winner2", "loser1", "loser2"]].values.ravel()
+        if isinstance(j, str) and "Outro" not in j
+    }
+
+    excluidos = _excluded_players()
+    return sorted(jogadores - excluidos)
+
+
+def _estatisticas_jogador_individual(df: pd.DataFrame, jogador: str) -> Dict[str, int | float]:
+    tabela = preparar_dados_individuais(df)
+    tabela = tabela[~tabela["jogadores"].isin(_excluded_players())]
+    linha = tabela.loc[tabela["jogadores"] == jogador]
+
+    if linha.empty:
+        return {
+            "jogador": jogador,
+            "jogos": 0,
+            "vitorias": 0,
+            "derrotas": 0,
+            "saldo": 0,
+            "aproveitamento": 0.0,
+        }
+
+    registro = linha.iloc[0]
+    return {
+        "jogador": jogador,
+        "jogos": int(registro.get("jogos", 0)),
+        "vitorias": int(registro.get("vitórias", 0)),
+        "derrotas": int(registro.get("derrotas", 0)),
+        "saldo": int(registro.get("saldo", 0)),
+        "aproveitamento": float(registro.get("aproveitamento", 0.0)),
+    }
+
+
+def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[str, Any]:
+    if jogador1 == jogador2:
+        return {
+            "total": 0,
+            "vitorias_j1": 0,
+            "vitorias_j2": 0,
+            "saldo": 0,
+            "serie_mensal": [],
+        }
+
+    mask_j1_win = (
+        ((df["winner1"] == jogador1) | (df["winner2"] == jogador1))
+        & ((df["loser1"] == jogador2) | (df["loser2"] == jogador2))
+    )
+    mask_j2_win = (
+        ((df["winner1"] == jogador2) | (df["winner2"] == jogador2))
+        & ((df["loser1"] == jogador1) | (df["loser2"] == jogador1))
+    )
+
+    confrontos_df = df[mask_j1_win | mask_j2_win].copy()
+
+    def _resultado_j1(row: pd.Series) -> int:
+        if (row["winner1"] == jogador1) or (row["winner2"] == jogador1):
+            return 1
+        if (row["loser1"] == jogador1) or (row["loser2"] == jogador1):
+            return -1
+        return 0
+
+    confrontos_df["resultado_j1"] = confrontos_df.apply(_resultado_j1, axis=1)
+
+    if not isinstance(confrontos_df.index, pd.DatetimeIndex):
+        confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
+
+    inicio = pd.Timestamp.now().normalize().replace(day=1)
+    meses_range = pd.date_range(end=inicio, periods=12, freq="MS")
+
+    mensal = (
+        confrontos_df["resultado_j1"]
+        .resample("MS")
+        .sum()
+        .reindex(meses_range, fill_value=0)
+        .sort_index()
+    )
+    saldo_acumulado = mensal.cumsum()
+
+    serie_mensal = [
+        {
+            "label": periodo.strftime("%b/%Y"),
+            "saldo": int(mensal.loc[periodo]),
+            "acumulado": int(saldo_acumulado.loc[periodo]),
+        }
+        for periodo in mensal.index
+    ]
+
+    vitorias_j1 = int(mask_j1_win.sum())
+    vitorias_j2 = int(mask_j2_win.sum())
+
+    return {
+        "total": len(confrontos_df),
+        "vitorias_j1": vitorias_j1,
+        "vitorias_j2": vitorias_j2,
+        "saldo": vitorias_j1 - vitorias_j2,
+        "serie_mensal": serie_mensal,
+    }
+
+
 # ------------------------------- Admin ------------------------------------
 _TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
 
@@ -562,13 +665,7 @@ def jogos():
 def detalhamento():
     df = _fetch_base_dataframe()
 
-    jogadores_disponiveis = sorted(
-        {
-            j
-            for j in df[["winner1", "winner2", "loser1", "loser2"]].values.ravel()
-            if isinstance(j, str) and "Outro" not in j
-        }
-    )
+    jogadores_disponiveis = _jogadores_disponiveis(df)
 
     tipo = request.args.get("tipo", "Jogador")
     if tipo not in {"Jogador", "Dupla"}:
@@ -620,6 +717,40 @@ def detalhamento():
         jogador2=jogador2,
         parceiros_validos=parceiros_validos,
         detalhes=detalhes,
+    )
+
+
+@app.route("/versus")
+def versus():
+    df = _fetch_base_dataframe()
+    jogadores_disponiveis = _jogadores_disponiveis(df)
+
+    jogador1 = request.args.get("j1")
+    jogador2 = request.args.get("j2")
+
+    if jogador1 not in jogadores_disponiveis:
+        jogador1 = None
+    if jogador2 not in jogadores_disponiveis:
+        jogador2 = None
+
+    estatisticas = None
+    confronto = None
+
+    if jogador1 and jogador2 and jogador1 != jogador2:
+        estatisticas = {
+            "jogador1": _estatisticas_jogador_individual(df, jogador1),
+            "jogador2": _estatisticas_jogador_individual(df, jogador2),
+        }
+        confronto = _confronto_direto(df, jogador1, jogador2)
+
+    return render_template(
+        "versus.html",
+        active_page="versus",
+        jogadores=jogadores_disponiveis,
+        jogador1=jogador1,
+        jogador2=jogador2,
+        estatisticas=estatisticas,
+        confronto=confronto,
     )
 
 
