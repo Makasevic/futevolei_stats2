@@ -71,6 +71,35 @@ def _calcular_tendencia(
     return tendencia, tendencia_delta, tendencia_observacao
 
 
+def _agrupar_score_mensal(score_percentual: pd.Series) -> List[Dict[str, object]]:
+    if score_percentual is None or score_percentual.empty:
+        return []
+
+    if not isinstance(score_percentual.index, pd.DatetimeIndex):
+        return []
+
+    score_percentual = score_percentual.sort_index()
+    score_mensal = score_percentual.resample("MS").mean().dropna()
+    if score_mensal.empty:
+        return []
+
+    ultimo_mes = score_mensal.index.max()
+    inicio_periodo = (ultimo_mes - pd.DateOffset(months=11)).normalize()
+    score_mensal = score_mensal[score_mensal.index >= inicio_periodo]
+    media_movel_3m = score_mensal.rolling(3, min_periods=1).mean()
+
+    return [
+        {
+            "data": idx.strftime("%m/%Y"),
+            "score": float(valor),
+            "media_movel": float(media_movel_3m.get(idx, np.nan))
+            if not pd.isna(media_movel_3m.get(idx, np.nan))
+            else None,
+        }
+        for idx, valor in score_mensal.items()
+    ]
+
+
 def _aplicar_regras_ranking(tabela: pd.DataFrame, config) -> pd.DataFrame:
     ranking = tabela.copy()
     if ranking.empty or "jogadores" not in ranking.columns:
@@ -129,8 +158,6 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
 
     jogos_totais_por_dia = vitorias_por_dia + derrotas_por_dia
     score_percentual = (vitorias_por_dia / jogos_totais_por_dia * 100).dropna().sort_index()
-    media_movel_3m = score_percentual.rolling("90D").mean()
-
     total_jogos = int(vitorias_mask.values.sum() + derrotas_mask.values.sum())
     total_vitorias = int(vitorias_mask.values.sum())
     total_derrotas = int(derrotas_mask.values.sum())
@@ -204,14 +231,7 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
     destaque_fregueses, destaque_carrascos = _saldo_confrontos_jogador(df, jogador)
     parcerias_top, parcerias_bottom = _formatar_parcerias(parcerias_detalhes, total_jogos)
 
-    serie_score = [
-        {
-            "data": idx.strftime("%d/%m/%Y"),
-            "score": float(valor),
-            "media_movel": float(media_movel_3m.get(idx, np.nan)) if not pd.isna(media_movel_3m.get(idx, np.nan)) else None,
-        }
-        for idx, valor in score_percentual.items()
-    ]
+    serie_score = _agrupar_score_mensal(score_percentual)
 
     return {
         "metricas": metricas,
@@ -463,8 +483,6 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
     jogos_totais = vitorias_por_dia + derrotas_por_dia
     score_percentual = (vitorias_por_dia / jogos_totais * 100).dropna().sort_index()
     score_por_dia = score_percentual.round(2)
-    media_movel_3m = score_percentual.rolling("90D").mean()
-
     total_jogos = int(vitorias_por_dia.sum() + derrotas_por_dia.sum())
     total_vitorias = int(vitorias_por_dia.sum())
     total_derrotas = int(derrotas_por_dia.sum())
@@ -547,14 +565,7 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
     carrascos = saldo_dupla[saldo_dupla < 0].sort_values().head(5).reset_index()
     carrascos.columns = ["nome", "saldo"]
 
-    serie_score = [
-        {
-            "data": idx.strftime("%d/%m/%Y"),
-            "score": float(valor),
-            "media_movel": float(media_movel_3m.get(idx, np.nan)) if not pd.isna(media_movel_3m.get(idx, np.nan)) else None,
-        }
-        for idx, valor in score_percentual.items()
-    ]
+    serie_score = _agrupar_score_mensal(score_percentual)
 
     return {
         "metricas": metricas_dupla,
