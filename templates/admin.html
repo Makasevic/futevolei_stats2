@@ -50,6 +50,32 @@
 
 <section class="panel">
     <div class="section-title">
+        <h2>Jogadores cadastrados</h2>
+        <span class="meta">Adicione novos nomes e copie a lista completa</span>
+    </div>
+    <form class="form-grid" method="post">
+        <input type="hidden" name="action" value="add_player" />
+        <label>
+            <span class="badge">Novo jogador</span>
+            <input class="input" name="player_name" placeholder="Nome" required />
+        </label>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Cadastrar jogador</button>
+        </div>
+    </form>
+    <div class="form-grid" style="margin-top: 12px;">
+        <label>
+            <span class="badge">Lista completa</span>
+            <textarea id="players-text" class="input" readonly rows="6">{{ players_text }}</textarea>
+        </label>
+        <div class="form-actions">
+            <button class="btn-secondary" type="button" id="copy-players">Copiar lista</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-title">
         <h2>Cadastrar nova partida</h2>
         <span class="meta">Preencha os quatro jogadores e a data do jogo</span>
     </div>
@@ -85,6 +111,27 @@
             {% if role != 'full' %}
             <p class="meta">Edição e exclusão ficam disponíveis apenas para administradores completos.</p>
             {% endif %}
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="section-title">
+        <h2>Lançar partidas em bloco</h2>
+        <span class="meta">Use o formato "jogador_a e jogador_b x jogador_c e jogador_d" por linha</span>
+    </div>
+    <form class="form-grid" method="post">
+        <input type="hidden" name="action" value="bulk_create" />
+        <label>
+            <span class="badge">Data das partidas</span>
+            <input class="input" type="date" name="bulk_date" value="{{ today }}" />
+        </label>
+        <label style="grid-column: 1 / -1;">
+            <span class="badge">Partidas</span>
+            <textarea class="input" name="bulk_matches" rows="6" placeholder="jogador_a e jogador_b x jogador_c e jogador_d&#10;jogador_b e jogador_b x jogador_k e jogador_d" required></textarea>
+        </label>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Cadastrar partidas em bloco</button>
         </div>
     </form>
 </section>
@@ -150,4 +197,20 @@
     <button type="submit" class="btn-secondary">Encerrar sessão</button>
 </form>
 {% endif %}
+
+<script>
+    const copyButton = document.getElementById('copy-players');
+    const playersText = document.getElementById('players-text');
+    if (copyButton && playersText) {
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(playersText.value.trim());
+                copyButton.textContent = 'Copiado!';
+                setTimeout(() => (copyButton.textContent = 'Copiar lista'), 2000);
+            } catch (err) {
+                copyButton.textContent = 'Erro ao copiar';
+            }
+        });
+    }
+</script>
 {% endblock %}

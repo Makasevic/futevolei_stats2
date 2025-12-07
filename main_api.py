@@ -18,6 +18,7 @@ from extraction import get_matches
 from preparation import preparar_dataframe
 from processing import filtrar_dados, preparar_dados_duplas, preparar_dados_individuais
 from data_access.supabase_repository import delete_match, insert_match, update_match
+from data_access.player_registry import add_player, load_registered_players
 from ui_config import get_ui_config
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -236,6 +237,15 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
 
     confrontos_df = df[mask_j1_win | mask_j2_win].copy()
 
+    if confrontos_df.empty:
+        return {
+            "total": 0,
+            "vitorias_j1": 0,
+            "vitorias_j2": 0,
+            "saldo": 0,
+            "serie_mensal": [],
+        }
+
     def _resultado_j1(row: pd.Series) -> int:
         if (row["winner1"] == jogador1) or (row["winner2"] == jogador1):
             return 1
@@ -248,8 +258,9 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
     if not isinstance(confrontos_df.index, pd.DatetimeIndex):
         confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
 
-    inicio = pd.Timestamp.now().normalize().replace(day=1)
-    meses_range = pd.date_range(end=inicio, periods=12, freq="MS")
+    inicio = confrontos_df.index.min().normalize().replace(day=1)
+    fim = pd.Timestamp.now().normalize().replace(day=1)
+    meses_range = pd.date_range(start=inicio, end=fim, freq="MS")
 
     mensal = (
         confrontos_df["resultado_j1"]
@@ -335,6 +346,16 @@ def _players_from_df(df: pd.DataFrame | None) -> List[str]:
     return players
 
 
+def _registered_players(df: pd.DataFrame | None) -> List[str]:
+    """Combina jogadores das partidas com os cadastrados manualmente."""
+
+    base_players = set(_players_from_df(df))
+    manual_players = {name for name in load_registered_players() if name}
+    excluidos = _excluded_players()
+    combined = sorted((base_players | manual_players) - excluidos)
+    return combined
+
+
 def _matches_from_df(df: pd.DataFrame | None) -> List[Dict[str, Any]]:
     if df is None or df.empty:
         return []
@@ -377,6 +398,32 @@ def _serialize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     else:
         serialized["date"] = str(data_value) if data_value is not None else None
     return serialized
+
+
+def _parse_bulk_line(line: str) -> Dict[str, str] | None:
+    """Converte uma linha no formato "a e b x c e d" em um dicionário de campos."""
+
+    import re
+
+    pattern = re.compile(
+        r"^(?P<w1>.+?)\s+e\s+(?P<w2>.+?)\s+x\s+(?P<l1>.+?)\s+e\s+(?P<l2>.+)$",
+        flags=re.IGNORECASE,
+    )
+    match = pattern.match(line.strip())
+    if not match:
+        return None
+
+    return {
+        "winner1": match.group("w1").strip(),
+        "winner2": match.group("w2").strip(),
+        "loser1": match.group("l1").strip(),
+        "loser2": match.group("l2").strip(),
+    }
+
+
+def _validate_registered_players(players: Iterable[str]) -> List[str]:
+    registrados = set(_registered_players(_fetch_base_dataframe()))
+    return [name for name in players if name not in registrados]
 
 
 def _validate_match_data(match_id: Any, action: str, payload: Dict[str, Any]) -> List[str]:
@@ -816,10 +863,72 @@ def admin():
 
             return redirect(url_for("admin"))
 
+        if action == "add_player":
+            player_name = request.form.get("player_name", "").strip()
+            if not player_name:
+                _set_admin_feedback("error", "Informe o nome do jogador.")
+                return redirect(url_for("admin"))
+
+            if add_player(player_name):
+                _set_admin_feedback("success", f"Jogador '{player_name}' cadastrado com sucesso!")
+            else:
+                _set_admin_feedback("error", "Jogador já cadastrado ou nome inválido.")
+
+            return redirect(url_for("admin"))
+
         if role == "limited" and action in {"update", "delete"}:
             _set_admin_feedback(
                 "error", "Somente administradores completos podem editar ou excluir partidas."
             )
+            return redirect(url_for("admin"))
+
+        if action == "bulk_create":
+            bulk_matches = request.form.get("bulk_matches", "")
+            match_date = _parse_form_date(request.form.get("bulk_date")) or date.today()
+
+            linhas = [linha.strip() for linha in bulk_matches.splitlines() if linha.strip()]
+            if not linhas:
+                _set_admin_feedback("error", "Informe ao menos uma linha de partida.")
+                return redirect(url_for("admin"))
+
+            parsed_matches: List[Dict[str, Any]] = []
+            errors: List[str] = []
+            missing_players: set[str] = set()
+
+            for idx, linha in enumerate(linhas, start=1):
+                parsed = _parse_bulk_line(linha)
+                if not parsed:
+                    errors.append(f"Linha {idx} em formato inválido.")
+                    continue
+
+                players = [parsed.get(field, "") for field in _TEAM_FIELDS]
+                missing_players.update(_validate_registered_players(players))
+                payload = {**parsed, "date": match_date}
+                validation_errors = _validate_match_data(None, "Adicionar", payload)
+                if validation_errors:
+                    errors.extend([f"Linha {idx}: {erro}" for erro in validation_errors])
+                else:
+                    parsed_matches.append(payload)
+
+            if missing_players:
+                errors.append(
+                    "Jogadores não cadastrados: " + ", ".join(sorted(missing_players))
+                )
+
+            if errors:
+                _set_admin_feedback("error", " ".join(errors))
+                return redirect(url_for("admin"))
+
+            try:
+                for payload in parsed_matches:
+                    insert_match(_serialize_payload(payload))
+                _reset_cache()
+                _set_admin_feedback(
+                    "success", f"{len(parsed_matches)} partida(s) cadastrada(s) em bloco!"
+                )
+            except Exception as exc:  # pragma: no cover - feedback exibido na interface
+                _set_admin_feedback("error", f"Erro ao salvar partidas em bloco: {exc}")
+
             return redirect(url_for("admin"))
 
         if action in {"create", "update"}:
@@ -872,7 +981,8 @@ def admin():
 
     df = _fetch_base_dataframe()
     matches = _matches_from_df(df)
-    players = _players_from_df(df)
+    players = _registered_players(df)
+    players_text = "\n".join(players)
 
     return render_template(
         "admin.html",
@@ -882,6 +992,7 @@ def admin():
         feedback=feedback,
         requires_auth=requires_auth,
         players=players,
+        players_text=players_text,
         matches=matches,
         today=date.today().isoformat(),
     )
