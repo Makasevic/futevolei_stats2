@@ -1,4 +1,5 @@
 from __future__ import annotations
+from batch_endpoints import bp as batch_bp
 
 """Aplicação Flask para exibir o ranking em HTML estático."""
 
@@ -24,7 +25,7 @@ from ui_config import get_ui_config
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
-
+app.register_blueprint(batch_bp)
 
 def _current_ui_config():
     """Retorna a configuração de UI imutável."""
