@@ -258,6 +258,17 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
     if not isinstance(confrontos_df.index, pd.DatetimeIndex):
         confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
 
+    confrontos_df = confrontos_df[~confrontos_df.index.isna()]
+
+    if confrontos_df.empty:
+        return {
+            "total": 0,
+            "vitorias_j1": int(mask_j1_win.sum()),
+            "vitorias_j2": int(mask_j2_win.sum()),
+            "saldo": int(mask_j1_win.sum() - mask_j2_win.sum()),
+            "serie_mensal": [],
+        }
+
     inicio = confrontos_df.index.min().normalize().replace(day=1)
     fim = pd.Timestamp.now().normalize().replace(day=1)
     meses_range = pd.date_range(start=inicio, end=fim, freq="MS")
