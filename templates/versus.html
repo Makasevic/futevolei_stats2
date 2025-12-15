@@ -55,8 +55,9 @@
     <div class="split-grid">
         <div class="card">
             <p class="badge">Resumo</p>
-            <h3>{{ confronto.vitorias_j1 }} x {{ confronto.vitorias_j2 }}</h3>
-            <p class="meta">Total de jogos: {{ confronto.total }} · Saldo {{ confronto.saldo }}</p>
+            <h3>{{ jogador1 }} {{ confronto.vitorias_j1 }} × {{ confronto.vitorias_j2 }} {{ jogador2 }}</h3>
+            <p class="meta">Vitórias de {{ jogador1 }}: {{ confronto.vitorias_j1 }} · Vitórias de {{ jogador2 }}: {{ confronto.vitorias_j2 }}</p>
+            <p class="meta">Total de jogos: {{ confronto.total }} · Saldo para {{ jogador1 }}: {{ confronto.saldo }}</p>
         </div>
         <div class="chart-card">
             <canvas id="versusChart" aria-label="Evolução do saldo mensal"></canvas>
@@ -75,6 +76,8 @@
         const form = document.getElementById('versus-form');
         const selectA = document.getElementById('j1');
         const selectB = document.getElementById('j2');
+        const jogador1 = {{ jogador1|tojson }};
+        const jogador2 = {{ jogador2|tojson }};
         const todosJogadores = {{ jogadores|tojson }};
         const oponentesPorJogador = {{ oponentes_por_jogador|tojson }};
 
@@ -131,6 +134,7 @@
             const labels = serieMensal.map((ponto) => ponto.label);
             const mensal = serieMensal.map((ponto) => ponto.saldo);
             const acumulado = serieMensal.map((ponto) => ponto.acumulado);
+            const tituloGrafico = `${jogador1 || 'Jogador 1'} x ${jogador2 || 'Jogador 2'}`;
 
             new Chart(chartCanvas, {
                 type: 'line',
@@ -138,7 +142,7 @@
                     labels,
                     datasets: [
                         {
-                            label: 'Saldo mensal (Jogador A)',
+                            label: `Saldo mensal (${jogador1})`,
                             data: mensal,
                             borderColor: '#3b82f6',
                             backgroundColor: 'rgba(59, 130, 246, 0.15)',
@@ -146,7 +150,7 @@
                             tension: 0.2,
                         },
                         {
-                            label: 'Saldo acumulado',
+                            label: `Saldo acumulado (${jogador1})`,
                             data: acumulado,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -159,6 +163,10 @@
                     responsive: true,
                     scales: {
                         y: {
+                            ticks: {
+                                stepSize: 1,
+                                callback: (value) => (Number.isInteger(value) ? value : null),
+                            },
                             grid: { color: 'rgba(31, 51, 84, 0.08)' },
                         },
                         x: {
@@ -166,6 +174,10 @@
                         },
                     },
                     plugins: {
+                        title: {
+                            display: true,
+                            text: tituloGrafico,
+                        },
                         legend: {
                             labels: {
                                 usePointStyle: true,
