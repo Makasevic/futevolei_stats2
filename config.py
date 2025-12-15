@@ -76,6 +76,7 @@ def optional_secret(key: str, *, default: str | None = None) -> Optional[str]:
 
 SUPABASE_URL: Final[str] = require_secret("SUPABASE_URL")
 SUPABASE_ANON_KEY: Final[str] = require_secret("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_KEY: Final[str] = require_secret("SUPABASE_SERVICE_KEY")
 
 ADMIN_PASSWORD: Final[Optional[str]] = optional_secret("ADMIN_PASSWORD")
 MATCH_ENTRY_PASSWORD: Final[Optional[str]] = optional_secret("MATCH_ENTRY_PASSWORD")
@@ -83,6 +84,7 @@ MATCH_ENTRY_PASSWORD: Final[Optional[str]] = optional_secret("MATCH_ENTRY_PASSWO
 __all__ = [
     "SUPABASE_URL",
     "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_KEY",
     "ADMIN_PASSWORD",
     "MATCH_ENTRY_PASSWORD",
     "optional_secret",

@@ -1,32 +1,25 @@
-import os
 from flask import Blueprint, request, jsonify, Response
 from supabase import create_client
 from uuid import uuid4
-import json
 
-# Conexão com Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+# Pega secrets do seu sistema
+from config import SUPABASE_URL, SUPABASE_SERVICE_KEY
 
 bp = Blueprint("batch_endpoints", __name__)
 
+# Criar cliente Supabase usando a SERVICE KEY (necessária para inserir no banco)
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-# ----------------------------
-#   1) /api/prepare_matches
-# ----------------------------
+
+# -----------------------------------
+#  POST /api/prepare_matches
+# -----------------------------------
 @bp.post("/api/prepare_matches")
 def prepare_matches():
-    """
-    Endpoint que o GPT chama.
-    Recebe o JSON com matches,
-    gera token e salva no Supabase.
-    """
     payload = request.get_json()
 
     if not payload:
-        return jsonify({"error": "payload vazio"}), 400
+        return jsonify({"error": "Payload vazio"}), 400
 
     token = uuid4().hex[:8]
 
@@ -39,15 +32,12 @@ def prepare_matches():
     return jsonify({"token": token})
 
 
-# ----------------------------
-#   2) /confirm/<token>
-# ----------------------------
+# -----------------------------------
+#  GET /confirm/<token>
+# -----------------------------------
 @bp.get("/confirm/<token>")
 def confirm_batch(token):
-    """
-    Página que o usuário acessa ao clicar no link.
-    Valida token, insere partidas e retorna HTML.
-    """
+
     result = supabase.table("pending_batches").select("*").eq("token", token).execute()
 
     if not result.data:
@@ -73,16 +63,14 @@ def confirm_batch(token):
         })
 
     try:
-        # inserir todas as partidas no Supabase
         supabase.table("matches").insert(entries).execute()
 
-        # marcar como usado
         supabase.table("pending_batches").update({"status": "used"}).eq("token", token).execute()
 
         html = f"""
-        <h2>✅ {len(entries)} partidas lançadas com sucesso!</h2>
-        <p>Data: {match_date}</p>
-        <p>Pronto, pode fechar esta aba.</p>
+            <h2>✅ {len(entries)} partidas lançadas com sucesso!</h2>
+            <p>Data: {match_date}</p>
+            <p>Pronto, pode fechar esta aba.</p>
         """
         return Response(html, mimetype="text/html")
 
