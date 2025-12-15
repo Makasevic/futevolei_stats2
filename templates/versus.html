@@ -56,7 +56,6 @@
         <div class="card">
             <p class="badge">Resumo</p>
             <h3>{{ jogador1 }} {{ confronto.vitorias_j1 }} × {{ confronto.vitorias_j2 }} {{ jogador2 }}</h3>
-            <p class="meta">Vitórias de {{ jogador1 }}: {{ confronto.vitorias_j1 }} · Vitórias de {{ jogador2 }}: {{ confronto.vitorias_j2 }}</p>
             <p class="meta">Total de jogos: {{ confronto.total }} · Saldo para {{ jogador1 }}: {{ confronto.saldo }}</p>
         </div>
         <div class="chart-card">
@@ -132,7 +131,6 @@
 
         if (chartCanvas && Array.isArray(serieMensal) && serieMensal.length > 0 && window.Chart) {
             const labels = serieMensal.map((ponto) => ponto.label);
-            const mensal = serieMensal.map((ponto) => ponto.saldo);
             const acumulado = serieMensal.map((ponto) => ponto.acumulado);
             const tituloGrafico = `${jogador1 || 'Jogador 1'} x ${jogador2 || 'Jogador 2'}`;
 
@@ -141,14 +139,6 @@
                 data: {
                     labels,
                     datasets: [
-                        {
-                            label: `Saldo mensal (${jogador1})`,
-                            data: mensal,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                            fill: true,
-                            tension: 0.2,
-                        },
                         {
                             label: `Saldo acumulado (${jogador1})`,
                             data: acumulado,

@@ -315,7 +315,7 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
     )
     saldo_acumulado = mensal.cumsum()
 
-    serie_mensal = [
+    serie_completa = [
         {
             "label": periodo.strftime("%b/%Y"),
             "saldo": int(mensal.loc[periodo]),
@@ -323,6 +323,8 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
         }
         for periodo in mensal.index
     ]
+
+    serie_mensal = serie_completa[-12:]
 
     vitorias_j1 = int(mask_j1_win.sum())
     vitorias_j2 = int(mask_j2_win.sum())
