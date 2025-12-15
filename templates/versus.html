@@ -73,7 +73,56 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('versus-form');
-        form?.addEventListener('change', () => form.submit());
+        const selectA = document.getElementById('j1');
+        const selectB = document.getElementById('j2');
+        const todosJogadores = {{ jogadores|tojson }};
+        const oponentesPorJogador = {{ oponentes_por_jogador|tojson }};
+
+        const preencherOpcoes = (select, permitidos, selecionado) => {
+            if (!select) return;
+            const valores = (permitidos && permitidos.length ? permitidos : todosJogadores) || [];
+
+            const fragment = document.createDocumentFragment();
+            const padrao = document.createElement('option');
+            padrao.value = '';
+            padrao.textContent = 'Selecione';
+            fragment.appendChild(padrao);
+
+            valores.forEach((nome) => {
+                const option = document.createElement('option');
+                option.value = nome;
+                option.textContent = nome;
+                if (nome === selecionado) option.selected = true;
+                fragment.appendChild(option);
+            });
+
+            select.innerHTML = '';
+            select.appendChild(fragment);
+        };
+
+        const sincronizarDropdowns = () => {
+            const escolhidoA = selectA?.value || '';
+            const escolhidoB = selectB?.value || '';
+            const candidatosParaB = escolhidoA ? (oponentesPorJogador[escolhidoA] || []) : todosJogadores;
+            const candidatosParaA = escolhidoB ? (oponentesPorJogador[escolhidoB] || []) : todosJogadores;
+
+            const valorB = candidatosParaB.includes(escolhidoB) ? escolhidoB : '';
+            const valorA = candidatosParaA.includes(escolhidoA) ? escolhidoA : '';
+
+            preencherOpcoes(selectB, candidatosParaB, valorB);
+            preencherOpcoes(selectA, candidatosParaA, valorA);
+        };
+
+        const aoAlterar = () => {
+            sincronizarDropdowns();
+            if (selectA?.value && selectB?.value && selectA.value !== selectB.value) {
+                form?.submit();
+            }
+        };
+
+        sincronizarDropdowns();
+        selectA?.addEventListener('change', aoAlterar);
+        selectB?.addEventListener('change', aoAlterar);
 
         const serieMensal = {{ confronto.serie_mensal|tojson if confronto else '[]' }};
         const chartCanvas = document.getElementById('versusChart');

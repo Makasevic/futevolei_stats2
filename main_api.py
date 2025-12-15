@@ -191,6 +191,35 @@ def _jogadores_disponiveis(df: pd.DataFrame) -> List[str]:
     return sorted(jogadores - excluidos)
 
 
+def _oponentes_por_jogador(df: pd.DataFrame) -> Dict[str, List[str]]:
+    jogadores = set(_jogadores_disponiveis(df))
+    oponentes: Dict[str, set[str]] = {j: set() for j in jogadores}
+
+    def _limpar_nome(valor: Any) -> str | None:
+        if not isinstance(valor, str):
+            return None
+        nome = valor.strip()
+        if not nome or "Outro" in nome or nome not in jogadores:
+            return None
+        return nome
+
+    for _, linha in df.iterrows():
+        w1 = _limpar_nome(linha.get("winner1"))
+        w2 = _limpar_nome(linha.get("winner2"))
+        l1 = _limpar_nome(linha.get("loser1"))
+        l2 = _limpar_nome(linha.get("loser2"))
+
+        winners = [p for p in (w1, w2) if p]
+        losers = [p for p in (l1, l2) if p]
+
+        for vencedor in winners:
+            oponentes[vencedor].update(losers)
+        for perdedor in losers:
+            oponentes[perdedor].update(winners)
+
+    return {j: sorted(lista) for j, lista in oponentes.items()}
+
+
 def _estatisticas_jogador_individual(df: pd.DataFrame, jogador: str) -> Dict[str, int | float]:
     tabela = preparar_dados_individuais(df)
     tabela = tabela[~tabela["jogadores"].isin(_excluded_players())]
@@ -258,6 +287,9 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
 
     if not isinstance(confrontos_df.index, pd.DatetimeIndex):
         confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
+
+    if getattr(confrontos_df.index, "tz", None) is not None:
+        confrontos_df.index = confrontos_df.index.tz_convert(None)
 
     confrontos_df = confrontos_df[~confrontos_df.index.isna()]
 
@@ -783,6 +815,7 @@ def detalhamento():
 def versus():
     df = _fetch_base_dataframe()
     jogadores_disponiveis = _jogadores_disponiveis(df)
+    oponentes_por_jogador = _oponentes_por_jogador(df)
 
     jogador1 = request.args.get("j1")
     jogador2 = request.args.get("j2")
@@ -808,6 +841,7 @@ def versus():
         jogadores=jogadores_disponiveis,
         jogador1=jogador1,
         jogador2=jogador2,
+        oponentes_por_jogador=oponentes_por_jogador,
         estatisticas=estatisticas,
         confronto=confronto,
     )
