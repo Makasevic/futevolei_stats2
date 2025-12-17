@@ -119,8 +119,18 @@ def _filter_rankings(
         limiar = media_top_10 * config.min_participation_ratio
         jogadores = jogadores[jogadores["jogos"] >= limiar]
 
-    if config.min_duo_matches > 0:
-        duplas = duplas[duplas["jogos"] >= config.min_duo_matches]
+    # Para janelas curtas, reduza dinamicamente o mínimo de jogos de duplas
+    # para evitar que o ranking fique vazio quando houver poucas partidas.
+    if config.min_duo_matches > 0 and not duplas.empty:
+        max_jogos_duplas = int(duplas["jogos"].max())
+        limiar_duplas = (
+            config.min_duo_matches
+            if max_jogos_duplas >= config.min_duo_matches
+            else max_jogos_duplas
+        )
+
+        if limiar_duplas > 0:
+            duplas = duplas[duplas["jogos"] >= limiar_duplas]
 
     # Garantir que os índices sejam contínuos após filtros, para não quebrar as medalhas
     jogadores = jogadores.reset_index(drop=True)
