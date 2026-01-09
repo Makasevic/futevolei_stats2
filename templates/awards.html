@@ -19,13 +19,6 @@
             </div>
         </div>
         <div class="awards-summary__card">
-            <span>🗳️</span>
-            <div>
-                <p class="meta">Total de votos</p>
-                <strong>{{ awards_total_votes }}</strong>
-            </div>
-        </div>
-        <div class="awards-summary__card">
             <span>🌟</span>
             <div>
                 <p class="meta">Campeão positivo</p>
@@ -79,11 +72,13 @@
         <div>
             <p class="section-eyebrow">categoria</p>
             <h2>{{ award.title }}</h2>
-            <p class="meta">{{ award.tagline }}</p>
+            {% if award.tagline %}
+                <p class="meta">{{ award.tagline }}</p>
+            {% endif %}
         </div>
         <div class="awards-winners">
             {% for winner in award.winners %}
-                <div class="awards-winner">
+                <div class="awards-winner{% if award.category_type == 'negative' %} awards-winner--negative{% endif %}">
                     <span class="awards-crown">🏆</span>
                     <div>
                         <p class="meta">Vencedor da vez</p>

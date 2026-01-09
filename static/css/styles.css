@@ -610,11 +610,17 @@ header.hero::after {
     flex-wrap: wrap;
 }
 
+.awards-section__header > div:first-child {
+    flex: 1;
+    min-width: 260px;
+}
+
 .awards-winners {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
     justify-content: flex-end;
+    margin-left: auto;
 }
 
 .awards-winner {
@@ -625,6 +631,11 @@ header.hero::after {
     border-radius: 16px;
     background: rgba(212, 175, 55, 0.12);
     border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.awards-winner--negative {
+    background: rgba(235, 87, 87, 0.12);
+    border-color: rgba(235, 87, 87, 0.3);
 }
 
 .awards-crown {

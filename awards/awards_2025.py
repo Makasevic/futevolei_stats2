@@ -278,7 +278,7 @@ AWARDS_2025: List[Dict[str, Any]] = [
     {
         "id": "desconexo-realidade",
         "title": "Quem é o mais desconexo com a realidade (o que acha que joga vs. o que realmente joga)?",
-        "tagline": "A confiança não bate com o jogo apresentado.",
+        "tagline": "",
         "category_type": "negative",
         "votes": {
             "Bruno Rubi": 10,
@@ -362,7 +362,7 @@ AWARDS_2025: List[Dict[str, Any]] = [
         "id": "noe-do-grupo",
         "title": "Quem é o Noé do grupo (carrega qualquer animal)?",
         "tagline": "O escolhido para carregar até o piano.",
-        "category_type": "negative",
+        "category_type": "positive",
         "votes": {
             "Júlio Picôto": 9,
             "Lucas Cuervo": 8,
