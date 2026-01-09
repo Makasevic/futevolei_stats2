@@ -375,6 +375,16 @@ header.hero::after {
     font-size: 20px;
 }
 
+.awards-summary__detail {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.awards-filter {
+    margin-top: 16px;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -562,12 +572,49 @@ header.hero::after {
     gap: 18px;
 }
 
+.awards-nav {
+    display: grid;
+    gap: 16px;
+}
+
+.awards-nav__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.awards-nav__item {
+    text-decoration: none;
+    color: var(--text);
+    background: rgba(47, 107, 255, 0.08);
+    border: 1px solid rgba(47, 107, 255, 0.18);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: var(--font-semibold);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.awards-nav__item:hover,
+.awards-nav__item:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(31, 51, 84, 0.14);
+}
+
 .awards-section__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.awards-winners {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
 }
 
 .awards-winner {
@@ -1653,6 +1700,7 @@ header.hero::after {
 @media (max-width: 900px) {
     .info-hero { grid-template-columns: 1fr; }
     .info-hero__panel { order: -1; }
+    .awards-winners { justify-content: flex-start; }
 }
 
 @media (max-width: 600px) {

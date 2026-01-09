@@ -13,6 +13,7 @@ import pandas as pd
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 from app_settings import get_config, update_config
+from awards import available_awards_years, get_awards_for_year
 from config import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
 from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
 from extraction import get_matches
@@ -33,205 +34,59 @@ def _current_ui_config():
     return get_ui_config()
 
 
-def _build_awards_data() -> List[Dict[str, Any]]:
-    awards = [
-        {
-            "id": "melhor-ataque",
-            "title": "Quem tem o melhor ataque?",
-            "tagline": "Os destaques quando a bola pede potência.",
-            "votes": {
-                "Júlio Picôto": 8,
-                "Vitor Cuervo": 6,
-                "Tadeu Calleri": 4,
-                "Diogo Bodas": 3,
-                "J. Victor Adão": 3,
-                "Pedro Vilela": 2,
-                "Eduardo Costa": 2,
-                "Fernando Kling": 2,
-                "Leandro Costa": 1,
-                "Diego Makasevicius": 1,
-                "Gabriel Ferreira": 1,
-                "Lucas Cuervo": 1,
-                "Paulo Calçada": 1,
-            },
-        },
-        {
-            "id": "melhor-defesa",
-            "title": "Quem apresenta a melhor defesa?",
-            "tagline": "Quem fecha a quadra e deixa tudo jogável.",
-            "votes": {
-                "Júlio Picôto": 9,
-                "Lucas Cuervo": 6,
-                "Lucas Torres": 5,
-                "Pedro Vilela": 4,
-                "Eduardo Costa": 3,
-                "Tadeu Calleri": 2,
-                "Marcelo Engelke": 1,
-                "Gabriel Ferreira": 1,
-                "Hugo Moura": 1,
-                "Paulo Calçada": 1,
-                "Diogo Bodas": 1,
-                "Leandro Costa": 1,
-                "J. Victor Adão": 1,
-            },
-        },
-        {
-            "id": "melhor-levantada",
-            "title": "Quem tem a melhor levantada?",
-            "tagline": "Precisão cirúrgica para deixar o ataque livre.",
-            "votes": {
-                "Diego Makasevicius": 5,
-                "Lucas Cuervo": 5,
-                "Pedro Vilela": 5,
-                "Diogo Bodas": 4,
-                "Bruno Rubi": 4,
-                "Gabriel Ferreira": 4,
-                "Paulo Calçada": 2,
-                "J. Victor Adão": 2,
-                "Marcelo Engelke": 1,
-                "Lucas Torres": 1,
-                "Fernando Kling": 1,
-                "Eduardo Costa": 1,
-                "Hugo Moura": 1,
-                "Júlio Picôto": 1,
-                "Leandro Costa": 1,
-            },
-        },
-        {
-            "id": "chapa-de-ouro",
-            "title": "Quem é o chapa de ouro do grupo?",
-            "tagline": "O favorito para dividir a quadra em qualquer situação.",
-            "votes": {
-                "Paulo Calçada": 14,
-                "Lucas Cuervo": 9,
-                "Vitor Cuervo": 3,
-                "Tadeu Calleri": 2,
-                "Bruno Rubi": 1,
-                "Pedro Vilela": 1,
-                "Júlio Picôto": 1,
-                "Diego Makasevicius": 1,
-                "Fernando Kling": 1,
-            },
-        },
-        {
-            "id": "ombro-magico",
-            "title": "Quem é o dono do “ombro mágico”?",
-            "tagline": "Os passes milagrosos da galera.",
-            "votes": {
-                "Diego Makasevicius": 11,
-                "Bruno Rubi": 4,
-                "Gabriel Ferreira": 4,
-                "Lucas Cuervo": 3,
-                "Hugo Moura": 3,
-                "Fernando Kling": 2,
-                "J. Victor Adão": 2,
-                "Vitor Cuervo": 1,
-                "Pedro Vilela": 1,
-                "Lucas Torres": 1,
-                "Tadeu Calleri": 1,
-                "Marcelo Engelke": 1,
-            },
-        },
-        {
-            "id": "peitada-na-lua",
-            "title": "Quem manda a peitada na lua?",
-            "tagline": "Quem resolve no grito e no peito.",
-            "votes": {
-                "Diogo Bodas": 9,
-                "J. Victor Adão": 7,
-                "Eduardo Costa": 5,
-                "Pedro Vilela": 5,
-                "Júlio Picôto": 2,
-                "Gabriel Ferreira": 1,
-                "Bruno Rubi": 1,
-            },
-        },
-        {
-            "id": "cobertura-de-quadra",
-            "title": "Quem faz a melhor cobertura de quadra?",
-            "tagline": "Quem aparece em todo canto para salvar o ponto.",
-            "votes": {
-                "Júlio Picôto": 13,
-                "Lucas Cuervo": 3,
-                "Diogo Bodas": 3,
-                "Lucas Torres": 3,
-                "Eduardo Costa": 3,
-                "Tadeu Calleri": 3,
-                "Pedro Vilela": 2,
-                "Leandro Costa": 1,
-                "Heitor Ribeiro": 1,
-                "Diego Makasevicius": 1,
-                "Marcelo Engelke": 1,
-            },
-        },
-        {
-            "id": "melhor-leitura",
-            "title": "Quem tem a melhor leitura de jogo?",
-            "tagline": "Visão de jogo que antecipa todas as jogadas.",
-            "votes": {
-                "Lucas Cuervo": 9,
-                "Júlio Picôto": 7,
-                "Lucas Torres": 6,
-                "Pedro Vilela": 4,
-                "Fernando Kling": 3,
-                "Paulo Calçada": 2,
-                "Tadeu Calleri": 2,
-                "J. Victor Adão": 2,
-                "Thomaz Santos": 1,
-                "Hugo Moura": 1,
-            },
-        },
-        {
-            "id": "mais-incansavel",
-            "title": "Quem é o mais incansável em quadra?",
-            "tagline": "Energia que não acaba nunca.",
-            "votes": {
-                "Júlio Picôto": 9,
-                "Diogo Bodas": 4,
-                "Tadeu Calleri": 3,
-                "Eduardo Costa": 3,
-                "Gabriel Ferreira": 3,
-                "Lucas Cuervo": 2,
-                "Pedro Vilela": 2,
-                "Marcelo Engelke": 2,
-                "J. Victor Adão": 1,
-                "Vitor Cuervo": 1,
-                "Lucas Torres": 1,
-                "Leandro Costa": 1,
-                "Bruno Rubi": 1,
-            },
-        },
-        {
-            "id": "mais-completo",
-            "title": "Quem é o jogador mais completo?",
-            "tagline": "O pacote inteiro para qualquer missão.",
-            "votes": {
-                "Júlio Picôto": 9,
-                "Lucas Cuervo": 7,
-                "J. Victor Adão": 5,
-                "Eduardo Costa": 3,
-                "Vitor Cuervo": 1,
-                "Leandro Costa": 1,
-                "Diogo Bodas": 1,
-                "Tadeu Calleri": 1,
-                "Lucas Torres": 1,
-                "Gabriel Ferreira": 1,
-                "Thiago Makasevicius": 1,
-            },
-        },
-    ]
-
+def _build_awards_data(year: int) -> List[Dict[str, Any]]:
+    awards = get_awards_for_year(year)
     for award in awards:
         sorted_votes = sorted(
             award["votes"].items(), key=lambda item: item[1], reverse=True
         )
         award["top_three"] = sorted_votes[:3]
-        winner_name, winner_votes = sorted_votes[0]
-        award["winner_name"] = winner_name
+        winner_votes = sorted_votes[0][1]
+        award["winners"] = [
+            {"name": name, "votes": votes}
+            for name, votes in sorted_votes
+            if votes == winner_votes
+        ]
         award["winner_votes"] = winner_votes
         award["total_votes"] = sum(award["votes"].values())
 
     return awards
+
+
+def _format_champion_names(names: List[str]) -> str:
+    if not names:
+        return "-"
+    if len(names) == 1:
+        return names[0]
+    if len(names) == 2:
+        return f"{names[0]} e {names[1]}"
+    return f"{', '.join(names[:-1])} e {names[-1]}"
+
+
+def _build_awards_champions(awards: List[Dict[str, Any]]) -> Dict[str, Any]:
+    trophies = {
+        "positive": Counter(),
+        "negative": Counter(),
+    }
+
+    for award in awards:
+        category = award.get("category_type", "positive")
+        for winner in award.get("winners", []):
+            trophies[category][winner["name"]] += 1
+
+    champions = {}
+    for category, counts in trophies.items():
+        if not counts:
+            champions[category] = {"names": "-", "count": 0}
+            continue
+        max_count = max(counts.values())
+        names = sorted([name for name, count in counts.items() if count == max_count])
+        champions[category] = {
+            "names": _format_champion_names(names),
+            "count": max_count,
+        }
+
+    return champions
 
 
 # --------------------------------- Dados ----------------------------------
@@ -951,14 +806,27 @@ def infos():
 
 @app.route("/awards")
 def awards():
-    awards_data = _build_awards_data()
+    available_years = available_awards_years()
+    default_year = available_years[0] if available_years else date.today().year
+    selected_year = _safe_int(request.args.get("year"), default_year)
+    if selected_year not in available_years:
+        selected_year = default_year
+
+    awards_data = _build_awards_data(selected_year)
     total_votes = sum(award["total_votes"] for award in awards_data)
-    most_voted = max(awards_data, key=lambda award: award["winner_votes"])
+    champions = _build_awards_champions(awards_data)
+    positive_awards = [award for award in awards_data if award["category_type"] == "positive"]
+    negative_awards = [award for award in awards_data if award["category_type"] == "negative"]
     return render_template(
         "awards.html",
         awards=awards_data,
+        positive_awards=positive_awards,
+        negative_awards=negative_awards,
         awards_total_votes=total_votes,
-        awards_most_voted=most_voted["winner_name"],
+        awards_years=available_years,
+        awards_selected_year=selected_year,
+        awards_positive_champion=champions["positive"],
+        awards_negative_champion=champions["negative"],
         active_page="awards",
     )
 

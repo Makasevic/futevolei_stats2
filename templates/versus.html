@@ -38,13 +38,13 @@
 
         <label class="badge" for="d2a">Dupla B</label>
         <select id="d2a" name="d2a" class="select">
-            <option value="">Jogador 1</option>
+            <option value="">Jogador 3</option>
             {% for nome in jogadores %}
                 <option value="{{ nome }}" {% if duplas_selecao.d2a == nome %}selected{% endif %}>{{ nome }}</option>
             {% endfor %}
         </select>
         <select id="d2b" name="d2b" class="select">
-            <option value="">Jogador 2</option>
+            <option value="">Jogador 4</option>
             {% for nome in jogadores %}
                 <option value="{{ nome }}" {% if duplas_selecao.d2b == nome %}selected{% endif %}>{{ nome }}</option>
             {% endfor %}
@@ -147,14 +147,14 @@
         const parceirosPorJogador = {{ parceiros_por_jogador|tojson }};
         const oponentesPorDupla = {{ oponentes_por_dupla_jogadores|tojson }};
 
-        const preencherOpcoes = (select, permitidos, selecionado) => {
+        const preencherOpcoes = (select, permitidos, selecionado, placeholder = 'Selecione') => {
             if (!select) return;
             const valores = (permitidos && permitidos.length ? permitidos : todosJogadores) || [];
 
             const fragment = document.createDocumentFragment();
             const padrao = document.createElement('option');
             padrao.value = '';
-            padrao.textContent = 'Selecione';
+            padrao.textContent = placeholder;
             fragment.appendChild(padrao);
 
             valores.forEach((nome) => {
@@ -189,13 +189,13 @@
             }
         };
 
-        const atualizarParceiros = (selectJogador, selectParceiro) => {
+        const atualizarParceiros = (selectJogador, selectParceiro, placeholder) => {
             if (!selectJogador || !selectParceiro) return;
             const escolhido = selectJogador.value || '';
             const parceiros = escolhido ? (parceirosPorJogador[escolhido] || []) : [];
             const candidatos = parceiros.filter((nome) => nome !== escolhido);
             const selecionado = candidatos.includes(selectParceiro.value) ? selectParceiro.value : '';
-            preencherOpcoes(selectParceiro, candidatos, selecionado);
+            preencherOpcoes(selectParceiro, candidatos, selecionado, placeholder);
         };
 
         const obterDuplaSelecionada = () => {
@@ -211,12 +211,12 @@
             const oponentes = duplaSelecionada ? (oponentesPorDupla[duplaSelecionada] || []) : [];
 
             const selecionadoB1 = oponentes.includes(duplaB1.value) ? duplaB1.value : '';
-            preencherOpcoes(duplaB1, oponentes, selecionadoB1);
+            preencherOpcoes(duplaB1, oponentes, selecionadoB1, 'Jogador 3');
 
             const parceiros = selecionadoB1 ? (parceirosPorJogador[selecionadoB1] || []) : [];
             const candidatosB2 = parceiros.filter((nome) => oponentes.includes(nome) && nome !== selecionadoB1);
             const selecionadoB2 = candidatosB2.includes(duplaB2.value) ? duplaB2.value : '';
-            preencherOpcoes(duplaB2, candidatosB2, selecionadoB2);
+            preencherOpcoes(duplaB2, candidatosB2, selecionadoB2, 'Jogador 4');
         };
 
         const tentarEnviarDuplas = () => {
@@ -234,10 +234,10 @@
         };
 
         if (tipoSelect?.value === 'Dupla') {
-            atualizarParceiros(duplaA1, duplaA2);
+            atualizarParceiros(duplaA1, duplaA2, 'Jogador 2');
             atualizarOponentesDupla();
             duplaA1?.addEventListener('change', () => {
-                atualizarParceiros(duplaA1, duplaA2);
+                atualizarParceiros(duplaA1, duplaA2, 'Jogador 2');
                 atualizarOponentesDupla();
                 tentarEnviarDuplas();
             });

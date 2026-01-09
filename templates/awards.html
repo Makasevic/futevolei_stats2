@@ -26,14 +26,52 @@
             </div>
         </div>
         <div class="awards-summary__card">
-            <span>⭐</span>
+            <span>🌟</span>
             <div>
-                <p class="meta">Mais lembrado</p>
-                <strong>{{ awards_most_voted }}</strong>
+                <p class="meta">Campeão positivo</p>
+                <strong>{{ awards_positive_champion.names }}</strong>
+                <p class="awards-summary__detail">{{ awards_positive_champion.count }} troféu(s)</p>
+            </div>
+        </div>
+        <div class="awards-summary__card">
+            <span>⚡</span>
+            <div>
+                <p class="meta">Campeão negativo</p>
+                <strong>{{ awards_negative_champion.names }}</strong>
+                <p class="awards-summary__detail">{{ awards_negative_champion.count }} troféu(s)</p>
             </div>
         </div>
     </div>
+    <form class="filter-bar awards-filter" method="get" action="{{ url_for('awards') }}">
+        <div class="filter-group">
+            <label for="awards-year">Ano</label>
+            <select id="awards-year" name="year" class="select" onchange="this.form.submit()">
+                {% for year in awards_years %}
+                    <option value="{{ year }}" {% if year == awards_selected_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
 </header>
+
+<section class="panel awards-nav">
+    <div class="awards-nav__group">
+        <p class="section-eyebrow">Categorias positivas</p>
+        <div class="awards-nav__list">
+            {% for award in positive_awards %}
+                <a class="awards-nav__item" href="#{{ award.id }}">{{ award.title }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="awards-nav__group">
+        <p class="section-eyebrow">Categorias negativas</p>
+        <div class="awards-nav__list">
+            {% for award in negative_awards %}
+                <a class="awards-nav__item" href="#{{ award.id }}">{{ award.title }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
 
 {% for award in awards %}
 <section class="panel awards-section" id="{{ award.id }}">
@@ -43,13 +81,17 @@
             <h2>{{ award.title }}</h2>
             <p class="meta">{{ award.tagline }}</p>
         </div>
-        <div class="awards-winner">
-            <span class="awards-crown">🏆</span>
-            <div>
-                <p class="meta">Vencedor da vez</p>
-                <p class="awards-winner__name">{{ award.winner_name }}</p>
-                <p class="awards-winner__votes">{{ award.winner_votes }} votos · {{ award.total_votes }} no total</p>
-            </div>
+        <div class="awards-winners">
+            {% for winner in award.winners %}
+                <div class="awards-winner">
+                    <span class="awards-crown">🏆</span>
+                    <div>
+                        <p class="meta">Vencedor da vez</p>
+                        <p class="awards-winner__name">{{ winner.name }}</p>
+                        <p class="awards-winner__votes">{{ winner.votes }} votos · {{ award.total_votes }} no total</p>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     </div>
     <div class="awards-grid">
@@ -64,9 +106,13 @@
 {% endfor %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.Chart) return;
+        if (window.ChartDataLabels) {
+            Chart.register(ChartDataLabels);
+        }
 
         const awardsData = {{ awards|tojson }};
         const palette = [
@@ -113,10 +159,8 @@
                     scales: {
                         x: {
                             beginAtZero: true,
-                            ticks: {
-                                precision: 0,
-                            },
-                            grid: { color: 'rgba(31, 51, 84, 0.08)' },
+                            display: false,
+                            grid: { display: false },
                         },
                         y: {
                             grid: { display: false },
@@ -124,6 +168,13 @@
                     },
                     plugins: {
                         legend: { display: false },
+                        datalabels: {
+                            color: '#1f3354',
+                            anchor: 'end',
+                            align: 'right',
+                            formatter: (value) => value,
+                            font: { weight: '600' },
+                        },
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
@@ -185,11 +236,20 @@
                                 padding: 16,
                             },
                         },
+                        datalabels: {
+                            color: '#1f3354',
+                            formatter: (value) => {
+                                if (!Number.isFinite(value)) return '';
+                                const rounded = value.toFixed(1);
+                                return `${rounded.endsWith('.0') ? rounded.slice(0, -2) : rounded}%`;
+                            },
+                            font: { weight: '600' },
+                        },
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
                                     const value = context.parsed;
-                                    return `${context.label}: ${value} voto${value === 1 ? '' : 's'}`;
+                                    return `${context.label}: ${value.toFixed(1)}%`;
                                 },
                             },
                         },
@@ -203,14 +263,19 @@
                 .sort((a, b) => b[1] - a[1]);
             const labels = entries.map(([label]) => label);
             const values = entries.map(([, value]) => value);
+            const totalVotes = values.reduce((sum, value) => sum + value, 0);
 
             buildBarChart(`bar-${award.id}`, labels, values);
 
             const grouped = groupForDoughnut(labels, values);
+            const groupedValues = grouped.map((item) => item.value);
+            const percentages = groupedValues.map((value) => (
+                totalVotes ? (value / totalVotes) * 100 : 0
+            ));
             buildDoughnutChart(
                 `pie-${award.id}`,
                 grouped.map((item) => item.label),
-                grouped.map((item) => item.value),
+                percentages,
             );
         });
     });
