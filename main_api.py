@@ -204,6 +204,12 @@ def _jogadores_disponiveis(df: pd.DataFrame) -> List[str]:
     return sorted(jogadores - excluidos)
 
 
+def _duplas_disponiveis(df: pd.DataFrame) -> List[str]:
+    duplas = set(df["dupla_winner"].tolist() + df["dupla_loser"].tolist())
+    duplas = {d for d in duplas if isinstance(d, str) and "Outro" not in d}
+    return sorted(duplas)
+
+
 def _oponentes_por_jogador(df: pd.DataFrame) -> Dict[str, List[str]]:
     jogadores = set(_jogadores_disponiveis(df))
     oponentes: Dict[str, set[str]] = {j: set() for j in jogadores}
@@ -233,6 +239,62 @@ def _oponentes_por_jogador(df: pd.DataFrame) -> Dict[str, List[str]]:
     return {j: sorted(lista) for j, lista in oponentes.items()}
 
 
+def _parceiros_por_jogador(df: pd.DataFrame) -> Dict[str, List[str]]:
+    jogadores = set(_jogadores_disponiveis(df))
+    parceiros: Dict[str, set[str]] = {j: set() for j in jogadores}
+
+    for _, row in df.iterrows():
+        duplas_partida = [
+            [row.get("winner1"), row.get("winner2")],
+            [row.get("loser1"), row.get("loser2")],
+        ]
+        for jogador_a, jogador_b in duplas_partida:
+            if not jogador_a or not jogador_b:
+                continue
+            if jogador_a not in jogadores or jogador_b not in jogadores:
+                continue
+            parceiros[jogador_a].add(jogador_b)
+            parceiros[jogador_b].add(jogador_a)
+
+    return {j: sorted(lista) for j, lista in parceiros.items()}
+
+
+def _oponentes_por_dupla_jogadores(df: pd.DataFrame) -> Dict[str, List[str]]:
+    jogadores = set(_jogadores_disponiveis(df))
+    duplas = set(_duplas_disponiveis(df))
+    oponentes: Dict[str, set[str]] = {dupla: set() for dupla in duplas}
+
+    for _, row in df.iterrows():
+        dupla_winner = row.get("dupla_winner")
+        dupla_loser = row.get("dupla_loser")
+        winners = [row.get("winner1"), row.get("winner2")]
+        losers = [row.get("loser1"), row.get("loser2")]
+
+        if dupla_winner in duplas:
+            oponentes[dupla_winner].update([j for j in losers if j in jogadores])
+        if dupla_loser in duplas:
+            oponentes[dupla_loser].update([j for j in winners if j in jogadores])
+
+    return {dupla: sorted(lista) for dupla, lista in oponentes.items()}
+
+
+def _oponentes_por_dupla(df: pd.DataFrame) -> Dict[str, List[str]]:
+    duplas = set(_duplas_disponiveis(df))
+    oponentes: Dict[str, set[str]] = {d: set() for d in duplas}
+
+    for _, linha in df.iterrows():
+        vencedor = linha.get("dupla_winner")
+        perdedor = linha.get("dupla_loser")
+
+        if vencedor not in duplas or perdedor not in duplas:
+            continue
+
+        oponentes[vencedor].add(perdedor)
+        oponentes[perdedor].add(vencedor)
+
+    return {dupla: sorted(lista) for dupla, lista in oponentes.items()}
+
+
 def _estatisticas_jogador_individual(df: pd.DataFrame, jogador: str) -> Dict[str, int | float]:
     tabela = preparar_dados_individuais(df)
     tabela = tabela[~tabela["jogadores"].isin(_excluded_players())]
@@ -251,6 +313,32 @@ def _estatisticas_jogador_individual(df: pd.DataFrame, jogador: str) -> Dict[str
     registro = linha.iloc[0]
     return {
         "jogador": jogador,
+        "jogos": int(registro.get("jogos", 0)),
+        "vitorias": int(registro.get("vitórias", 0)),
+        "derrotas": int(registro.get("derrotas", 0)),
+        "saldo": int(registro.get("saldo", 0)),
+        "aproveitamento": float(registro.get("aproveitamento", 0.0)),
+    }
+
+
+def _estatisticas_dupla(df: pd.DataFrame, dupla: str) -> Dict[str, int | float]:
+    tabela = preparar_dados_duplas(df[["winner1", "winner2", "loser1", "loser2"]])
+    tabela = tabela[~tabela["duplas"].str.contains("Outro", na=False)]
+    linha = tabela.loc[tabela["duplas"] == dupla]
+
+    if linha.empty:
+        return {
+            "jogador": dupla,
+            "jogos": 0,
+            "vitorias": 0,
+            "derrotas": 0,
+            "saldo": 0,
+            "aproveitamento": 0.0,
+        }
+
+    registro = linha.iloc[0]
+    return {
+        "jogador": dupla,
         "jogos": int(registro.get("jogos", 0)),
         "vitorias": int(registro.get("vitórias", 0)),
         "derrotas": int(registro.get("derrotas", 0)),
@@ -350,6 +438,85 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
         "serie_mensal": serie_mensal,
     }
 
+
+def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict[str, Any]:
+    if dupla1 == dupla2:
+        return {
+            "total": 0,
+            "vitorias_j1": 0,
+            "vitorias_j2": 0,
+            "saldo": 0,
+            "serie_mensal": [],
+        }
+
+    mask_dupla1_win = (df["dupla_winner"] == dupla1) & (df["dupla_loser"] == dupla2)
+    mask_dupla2_win = (df["dupla_winner"] == dupla2) & (df["dupla_loser"] == dupla1)
+    confrontos_df = df[mask_dupla1_win | mask_dupla2_win].copy()
+
+    if confrontos_df.empty:
+        return {
+            "total": 0,
+            "vitorias_j1": 0,
+            "vitorias_j2": 0,
+            "saldo": 0,
+            "serie_mensal": [],
+        }
+
+    confrontos_df["resultado_j1"] = confrontos_df["dupla_winner"].apply(
+        lambda valor: 1 if valor == dupla1 else -1
+    )
+
+    if not isinstance(confrontos_df.index, pd.DatetimeIndex):
+        confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
+
+    if getattr(confrontos_df.index, "tz", None) is not None:
+        confrontos_df.index = confrontos_df.index.tz_convert(None)
+
+    confrontos_df = confrontos_df[~confrontos_df.index.isna()]
+
+    if confrontos_df.empty:
+        return {
+            "total": int(mask_dupla1_win.sum() + mask_dupla2_win.sum()),
+            "vitorias_j1": int(mask_dupla1_win.sum()),
+            "vitorias_j2": int(mask_dupla2_win.sum()),
+            "saldo": int(mask_dupla1_win.sum() - mask_dupla2_win.sum()),
+            "serie_mensal": [],
+        }
+
+    inicio = confrontos_df.index.min().normalize().replace(day=1)
+    fim = pd.Timestamp.now().normalize().replace(day=1)
+    meses_range = pd.date_range(start=inicio, end=fim, freq="MS")
+
+    mensal = (
+        confrontos_df["resultado_j1"]
+        .resample("MS")
+        .sum()
+        .reindex(meses_range, fill_value=0)
+        .sort_index()
+    )
+    saldo_acumulado = mensal.cumsum()
+
+    serie_completa = [
+        {
+            "label": periodo.strftime("%b/%Y"),
+            "saldo": int(mensal.loc[periodo]),
+            "acumulado": int(saldo_acumulado.loc[periodo]),
+        }
+        for periodo in mensal.index
+    ]
+
+    serie_mensal = serie_completa[-12:]
+
+    vitorias_dupla1 = int(mask_dupla1_win.sum())
+    vitorias_dupla2 = int(mask_dupla2_win.sum())
+
+    return {
+        "total": len(confrontos_df),
+        "vitorias_j1": vitorias_dupla1,
+        "vitorias_j2": vitorias_dupla2,
+        "saldo": vitorias_dupla1 - vitorias_dupla2,
+        "serie_mensal": serie_mensal,
+    }
 
 # ------------------------------- Admin ------------------------------------
 _TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
@@ -829,33 +996,102 @@ def detalhamento():
 @app.route("/versus")
 def versus():
     df = _fetch_base_dataframe()
-    jogadores_disponiveis = _jogadores_disponiveis(df)
-    oponentes_por_jogador = _oponentes_por_jogador(df)
+    tipo = request.args.get("tipo", "Jogador")
+    if tipo not in ("Jogador", "Dupla"):
+        tipo = "Jogador"
 
+    parceiros_por_jogador = {}
+    duplas_selecao = {
+        "d1a": request.args.get("d1a"),
+        "d1b": request.args.get("d1b"),
+        "d2a": request.args.get("d2a"),
+        "d2b": request.args.get("d2b"),
+    }
     jogador1 = request.args.get("j1")
     jogador2 = request.args.get("j2")
 
-    if jogador1 not in jogadores_disponiveis:
-        jogador1 = None
-    if jogador2 not in jogadores_disponiveis:
-        jogador2 = None
+    if tipo == "Dupla":
+        jogadores_disponiveis = _jogadores_disponiveis(df)
+        parceiros_por_jogador = _parceiros_por_jogador(df)
+        oponentes_por_dupla_jogadores = _oponentes_por_dupla_jogadores(df)
+        oponentes_por_jogador = {}
+
+        for chave, valor in duplas_selecao.items():
+            if valor not in jogadores_disponiveis:
+                duplas_selecao[chave] = None
+
+        def _dupla_valida(primeiro: str | None, segundo: str | None) -> bool:
+            if not primeiro or not segundo or primeiro == segundo:
+                return False
+            return segundo in parceiros_por_jogador.get(primeiro, [])
+
+        if not _dupla_valida(duplas_selecao["d1a"], duplas_selecao["d1b"]):
+            duplas_selecao["d1b"] = None
+        if not _dupla_valida(duplas_selecao["d2a"], duplas_selecao["d2b"]):
+            duplas_selecao["d2b"] = None
+    else:
+        jogadores_disponiveis = _jogadores_disponiveis(df)
+        oponentes_por_jogador = _oponentes_por_jogador(df)
+        oponentes_por_dupla_jogadores = {}
+
+        if jogador1 not in jogadores_disponiveis:
+            jogador1 = None
+        if jogador2 not in jogadores_disponiveis:
+            jogador2 = None
 
     estatisticas = None
     confronto = None
+    dupla1_nome = None
+    dupla2_nome = None
 
-    if jogador1 and jogador2 and jogador1 != jogador2:
-        estatisticas = {
-            "jogador1": _estatisticas_jogador_individual(df, jogador1),
-            "jogador2": _estatisticas_jogador_individual(df, jogador2),
-        }
-        confronto = _confronto_direto(df, jogador1, jogador2)
+    if tipo == "Dupla":
+        if duplas_selecao["d1a"] and duplas_selecao["d1b"]:
+            dupla1_nome = " e ".join(sorted([duplas_selecao["d1a"], duplas_selecao["d1b"]]))
+        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
+            dupla2_nome = " e ".join(sorted([duplas_selecao["d2a"], duplas_selecao["d2b"]]))
+
+        if dupla1_nome:
+            oponentes_dupla1 = set(oponentes_por_dupla_jogadores.get(dupla1_nome, []))
+            if duplas_selecao["d2a"] not in oponentes_dupla1:
+                duplas_selecao["d2a"] = None
+                duplas_selecao["d2b"] = None
+            elif duplas_selecao["d2b"] and duplas_selecao["d2b"] not in oponentes_dupla1:
+                duplas_selecao["d2b"] = None
+
+        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
+            parceiros_validos_d2a = set(parceiros_por_jogador.get(duplas_selecao["d2a"], []))
+            if duplas_selecao["d2b"] not in parceiros_validos_d2a:
+                duplas_selecao["d2b"] = None
+
+        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
+            dupla2_nome = " e ".join(sorted([duplas_selecao["d2a"], duplas_selecao["d2b"]]))
+
+        if dupla1_nome and dupla2_nome and dupla1_nome != dupla2_nome:
+            estatisticas = {
+                "jogador1": _estatisticas_dupla(df, dupla1_nome),
+                "jogador2": _estatisticas_dupla(df, dupla2_nome),
+            }
+            confronto = _confronto_direto_duplas(df, dupla1_nome, dupla2_nome)
+    else:
+        if jogador1 and jogador2 and jogador1 != jogador2:
+            estatisticas = {
+                "jogador1": _estatisticas_jogador_individual(df, jogador1),
+                "jogador2": _estatisticas_jogador_individual(df, jogador2),
+            }
+            confronto = _confronto_direto(df, jogador1, jogador2)
 
     return render_template(
         "versus.html",
         active_page="versus",
+        tipo=tipo,
         jogadores=jogadores_disponiveis,
         jogador1=jogador1,
         jogador2=jogador2,
+        dupla1_nome=dupla1_nome,
+        dupla2_nome=dupla2_nome,
+        duplas_selecao=duplas_selecao,
+        parceiros_por_jogador=parceiros_por_jogador,
+        oponentes_por_dupla_jogadores=oponentes_por_dupla_jogadores,
         oponentes_por_jogador=oponentes_por_jogador,
         estatisticas=estatisticas,
         confronto=confronto,

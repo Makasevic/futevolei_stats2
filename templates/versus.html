@@ -5,33 +5,78 @@
     <div class="hero__copy">
         <p class="eyebrow">cara a cara</p>
         <h1>Versus</h1>
-        <p>Escolha dois jogadores e veja quem leva vantagem. Compare números gerais e o saldo direto nos últimos 12 meses.</p>
+        {% if tipo == "Dupla" %}
+            <p>Escolha duas duplas e veja quem leva vantagem. Compare números gerais e o saldo direto nos últimos 12 meses.</p>
+        {% else %}
+            <p>Escolha dois jogadores e veja quem leva vantagem. Compare números gerais e o saldo direto nos últimos 12 meses.</p>
+        {% endif %}
     </div>
 </header>
 
 <form class="filter-bar" method="get" id="versus-form">
-    <label class="badge" for="j1">Jogador A</label>
-    <select id="j1" name="j1" class="select">
-        <option value="">Selecione</option>
-        {% for nome in jogadores %}
-            <option value="{{ nome }}" {% if nome == jogador1 %}selected{% endif %}>{{ nome }}</option>
-        {% endfor %}
+    {% set entidade = "Dupla" if tipo == "Dupla" else "Jogador" %}
+    <label class="badge" for="tipo">Tipo</label>
+    <select id="tipo" name="tipo" class="select">
+        <option value="Jogador" {% if tipo != "Dupla" %}selected{% endif %}>Jogador</option>
+        <option value="Dupla" {% if tipo == "Dupla" %}selected{% endif %}>Dupla</option>
     </select>
 
-    <label class="badge" for="j2">Jogador B</label>
-    <select id="j2" name="j2" class="select" {% if jogadores|length == 0 %}disabled{% endif %}>
-        <option value="">Selecione</option>
-        {% for nome in jogadores %}
-            <option value="{{ nome }}" {% if nome == jogador2 %}selected{% endif %}>{{ nome }}</option>
-        {% endfor %}
-    </select>
+    {% if tipo == "Dupla" %}
+        <label class="badge" for="d1a">Dupla A</label>
+        <select id="d1a" name="d1a" class="select">
+            <option value="">Jogador 1</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if duplas_selecao.d1a == nome %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+        <select id="d1b" name="d1b" class="select">
+            <option value="">Jogador 2</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if duplas_selecao.d1b == nome %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="badge" for="d2a">Dupla B</label>
+        <select id="d2a" name="d2a" class="select">
+            <option value="">Jogador 1</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if duplas_selecao.d2a == nome %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+        <select id="d2b" name="d2b" class="select">
+            <option value="">Jogador 2</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if duplas_selecao.d2b == nome %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        <label class="badge" for="j1">{{ entidade }} A</label>
+        <select id="j1" name="j1" class="select">
+            <option value="">Selecione</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if nome == jogador1 %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="badge" for="j2">{{ entidade }} B</label>
+        <select id="j2" name="j2" class="select" {% if jogadores|length == 0 %}disabled{% endif %}>
+            <option value="">Selecione</option>
+            {% for nome in jogadores %}
+                <option value="{{ nome }}" {% if nome == jogador2 %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
 </form>
 
 {% if estatisticas and confronto %}
 <section class="panel">
     <div class="section-title">
         <h2>Comparativo geral</h2>
-        <span class="meta">Resumo dos números históricos de cada jogador</span>
+        {% if tipo == "Dupla" %}
+            <span class="meta">Resumo dos números históricos de cada dupla</span>
+        {% else %}
+            <span class="meta">Resumo dos números históricos de cada jogador</span>
+        {% endif %}
     </div>
     <div class="split-grid">
         {% for chave, resumo in estatisticas.items() %}
@@ -50,13 +95,22 @@
 <section class="panel" style="margin-top:18px;">
     <div class="section-title">
         <h2>Confronto direto</h2>
-        <span class="meta">Saldo considerando apenas partidas entre {{ jogador1 }} e {{ jogador2 }}</span>
+        {% if tipo == "Dupla" %}
+            <span class="meta">Saldo considerando apenas partidas entre {{ dupla1_nome }} e {{ dupla2_nome }}</span>
+        {% else %}
+            <span class="meta">Saldo considerando apenas partidas entre {{ jogador1 }} e {{ jogador2 }}</span>
+        {% endif %}
     </div>
     <div class="split-grid">
         <div class="card">
             <p class="badge">Resumo</p>
-            <h3>{{ jogador1 }} {{ confronto.vitorias_j1 }} × {{ confronto.vitorias_j2 }} {{ jogador2 }}</h3>
-            <p class="meta">Total de jogos: {{ confronto.total }} · Saldo para {{ jogador1 }}: {{ confronto.saldo }}</p>
+            {% if tipo == "Dupla" %}
+                <h3>{{ dupla1_nome }} {{ confronto.vitorias_j1 }} × {{ confronto.vitorias_j2 }} {{ dupla2_nome }}</h3>
+                <p class="meta">Total de jogos: {{ confronto.total }} · Saldo para {{ dupla1_nome }}: {{ confronto.saldo }}</p>
+            {% else %}
+                <h3>{{ jogador1 }} {{ confronto.vitorias_j1 }} × {{ confronto.vitorias_j2 }} {{ jogador2 }}</h3>
+                <p class="meta">Total de jogos: {{ confronto.total }} · Saldo para {{ jogador1 }}: {{ confronto.saldo }}</p>
+            {% endif %}
         </div>
         <div class="chart-card">
             <canvas id="versusChart" aria-label="Evolução do saldo mensal"></canvas>
@@ -65,7 +119,11 @@
 </section>
 {% else %}
     <section class="panel" style="margin-top:18px;">
-        <p class="meta">Selecione dois jogadores diferentes para ver o confronto direto.</p>
+        {% if tipo == "Dupla" %}
+            <p class="meta">Selecione duas duplas diferentes para ver o confronto direto.</p>
+        {% else %}
+            <p class="meta">Selecione dois jogadores diferentes para ver o confronto direto.</p>
+        {% endif %}
     </section>
 {% endif %}
 
@@ -73,12 +131,21 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('versus-form');
+        const tipoSelect = document.getElementById('tipo');
         const selectA = document.getElementById('j1');
         const selectB = document.getElementById('j2');
+        const duplaA1 = document.getElementById('d1a');
+        const duplaA2 = document.getElementById('d1b');
+        const duplaB1 = document.getElementById('d2a');
+        const duplaB2 = document.getElementById('d2b');
         const jogador1 = {{ jogador1|tojson }};
         const jogador2 = {{ jogador2|tojson }};
+        const dupla1Nome = {{ dupla1_nome|tojson }};
+        const dupla2Nome = {{ dupla2_nome|tojson }};
         const todosJogadores = {{ jogadores|tojson }};
         const oponentesPorJogador = {{ oponentes_por_jogador|tojson }};
+        const parceirosPorJogador = {{ parceiros_por_jogador|tojson }};
+        const oponentesPorDupla = {{ oponentes_por_dupla_jogadores|tojson }};
 
         const preencherOpcoes = (select, permitidos, selecionado) => {
             if (!select) return;
@@ -122,9 +189,73 @@
             }
         };
 
-        sincronizarDropdowns();
-        selectA?.addEventListener('change', aoAlterar);
-        selectB?.addEventListener('change', aoAlterar);
+        const atualizarParceiros = (selectJogador, selectParceiro) => {
+            if (!selectJogador || !selectParceiro) return;
+            const escolhido = selectJogador.value || '';
+            const parceiros = escolhido ? (parceirosPorJogador[escolhido] || []) : [];
+            const candidatos = parceiros.filter((nome) => nome !== escolhido);
+            const selecionado = candidatos.includes(selectParceiro.value) ? selectParceiro.value : '';
+            preencherOpcoes(selectParceiro, candidatos, selecionado);
+        };
+
+        const obterDuplaSelecionada = () => {
+            const a1 = duplaA1?.value || '';
+            const a2 = duplaA2?.value || '';
+            if (!a1 || !a2 || a1 === a2) return '';
+            return [a1, a2].sort().join(' e ');
+        };
+
+        const atualizarOponentesDupla = () => {
+            if (!duplaB1 || !duplaB2) return;
+            const duplaSelecionada = obterDuplaSelecionada();
+            const oponentes = duplaSelecionada ? (oponentesPorDupla[duplaSelecionada] || []) : [];
+
+            const selecionadoB1 = oponentes.includes(duplaB1.value) ? duplaB1.value : '';
+            preencherOpcoes(duplaB1, oponentes, selecionadoB1);
+
+            const parceiros = selecionadoB1 ? (parceirosPorJogador[selecionadoB1] || []) : [];
+            const candidatosB2 = parceiros.filter((nome) => oponentes.includes(nome) && nome !== selecionadoB1);
+            const selecionadoB2 = candidatosB2.includes(duplaB2.value) ? duplaB2.value : '';
+            preencherOpcoes(duplaB2, candidatosB2, selecionadoB2);
+        };
+
+        const tentarEnviarDuplas = () => {
+            if (!duplaA1 || !duplaA2 || !duplaB1 || !duplaB2) return;
+            const a1 = duplaA1.value;
+            const a2 = duplaA2.value;
+            const b1 = duplaB1.value;
+            const b2 = duplaB2.value;
+            if (!a1 || !a2 || !b1 || !b2) return;
+            if (a1 === a2 || b1 === b2) return;
+            const dupla1 = [a1, a2].sort().join(' e ');
+            const dupla2 = [b1, b2].sort().join(' e ');
+            if (dupla1 === dupla2) return;
+            form?.submit();
+        };
+
+        if (tipoSelect?.value === 'Dupla') {
+            atualizarParceiros(duplaA1, duplaA2);
+            atualizarOponentesDupla();
+            duplaA1?.addEventListener('change', () => {
+                atualizarParceiros(duplaA1, duplaA2);
+                atualizarOponentesDupla();
+                tentarEnviarDuplas();
+            });
+            duplaA2?.addEventListener('change', () => {
+                atualizarOponentesDupla();
+                tentarEnviarDuplas();
+            });
+            duplaB1?.addEventListener('change', () => {
+                atualizarOponentesDupla();
+                tentarEnviarDuplas();
+            });
+            duplaB2?.addEventListener('change', tentarEnviarDuplas);
+        } else {
+            sincronizarDropdowns();
+            selectA?.addEventListener('change', aoAlterar);
+            selectB?.addEventListener('change', aoAlterar);
+        }
+        tipoSelect?.addEventListener('change', () => form?.submit());
 
         const serieMensal = {{ confronto.serie_mensal|tojson if confronto else '[]' }};
         const chartCanvas = document.getElementById('versusChart');
@@ -132,7 +263,9 @@
         if (chartCanvas && Array.isArray(serieMensal) && serieMensal.length > 0 && window.Chart) {
             const labels = serieMensal.map((ponto) => ponto.label);
             const acumulado = serieMensal.map((ponto) => ponto.acumulado);
-            const tituloGrafico = `${jogador1 || 'Jogador 1'} x ${jogador2 || 'Jogador 2'}`;
+            const tituloGrafico = tipoSelect?.value === 'Dupla'
+                ? `${dupla1Nome || 'Dupla 1'} x ${dupla2Nome || 'Dupla 2'}`
+                : `${jogador1 || 'Jogador 1'} x ${jogador2 || 'Jogador 2'}`;
 
             new Chart(chartCanvas, {
                 type: 'line',
@@ -140,7 +273,9 @@
                     labels,
                     datasets: [
                         {
-                            label: `Saldo acumulado (${jogador1})`,
+                            label: tipoSelect?.value === 'Dupla'
+                                ? `Saldo acumulado (${dupla1Nome || 'Dupla 1'})`
+                                : `Saldo acumulado (${jogador1})`,
                             data: acumulado,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.15)',
