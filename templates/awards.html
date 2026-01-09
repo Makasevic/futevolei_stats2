@@ -47,25 +47,6 @@
     </form>
 </header>
 
-<section class="panel awards-nav">
-    <div class="awards-nav__group">
-        <p class="section-eyebrow">Categorias positivas</p>
-        <div class="awards-nav__list">
-            {% for award in positive_awards %}
-                <a class="awards-nav__item" href="#{{ award.id }}">{{ award.title }}</a>
-            {% endfor %}
-        </div>
-    </div>
-    <div class="awards-nav__group">
-        <p class="section-eyebrow">Categorias negativas</p>
-        <div class="awards-nav__list">
-            {% for award in negative_awards %}
-                <a class="awards-nav__item" href="#{{ award.id }}">{{ award.title }}</a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
 {% for award in awards %}
 <section class="panel awards-section" id="{{ award.id }}">
     <div class="awards-section__header">
