@@ -456,18 +456,66 @@ def _obter_metricas_jogador(
     }
 
 
+def _contar_jogos_confrontos_jogadores(df: pd.DataFrame) -> pd.DataFrame:
+    jogadores = sorted(
+        set(df["winner1"].tolist() + df["winner2"].tolist() + df["loser1"].tolist() + df["loser2"].tolist())
+    )
+    jogos = pd.DataFrame(0, index=jogadores, columns=jogadores)
+
+    for _, row in df.iterrows():
+        winners = [row["winner1"], row["winner2"]]
+        losers = [row["loser1"], row["loser2"]]
+        for winner in winners:
+            for loser in losers:
+                jogos.at[winner, loser] += 1
+                jogos.at[loser, winner] += 1
+
+    jogos = jogos.loc[
+        ~jogos.index.astype(str).str.contains("Outro"),
+        ~jogos.columns.astype(str).str.contains("Outro"),
+    ]
+    return jogos
+
+
+def _contar_jogos_confrontos_duplas(df: pd.DataFrame) -> pd.DataFrame:
+    duplas = sorted(set(df["dupla_winner"].tolist() + df["dupla_loser"].tolist()))
+    jogos = pd.DataFrame(0, index=duplas, columns=duplas)
+
+    for _, row in df.iterrows():
+        winner_dupla = row["dupla_winner"]
+        loser_dupla = row["dupla_loser"]
+        jogos.at[winner_dupla, loser_dupla] += 1
+        jogos.at[loser_dupla, winner_dupla] += 1
+
+    jogos = jogos.loc[
+        ~jogos.index.astype(str).str.contains("Outro"),
+        ~jogos.columns.astype(str).str.contains("Outro"),
+    ]
+    return jogos
+
+
 def _saldo_confrontos_jogador(df: pd.DataFrame, jogador: str) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     df_saldo = preparar_dados_confrontos_jogadores(df)
+    df_jogos = _contar_jogos_confrontos_jogadores(df)
     if jogador not in df_saldo.index:
         return [], []
 
     saldo_jogador = df_saldo.loc[jogador, :]
+    jogos_jogador = df_jogos.loc[jogador, :] if jogador in df_jogos.index else pd.Series(dtype=int)
+    fregueses = saldo_jogador[saldo_jogador > 0].sort_values(ascending=False)
     fregueses = (
-        saldo_jogador[saldo_jogador > 0].sort_values(ascending=False).head(5).reset_index()
+        fregueses.to_frame("saldo")
+        .join(jogos_jogador.rename("jogos"))
+        .reset_index()
+        .rename(columns={"index": "nome"})
     )
-    fregueses.columns = ["nome", "saldo"]
-    carrascos = saldo_jogador[saldo_jogador < 0].sort_values().head(5).reset_index()
-    carrascos.columns = ["nome", "saldo"]
+    carrascos = saldo_jogador[saldo_jogador < 0].sort_values()
+    carrascos = (
+        carrascos.to_frame("saldo")
+        .join(jogos_jogador.rename("jogos"))
+        .reset_index()
+        .rename(columns={"index": "nome"})
+    )
     return fregueses.to_dict(orient="records"), carrascos.to_dict(orient="records")
 
 
@@ -512,8 +560,12 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
     tendencia_dupla, _, tendencia_dupla_observacao = _calcular_tendencia(score_por_dia, config)
 
     df_saldo_duplas = preparar_dados_confrontos_duplas(df)
+    df_jogos_duplas = _contar_jogos_confrontos_duplas(df)
     saldo_dupla = (
         df_saldo_duplas.loc[dupla_selecionada, :] if dupla_selecionada in df_saldo_duplas.index else pd.Series(dtype=float)
+    )
+    jogos_dupla = (
+        df_jogos_duplas.loc[dupla_selecionada, :] if dupla_selecionada in df_jogos_duplas.index else pd.Series(dtype=int)
     )
 
     maior_fregues = None
@@ -560,10 +612,20 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
         "tendencia_observacao": tendencia_dupla_observacao,
     }
 
-    fregueses = saldo_dupla[saldo_dupla > 0].sort_values(ascending=False).head(5).reset_index()
-    fregueses.columns = ["nome", "saldo"]
-    carrascos = saldo_dupla[saldo_dupla < 0].sort_values().head(5).reset_index()
-    carrascos.columns = ["nome", "saldo"]
+    fregueses = saldo_dupla[saldo_dupla > 0].sort_values(ascending=False)
+    fregueses = (
+        fregueses.to_frame("saldo")
+        .join(jogos_dupla.rename("jogos"))
+        .reset_index()
+        .rename(columns={"index": "nome"})
+    )
+    carrascos = saldo_dupla[saldo_dupla < 0].sort_values()
+    carrascos = (
+        carrascos.to_frame("saldo")
+        .join(jogos_dupla.rename("jogos"))
+        .reset_index()
+        .rename(columns={"index": "nome"})
+    )
 
     serie_score = _agrupar_score_mensal(score_percentual)
 

@@ -156,20 +156,20 @@
         <section class="panel" style="margin-top:18px;">
             <div class="section-title">
                 <h2>Confrontos</h2>
-                <span class="meta">Top fregueses e carrascos</span>
+                <span class="meta">Lista completa de fregueses e carrascos</span>
             </div>
             <div class="split-grid">
                 <div>
                     <p class="badge">Maiores fregueses</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Jogador</th><th>Saldo</th></tr></thead>
+                            <thead><tr><th>Jogador</th><th>Saldo</th><th>Jogos</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.fregueses %}
-                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td><td>{{ linha.jogos }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.fregueses|length == 0 %}
-                                    <tr><td colspan="2" class="meta">Sem confrontos positivos registrados.</td></tr>
+                                    <tr><td colspan="3" class="meta">Sem confrontos positivos registrados.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -179,13 +179,13 @@
                     <p class="badge">Maiores carrascos</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Jogador</th><th>Saldo</th></tr></thead>
+                            <thead><tr><th>Jogador</th><th>Saldo</th><th>Jogos</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.carrascos %}
-                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td><td>{{ linha.jogos }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.carrascos|length == 0 %}
-                                    <tr><td colspan="2" class="meta">Sem confrontos negativos registrados.</td></tr>
+                                    <tr><td colspan="3" class="meta">Sem confrontos negativos registrados.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -320,13 +320,13 @@
                     <p class="badge">Maiores fregueses</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Dupla</th><th>Saldo</th></tr></thead>
+                            <thead><tr><th>Dupla</th><th>Saldo</th><th>Jogos</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.fregueses %}
-                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td><td>{{ linha.jogos }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.fregueses|length == 0 %}
-                                    <tr><td colspan="2" class="meta">Sem confrontos positivos registrados.</td></tr>
+                                    <tr><td colspan="3" class="meta">Sem confrontos positivos registrados.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -336,13 +336,13 @@
                     <p class="badge">Maiores carrascos</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Dupla</th><th>Saldo</th></tr></thead>
+                            <thead><tr><th>Dupla</th><th>Saldo</th><th>Jogos</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.carrascos %}
-                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td></tr>
+                                    <tr><td>{{ linha.nome }}</td><td>{{ linha.saldo }}</td><td>{{ linha.jogos }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.carrascos|length == 0 %}
-                                    <tr><td colspan="2" class="meta">Sem confrontos negativos registrados.</td></tr>
+                                    <tr><td colspan="3" class="meta">Sem confrontos negativos registrados.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
