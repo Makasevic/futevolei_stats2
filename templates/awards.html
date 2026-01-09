@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="hero awards-hero">
+    <div class="hero__copy">
+        <p class="eyebrow awards-eyebrow">edição especial</p>
+        <h1>Awards Redinha</h1>
+        <p>
+            O tapete vermelho chegou: confira os prêmios mais votados da galera com uma leitura
+            visual digna de final. Cada categoria mostra quem brilhou (e quem ficou no quase).
+        </p>
+    </div>
+    <div class="awards-summary">
+        <div class="awards-summary__card">
+            <span>🏆</span>
+            <div>
+                <p class="meta">Categorias premiadas</p>
+                <strong>{{ awards|length }}</strong>
+            </div>
+        </div>
+        <div class="awards-summary__card">
+            <span>🗳️</span>
+            <div>
+                <p class="meta">Total de votos</p>
+                <strong>{{ awards_total_votes }}</strong>
+            </div>
+        </div>
+        <div class="awards-summary__card">
+            <span>⭐</span>
+            <div>
+                <p class="meta">Mais lembrado</p>
+                <strong>{{ awards_most_voted }}</strong>
+            </div>
+        </div>
+    </div>
+</header>
+
+{% for award in awards %}
+<section class="panel awards-section" id="{{ award.id }}">
+    <div class="awards-section__header">
+        <div>
+            <p class="section-eyebrow">categoria</p>
+            <h2>{{ award.title }}</h2>
+            <p class="meta">{{ award.tagline }}</p>
+        </div>
+        <div class="awards-winner">
+            <span class="awards-crown">🏆</span>
+            <div>
+                <p class="meta">Vencedor da vez</p>
+                <p class="awards-winner__name">{{ award.winner_name }}</p>
+                <p class="awards-winner__votes">{{ award.winner_votes }} votos · {{ award.total_votes }} no total</p>
+            </div>
+        </div>
+    </div>
+    <div class="awards-grid">
+        <div class="chart-card chart-card--bar">
+            <canvas id="bar-{{ award.id }}" aria-label="Quantidade de votos para {{ award.title }}"></canvas>
+        </div>
+        <div class="chart-card chart-card--pie">
+            <canvas id="pie-{{ award.id }}" aria-label="Distribuição percentual para {{ award.title }}"></canvas>
+        </div>
+    </div>
+</section>
+{% endfor %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.Chart) return;
+
+        const awardsData = {{ awards|tojson }};
+        const palette = [
+            '#2f6bff',
+            '#13b6a7',
+            '#f2994a',
+            '#9b51e0',
+            '#eb5757',
+            '#27ae60',
+            '#f2c94c',
+            '#2d9cdb',
+            '#6fcf97',
+            '#bb6bd9',
+        ];
+        const gold = '#d4af37';
+
+        const buildBarChart = (canvasId, labels, values) => {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const barColors = labels.map((_, index) => (
+                index === 0 ? gold : palette[index % palette.length]
+            ));
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Votos',
+                            data: values,
+                            backgroundColor: barColors.map((color) => `${color}CC`),
+                            borderColor: barColors,
+                            borderWidth: 1,
+                            borderRadius: 8,
+                        },
+                    ],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                            },
+                            grid: { color: 'rgba(31, 51, 84, 0.08)' },
+                        },
+                        y: {
+                            grid: { display: false },
+                        },
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.x;
+                                    return `${value} voto${value === 1 ? '' : 's'}`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        };
+
+        const groupForDoughnut = (labels, values, maxSlices = 7) => {
+            const pairs = labels.map((label, index) => ({
+                label,
+                value: values[index],
+            }));
+            pairs.sort((a, b) => b.value - a.value);
+
+            if (pairs.length <= maxSlices) {
+                return pairs;
+            }
+
+            const primary = pairs.slice(0, maxSlices - 1);
+            const othersValue = pairs.slice(maxSlices - 1).reduce((sum, item) => sum + item.value, 0);
+            primary.push({ label: 'Outros', value: othersValue });
+            return primary;
+        };
+
+        const buildDoughnutChart = (canvasId, labels, values) => {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            data: values,
+                            backgroundColor: labels.map((_, index) => (
+                                index === 0 ? gold : palette[index % palette.length]
+                            )),
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 16,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed;
+                                    return `${context.label}: ${value} voto${value === 1 ? '' : 's'}`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        };
+
+        awardsData.forEach((award) => {
+            const entries = Object.entries(award.votes)
+                .sort((a, b) => b[1] - a[1]);
+            const labels = entries.map(([label]) => label);
+            const values = entries.map(([, value]) => value);
+
+            buildBarChart(`bar-${award.id}`, labels, values);
+
+            const grouped = groupForDoughnut(labels, values);
+            buildDoughnutChart(
+                `pie-${award.id}`,
+                grouped.map((item) => item.label),
+                grouped.map((item) => item.value),
+            );
+        });
+    });
+</script>
+{% endblock %}
