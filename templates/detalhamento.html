@@ -104,9 +104,17 @@
                     <div class="xray-item">
                         <span class="xray-icon">📅</span>
                         <div>
-                            <p class="xray-label">Assiduidade e média diária</p>
+                            <p class="xray-label">Assiduidade</p>
                             <p class="xray-value">{{ metricas.assiduidade_texto }}</p>
-                            <p class="meta">{{ metricas.media_partidas_por_dia_texto }}</p>
+                            <p class="meta">Presença em dias registrados</p>
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">🎮</span>
+                        <div>
+                            <p class="xray-label">Média de jogos por dia</p>
+                            <p class="xray-value">{{ metricas.media_partidas_por_dia_texto }}</p>
+                            <p class="meta">Somente dias em que compareceu</p>
                         </div>
                     </div>
                     <div class="xray-item">
@@ -133,6 +141,14 @@
                                 <p class="xray-value">—</p>
                                 <p class="meta">Sem registro</p>
                             {% endif %}
+                        </div>
+                    </div>
+                    <div class="xray-item">
+                        <span class="xray-icon">📊</span>
+                        <div>
+                            <p class="xray-label">Qualidade média dos parceiros</p>
+                            <p class="xray-value">{{ metricas.ranking_parceiro_estrelas }}</p>
+                            <p class="meta">Ranking médio {{ metricas.ranking_parceiro_medio_texto }} · {{ metricas.ranking_parceiro_percentil_texto }}</p>
                         </div>
                     </div>
                 </div>

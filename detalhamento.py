@@ -388,6 +388,52 @@ def _obter_metricas_jogador(
                     "score": (parceiro_entrosado_stats["vitorias"] / parceiro_entrosado_stats["jogos"]) * 100,
                 }
 
+    ranking_parceiro_percentil = None
+    ranking_parceiro_estrelas = "—"
+    ranking_parceiro_percentil_texto = "—"
+    ranking_parceiro_medio_texto = "—"
+    if not tabela_geral.empty and "rank" in tabela_geral.columns:
+        ranking_map = dict(zip(tabela_geral["jogadores"], tabela_geral["rank"]))
+        jogadores_validos = set(ranking_map.keys())
+        parceiros_por_jogador: DefaultDict[str, DefaultDict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
+
+        for row in df.itertuples():
+            duplas = ([row.winner1, row.winner2], [row.loser1, row.loser2])
+            for dupla in duplas:
+                jogadores_dupla = [j for j in dupla if j in jogadores_validos]
+                if len(jogadores_dupla) != 2:
+                    continue
+                jogador_a, jogador_b = jogadores_dupla
+                parceiros_por_jogador[jogador_a][jogador_b] += 1
+                parceiros_por_jogador[jogador_b][jogador_a] += 1
+
+        ranking_medio_parceiros: Dict[str, float] = {}
+        for jogador_base, parceiros in parceiros_por_jogador.items():
+            soma_ponderada = 0.0
+            total_jogos_rank = 0
+            for parceiro, jogos_parceiro in parceiros.items():
+                if jogos_parceiro <= 0:
+                    continue
+                ranking_parceiro = ranking_map.get(parceiro)
+                if ranking_parceiro is None or pd.isna(ranking_parceiro):
+                    continue
+                soma_ponderada += float(ranking_parceiro) * jogos_parceiro
+                total_jogos_rank += jogos_parceiro
+            if total_jogos_rank > 0:
+                ranking_medio_parceiros[jogador_base] = soma_ponderada / total_jogos_rank
+
+        ranking_parceiro_medio = ranking_medio_parceiros.get(jogador)
+        if ranking_parceiro_medio is not None:
+            ranking_parceiro_medio_texto = f"{ranking_parceiro_medio:.1f}"
+            valores_rank = pd.Series(ranking_medio_parceiros.values(), dtype=float).dropna()
+            if not valores_rank.empty:
+                maiores_ou_iguais = (valores_rank >= ranking_parceiro_medio - 1e-9).sum()
+                ranking_parceiro_percentil = maiores_ou_iguais / len(valores_rank) * 100
+                ranking_parceiro_estrelas = _formatar_estrelas(ranking_parceiro_percentil)
+                ranking_parceiro_percentil_texto = f"Percentil {ranking_parceiro_percentil:.1f}"
+
     rotatividade_percentil = None
     if rotatividade_media is not None and not linha_geral.empty:
         rotatividade_base = float(linha_geral["rotatividade"].iloc[0])
@@ -448,6 +494,10 @@ def _obter_metricas_jogador(
         "parceiro_frequente": parceiro_frequente,
         "parceiro_entrosado": parceiro_entrosado,
         "min_jogos_entrosamento": config.min_duo_matches,
+        "ranking_parceiro_percentil": ranking_parceiro_percentil,
+        "ranking_parceiro_estrelas": ranking_parceiro_estrelas,
+        "ranking_parceiro_percentil_texto": ranking_parceiro_percentil_texto,
+        "ranking_parceiro_medio_texto": ranking_parceiro_medio_texto,
         "maior_pato": maior_pato,
         "maior_carrasco": maior_carrasco,
         "tendencia": tendencia,
