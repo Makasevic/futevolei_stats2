@@ -1377,6 +1377,47 @@ header.hero::after {
 
 .logout-form { margin-top: 18px; display: flex; justify-content: flex-end; }
 
+.recent-matches {
+    display: grid;
+    gap: 10px;
+}
+
+.recent-match {
+    display: grid;
+    grid-template-columns: 12px 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(31, 51, 84, 0.08);
+}
+
+.recent-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+}
+
+.recent-dot.is-loss {
+    background: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+}
+
+.recent-match__teams {
+    margin: 0;
+    font-weight: var(--font-medium);
+}
+
+.recent-match__meta {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
 
 .highlight-card .badge {
     background: none !important;

@@ -100,6 +100,93 @@ def _agrupar_score_mensal(score_percentual: pd.Series) -> List[Dict[str, object]
     ]
 
 
+def _ordenar_partidas_por_data(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    if isinstance(df.index, pd.DatetimeIndex):
+        datas_partidas = df.index
+    else:
+        datas_partidas = pd.to_datetime(df.index, errors="coerce")
+
+    df_ordenado = df.copy()
+    df_ordenado["data_partida"] = datas_partidas
+    df_ordenado = df_ordenado.dropna(subset=["data_partida"])
+    return df_ordenado.sort_values("data_partida", ascending=False)
+
+
+def _montar_jogos_recentes_jogador(df: pd.DataFrame, jogador: str, limite: int = 30) -> List[Dict[str, object]]:
+    if df.empty:
+        return []
+
+    df_ordenado = _ordenar_partidas_por_data(df)
+    if df_ordenado.empty:
+        return []
+
+    colunas = ["winner1", "winner2", "loser1", "loser2"]
+    if not all(coluna in df_ordenado.columns for coluna in colunas):
+        return []
+
+    mask = df_ordenado[colunas].eq(jogador).any(axis=1)
+    partidas = df_ordenado[mask].head(limite)
+    if partidas.empty:
+        return []
+
+    jogos = []
+    for row in partidas.itertuples():
+        vencedores = " e ".join([row.winner1, row.winner2])
+        perdedores = " e ".join([row.loser1, row.loser2])
+        venceu = jogador in [row.winner1, row.winner2]
+        data_partida = row.data_partida.strftime("%d/%m/%Y")
+        jogos.append(
+            {
+                "data": data_partida,
+                "vencedores": vencedores,
+                "perdedores": perdedores,
+                "venceu": venceu,
+            }
+        )
+    return jogos
+
+
+def _montar_jogos_recentes_dupla(
+    df: pd.DataFrame, jogador1: str, jogador2: str, limite: int = 30
+) -> List[Dict[str, object]]:
+    if df.empty:
+        return []
+
+    dupla_selecionada = " e ".join(sorted([jogador1, jogador2]))
+    df_ordenado = _ordenar_partidas_por_data(df)
+    if df_ordenado.empty:
+        return []
+
+    colunas = ["dupla_winner", "dupla_loser", "winner1", "winner2", "loser1", "loser2"]
+    if not all(coluna in df_ordenado.columns for coluna in colunas):
+        return []
+
+    mask = (df_ordenado["dupla_winner"] == dupla_selecionada) | (
+        df_ordenado["dupla_loser"] == dupla_selecionada
+    )
+    partidas = df_ordenado[mask].head(limite)
+    if partidas.empty:
+        return []
+
+    jogos = []
+    for row in partidas.itertuples():
+        vencedores = " e ".join([row.winner1, row.winner2])
+        perdedores = " e ".join([row.loser1, row.loser2])
+        venceu = row.dupla_winner == dupla_selecionada
+        data_partida = row.data_partida.strftime("%d/%m/%Y")
+        jogos.append(
+            {
+                "data": data_partida,
+                "vencedores": vencedores,
+                "perdedores": perdedores,
+                "venceu": venceu,
+            }
+        )
+    return jogos
+
+
 def _aplicar_regras_ranking(tabela: pd.DataFrame, config) -> pd.DataFrame:
     ranking = tabela.copy()
     if ranking.empty or "jogadores" not in ranking.columns:
@@ -232,6 +319,7 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
     parcerias_top, parcerias_bottom = _formatar_parcerias(parcerias_detalhes, total_jogos)
 
     serie_score = _agrupar_score_mensal(score_percentual)
+    jogos_recentes = _montar_jogos_recentes_jogador(df, jogador, limite=30)
 
     return {
         "metricas": metricas,
@@ -240,6 +328,7 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
         "carrascos": destaque_carrascos,
         "parcerias_top": parcerias_top,
         "parcerias_bottom": parcerias_bottom,
+        "jogos_recentes": jogos_recentes,
     }
 
 
@@ -678,10 +767,12 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
     )
 
     serie_score = _agrupar_score_mensal(score_percentual)
+    jogos_recentes = _montar_jogos_recentes_dupla(df, jogador1, jogador2, limite=30)
 
     return {
         "metricas": metricas_dupla,
         "fregueses": fregueses.to_dict(orient="records"),
         "carrascos": carrascos.to_dict(orient="records"),
         "score_series": serie_score,
+        "jogos_recentes": jogos_recentes,
     }
