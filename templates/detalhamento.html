@@ -220,10 +220,10 @@
                     <p class="badge">Adora jogar com</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Participação</th></tr></thead>
+                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Aproveitamento</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.parcerias_top %}
-                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.participacao }}</td></tr>
+                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.aproveitamento }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.parcerias_top|length == 0 %}
                                     <tr><td colspan="3" class="meta">Sem parcerias registradas.</td></tr>
@@ -236,10 +236,10 @@
                     <p class="badge">Odeia jogar com</p>
                     <div class="table-wrapper">
                         <table class="ranking-table">
-                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Participação</th></tr></thead>
+                            <thead><tr><th>Jogador</th><th>Jogos</th><th>Aproveitamento</th></tr></thead>
                             <tbody>
                                 {% for linha in detalhes.parcerias_bottom %}
-                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.participacao }}</td></tr>
+                                    <tr><td>{{ linha.jogador }}</td><td>{{ linha.jogos }}</td><td>{{ linha.aproveitamento }}</td></tr>
                                 {% endfor %}
                                 {% if detalhes.parcerias_bottom|length == 0 %}
                                     <tr><td colspan="3" class="meta">Sem parceiros suficientes para listar.</td></tr>
@@ -522,3 +522,4 @@
     });
 </script>
 {% endblock %}
+

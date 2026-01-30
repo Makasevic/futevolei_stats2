@@ -211,26 +211,52 @@ def _aplicar_regras_ranking(tabela: pd.DataFrame, config) -> pd.DataFrame:
     return ranking
 
 
-def _formatar_parcerias(parcerias: Dict[str, Dict[str, int]], total_jogos: int) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
-    parceiros_series = (
-        pd.Series({nome: stats.get("jogos", 0) for nome, stats in parcerias.items()}, dtype=int)
-        if parcerias
-        else pd.Series(dtype=int)
+def _formatar_parcerias(
+    parcerias: Dict[str, Dict[str, int]],
+    total_jogos: int,
+    parceiros_validos: Optional[set[str]] = None,
+    jogador: Optional[str] = None,
+    limite: int = 10,
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    if parceiros_validos:
+        parceiros_base = [nome for nome in parceiros_validos if nome and nome != jogador]
+    else:
+        parceiros_base = [nome for nome in parcerias.keys() if nome and nome != jogador]
+
+    if not parceiros_base:
+        return [], []
+
+    parceiros_series = pd.Series(
+        {nome: int(parcerias.get(nome, {}).get("jogos", 0)) for nome in parceiros_base},
+        dtype=int,
     )
-    parceiros_series = parceiros_series[parceiros_series > 0].sort_values(ascending=False)
 
     def _montar_tabela(series: pd.Series) -> List[Dict[str, object]]:
         if series.empty:
             return []
-        tabela = series.to_frame("jogos").reset_index().rename(columns={"index": "jogador"})
-        tabela["participacao"] = tabela["jogos"].map(
-            lambda jogos: f"{(jogos / total_jogos * 100):.1f}%" if total_jogos else "0%"
-        )
-        return tabela.to_dict(orient="records")
+        registros = []
+        for parceiro, jogos in series.items():
+            stats = parcerias.get(parceiro, {})
+            vitorias = int(stats.get("vitorias", 0))
+            aproveitamento = (vitorias / jogos * 100) if jogos else None
+            participacao = f"{(jogos / total_jogos * 100):.1f}%" if total_jogos else "0%"
+            registros.append(
+                {
+                    "jogador": parceiro,
+                    "jogos": int(jogos),
+                    "participacao": participacao,
+                    "aproveitamento": f"{aproveitamento:.1f}%" if aproveitamento is not None else "-",
+                }
+            )
+        return registros
 
-    maiores_parcerias = _montar_tabela(parceiros_series.head(5))
-    menores_series = parceiros_series.iloc[5:].sort_values(ascending=True).head(5)
-    menores_parcerias = _montar_tabela(menores_series)
+    parceiros_series = parceiros_series.sort_values(ascending=False)
+    top_series = parceiros_series.head(limite)
+    restantes = parceiros_series.drop(top_series.index, errors="ignore")
+    bottom_series = restantes.sort_values(ascending=True).head(limite)
+
+    maiores_parcerias = _montar_tabela(top_series)
+    menores_parcerias = _montar_tabela(bottom_series)
     return maiores_parcerias, menores_parcerias
 
 
@@ -316,7 +342,19 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
     )
 
     destaque_fregueses, destaque_carrascos = _saldo_confrontos_jogador(df, jogador)
-    parcerias_top, parcerias_bottom = _formatar_parcerias(parcerias_detalhes, total_jogos)
+
+    df_base = df[["winner1", "winner2", "loser1", "loser2"]]
+    tabela_geral = preparar_dados_individuais(df_base)
+    tabela_geral = _aplicar_regras_ranking(tabela_geral, config)
+    parceiros_validos = set(tabela_geral["jogadores"].tolist()) if not tabela_geral.empty else set()
+
+    parcerias_top, parcerias_bottom = _formatar_parcerias(
+        parcerias_detalhes,
+        total_jogos,
+        parceiros_validos,
+        jogador=jogador,
+        limite=10,
+    )
 
     serie_score = _agrupar_score_mensal(score_percentual)
     jogos_recentes = _montar_jogos_recentes_jogador(df, jogador, limite=30)
