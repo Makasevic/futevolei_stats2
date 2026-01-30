@@ -3,6 +3,7 @@ from __future__ import annotations
 """Helpers para montar a aba de detalhamento sem Streamlit."""
 
 from collections import defaultdict
+import math
 from typing import DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -251,9 +252,16 @@ def _formatar_parcerias(
         return registros
 
     parceiros_series = parceiros_series.sort_values(ascending=False)
-    top_series = parceiros_series.head(limite)
-    restantes = parceiros_series.drop(top_series.index, errors="ignore")
-    bottom_series = restantes.sort_values(ascending=True).head(limite)
+    total_parceiros = int(len(parceiros_series))
+    if total_parceiros <= limite * 2:
+        top_count = int(math.ceil(total_parceiros / 2))
+        bottom_count = total_parceiros - top_count
+    else:
+        top_count = limite
+        bottom_count = limite
+
+    top_series = parceiros_series.head(top_count)
+    bottom_series = parceiros_series.tail(bottom_count) if bottom_count else parceiros_series.iloc[0:0]
 
     maiores_parcerias = _montar_tabela(top_series)
     menores_parcerias = _montar_tabela(bottom_series)
