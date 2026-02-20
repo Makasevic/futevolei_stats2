@@ -423,11 +423,11 @@ def _montar_jogos_recentes_confronto_jogadores(
     if confrontos_df.empty:
         return []
 
-    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=True)
+    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=False)
     if df_ordenado.empty:
         return []
 
-    partidas = df_ordenado.tail(limite)
+    partidas = df_ordenado.head(limite)
     if partidas.empty:
         return []
 
@@ -454,11 +454,11 @@ def _montar_jogos_recentes_confronto_duplas(
     if confrontos_df.empty:
         return []
 
-    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=True)
+    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=False)
     if df_ordenado.empty:
         return []
 
-    partidas = df_ordenado.tail(limite)
+    partidas = df_ordenado.head(limite)
     if partidas.empty:
         return []
 
