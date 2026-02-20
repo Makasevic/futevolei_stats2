@@ -117,6 +117,32 @@
         </div>
     </div>
 </section>
+
+<section class="panel" style="margin-top:18px;">
+    <div class="section-title">
+        <h2>Ultimos 30 jogos</h2>
+        {% if tipo == "Dupla" %}
+            <span class="meta">Resultados mais recentes entre {{ dupla1_nome }} e {{ dupla2_nome }}</span>
+        {% else %}
+            <span class="meta">Resultados mais recentes entre {{ jogador1 }} e {{ jogador2 }}</span>
+        {% endif %}
+    </div>
+    {% if confronto.jogos_recentes|length == 0 %}
+        <p class="meta">Sem jogos recentes registrados.</p>
+    {% else %}
+        <div class="recent-matches">
+            {% for jogo in confronto.jogos_recentes %}
+                <div class="recent-match">
+                    <span class="recent-dot {% if not jogo.venceu %}is-loss{% endif %}"></span>
+                    <div>
+                        <p class="recent-match__teams">{{ jogo.vencedores }} x {{ jogo.perdedores }}</p>
+                        <p class="recent-match__meta">{{ jogo.data }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
 {% else %}
     <section class="panel" style="margin-top:18px;">
         {% if tipo == "Dupla" %}

@@ -403,6 +403,82 @@ def _estatisticas_dupla(df: pd.DataFrame, dupla: str) -> Dict[str, int | float]:
     }
 
 
+def _ordenar_partidas_por_data(df: pd.DataFrame, ascending: bool = True) -> pd.DataFrame:
+    if df.empty:
+        return df
+    if isinstance(df.index, pd.DatetimeIndex):
+        datas_partidas = df.index
+    else:
+        datas_partidas = pd.to_datetime(df.index, errors="coerce")
+
+    df_ordenado = df.copy()
+    df_ordenado["data_partida"] = datas_partidas
+    df_ordenado = df_ordenado.dropna(subset=["data_partida"])
+    return df_ordenado.sort_values("data_partida", ascending=ascending)
+
+
+def _montar_jogos_recentes_confronto_jogadores(
+    confrontos_df: pd.DataFrame, jogador1: str, limite: int = 30
+) -> List[Dict[str, object]]:
+    if confrontos_df.empty:
+        return []
+
+    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=True)
+    if df_ordenado.empty:
+        return []
+
+    partidas = df_ordenado.tail(limite)
+    if partidas.empty:
+        return []
+
+    jogos = []
+    for row in partidas.itertuples():
+        vencedores = " e ".join([row.winner1, row.winner2])
+        perdedores = " e ".join([row.loser1, row.loser2])
+        venceu = jogador1 in [row.winner1, row.winner2]
+        data_partida = row.data_partida.strftime("%d/%m/%Y")
+        jogos.append(
+            {
+                "data": data_partida,
+                "vencedores": vencedores,
+                "perdedores": perdedores,
+                "venceu": venceu,
+            }
+        )
+    return jogos
+
+
+def _montar_jogos_recentes_confronto_duplas(
+    confrontos_df: pd.DataFrame, dupla1: str, limite: int = 30
+) -> List[Dict[str, object]]:
+    if confrontos_df.empty:
+        return []
+
+    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=True)
+    if df_ordenado.empty:
+        return []
+
+    partidas = df_ordenado.tail(limite)
+    if partidas.empty:
+        return []
+
+    jogos = []
+    for row in partidas.itertuples():
+        vencedores = " e ".join([row.winner1, row.winner2])
+        perdedores = " e ".join([row.loser1, row.loser2])
+        venceu = row.dupla_winner == dupla1
+        data_partida = row.data_partida.strftime("%d/%m/%Y")
+        jogos.append(
+            {
+                "data": data_partida,
+                "vencedores": vencedores,
+                "perdedores": perdedores,
+                "venceu": venceu,
+            }
+        )
+    return jogos
+
+
 def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[str, Any]:
     if jogador1 == jogador2:
         return {
@@ -411,6 +487,7 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
             "vitorias_j2": 0,
             "saldo": 0,
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     mask_j1_win = (
@@ -431,6 +508,7 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
             "vitorias_j2": 0,
             "saldo": 0,
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     def _resultado_j1(row: pd.Series) -> int:
@@ -457,6 +535,7 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
             "vitorias_j2": int(mask_j2_win.sum()),
             "saldo": int(mask_j1_win.sum() - mask_j2_win.sum()),
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     inicio = confrontos_df.index.min().normalize().replace(day=1)
@@ -485,6 +564,9 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
 
     vitorias_j1 = int(mask_j1_win.sum())
     vitorias_j2 = int(mask_j2_win.sum())
+    jogos_recentes = _montar_jogos_recentes_confronto_jogadores(
+        confrontos_df, jogador1, limite=30
+    )
 
     return {
         "total": len(confrontos_df),
@@ -492,6 +574,7 @@ def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[st
         "vitorias_j2": vitorias_j2,
         "saldo": vitorias_j1 - vitorias_j2,
         "serie_mensal": serie_mensal,
+        "jogos_recentes": jogos_recentes,
     }
 
 
@@ -503,6 +586,7 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
             "vitorias_j2": 0,
             "saldo": 0,
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     mask_dupla1_win = (df["dupla_winner"] == dupla1) & (df["dupla_loser"] == dupla2)
@@ -516,6 +600,7 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
             "vitorias_j2": 0,
             "saldo": 0,
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     confrontos_df["resultado_j1"] = confrontos_df["dupla_winner"].apply(
@@ -537,6 +622,7 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
             "vitorias_j2": int(mask_dupla2_win.sum()),
             "saldo": int(mask_dupla1_win.sum() - mask_dupla2_win.sum()),
             "serie_mensal": [],
+            "jogos_recentes": [],
         }
 
     inicio = confrontos_df.index.min().normalize().replace(day=1)
@@ -565,6 +651,9 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
 
     vitorias_dupla1 = int(mask_dupla1_win.sum())
     vitorias_dupla2 = int(mask_dupla2_win.sum())
+    jogos_recentes = _montar_jogos_recentes_confronto_duplas(
+        confrontos_df, dupla1, limite=30
+    )
 
     return {
         "total": len(confrontos_df),
@@ -572,6 +661,7 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
         "vitorias_j2": vitorias_dupla2,
         "saldo": vitorias_dupla1 - vitorias_dupla2,
         "serie_mensal": serie_mensal,
+        "jogos_recentes": jogos_recentes,
     }
 
 # ------------------------------- Admin ------------------------------------
