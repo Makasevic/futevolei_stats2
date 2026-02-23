@@ -6,6 +6,7 @@ from typing import Any, Dict
 CHAMPIONSHIP_2026_02: Dict[str, Any] = {
     "key": "2026-02",
     "title": "2026-02",
+    "description": "Torneio redinha de 28 de fevereiro de 2026",
     "edit_password": "redinha202602",
     "teams": [
         {"id": "T1", "name": "Bruno e Julio"},

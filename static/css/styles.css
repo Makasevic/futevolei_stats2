@@ -1870,6 +1870,13 @@ header.hero::after {
     font-size: 28px;
 }
 
+.champ-header-description {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: var(--font-medium);
+}
+
 .champ-stage-shell {
     display: grid;
     gap: 14px;
@@ -1984,6 +1991,15 @@ header.hero::after {
     padding: 4px 8px;
     border-radius: 8px;
     border: 1px solid rgba(31, 42, 61, 0.08);
+}
+
+.duo-name {
+    display: inline;
+}
+
+.duo-part,
+.duo-sep {
+    display: inline;
 }
 
 .champ-team--right {
@@ -2144,9 +2160,17 @@ header.hero::after {
         justify-content: center;
     }
 
-    .champ-team,
-    .champ-team--right {
-        align-items: flex-start;
-        text-align: left;
+    .champ-team { align-items: flex-start; text-align: left; }
+    .champ-team--right { align-items: flex-end; text-align: right; }
+
+    .duo-name {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: inherit;
+        line-height: 1.15;
+    }
+
+    .duo-sep {
+        display: none;
     }
 }

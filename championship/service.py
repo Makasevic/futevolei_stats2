@@ -496,6 +496,7 @@ def get_championship_view(championship_key: str) -> Dict[str, Any]:
     return {
         "key": championship_key,
         "title": template["title"],
+        "description": template.get("description", ""),
         "teams": teams,
         "groups": group_tables,
         "general_classification": general_classification,
