@@ -219,7 +219,7 @@ def _descricao_periodo(
 
 
 def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
-    medalhas = ["??", "??", "??"]
+    medalhas = ["\U0001F947", "\U0001F948", "\U0001F949"]
     linhas: List[Dict[str, str]] = []
     total_linhas = len(df)
 
@@ -227,7 +227,7 @@ def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
         if idx < len(medalhas):
             posicao = medalhas[idx]
         else:
-            posicao = "??" if idx == total_linhas - 1 else f"{idx + 1:02d}"
+            posicao = "\U0001F631" if idx == total_linhas - 1 else f"{idx + 1:02d}"
         linhas.append(
             {
                 "posicao": posicao,
@@ -244,7 +244,7 @@ def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
 
 
 def _build_highlights(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    medals = ["??", "??", "??"]
+    medals = ["\U0001F947", "\U0001F948", "\U0001F949"]
     destaques = []
 
     for idx, linha in enumerate(linhas[:3]):
@@ -1898,4 +1898,3 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
-
