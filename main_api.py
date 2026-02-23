@@ -718,6 +718,32 @@ def _players_from_df(df: pd.DataFrame | None) -> List[str]:
     return players
 
 
+def _players_ranked_by_games(df: pd.DataFrame | None) -> List[str]:
+    if df is None or df.empty:
+        return []
+
+    games_by_player: Counter[str] = Counter()
+    for field in _TEAM_FIELDS:
+        if field not in df.columns:
+            continue
+
+        for value in df[field].tolist():
+            if pd.isna(value):
+                continue
+
+            name = str(value).strip()
+            if not name or "Outro" in name:
+                continue
+
+            games_by_player[name] += 1
+
+    ordered_players = sorted(
+        games_by_player.items(),
+        key=lambda item: (-item[1], item[0].casefold()),
+    )
+    return [name for name, _ in ordered_players]
+
+
 def _registered_players(df: pd.DataFrame | None) -> List[str]:
     """Combina jogadores das partidas com os cadastrados manualmente."""
 
@@ -1491,6 +1517,19 @@ def api_ranking():
             "duplas": _format_ranking(duplas, "duplas"),
         }
     )
+
+
+@app.route("/_oculto/jogadores")
+def hidden_players():
+    df = _fetch_base_dataframe()
+    players = _players_ranked_by_games(df)
+    output_format = request.args.get("formato", "json").lower()
+
+    if output_format == "txt":
+        content = "\n".join(players)
+        return app.response_class(content, mimetype="text/plain; charset=utf-8")
+
+    return jsonify({"jogadores": players})
 
 
 def dados_with_index(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
