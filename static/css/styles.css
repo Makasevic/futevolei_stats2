@@ -2152,12 +2152,31 @@ header.hero::after {
     }
 
     .champ-match-card {
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "team-a team-b"
+            "score score";
         gap: 8px;
         align-items: center;
     }
 
-    .champ-score { justify-content: center; }
+    .champ-match-card > .champ-team {
+        grid-area: team-a;
+    }
+
+    .champ-match-card > .champ-team--right {
+        grid-area: team-b;
+    }
+
+    .champ-score {
+        grid-area: score;
+        justify-content: center;
+    }
+
+    .champ-score-save {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
 
     .champ-team { align-items: flex-start; text-align: left; }
     .champ-team--right { align-items: flex-end; text-align: right; }
@@ -2171,5 +2190,9 @@ header.hero::after {
 
     .duo-sep {
         display: none;
+    }
+
+    .champ-team strong {
+        word-break: normal;
     }
 }

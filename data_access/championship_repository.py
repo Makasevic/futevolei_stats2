@@ -19,13 +19,24 @@ def _get_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 
+def _db_championship_key(championship_key: str) -> str:
+    """Normaliza chave para compatibilidade com constraints antigas no banco."""
+    raw = str(championship_key or "").strip()
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if len(digits) == 6:
+        # Mantem ordenacao por mes e garante formato YYYYMMDD.
+        return f"{digits}01"
+    return digits or raw
+
+
 def fetch_scores_for_championship(championship_key: str) -> Dict[str, Dict[str, int]]:
+    db_key = _db_championship_key(championship_key)
     try:
         response = (
             _get_client()
             .table(CHAMPIONSHIP_SCORES_TABLE)
             .select("match_id,score_a,score_b")
-            .eq("championship_key", championship_key)
+            .eq("championship_key", db_key)
             .execute()
         )
     except APIError as exc:
@@ -47,8 +58,9 @@ def fetch_scores_for_championship(championship_key: str) -> Dict[str, Dict[str, 
 
 
 def upsert_score(championship_key: str, match_id: str, score_a: int, score_b: int) -> None:
+    db_key = _db_championship_key(championship_key)
     payload = {
-        "championship_key": championship_key,
+        "championship_key": db_key,
         "match_id": match_id,
         "score_a": score_a,
         "score_b": score_b,
@@ -72,12 +84,13 @@ def upsert_score(championship_key: str, match_id: str, score_a: int, score_b: in
 
 
 def delete_score(championship_key: str, match_id: str) -> None:
+    db_key = _db_championship_key(championship_key)
     try:
         response = (
             _get_client()
             .table(CHAMPIONSHIP_SCORES_TABLE)
             .delete()
-            .eq("championship_key", championship_key)
+            .eq("championship_key", db_key)
             .eq("match_id", match_id)
             .execute()
         )
