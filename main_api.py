@@ -1040,6 +1040,9 @@ def campeonato():
 
     payload = get_championship_view(selected_key)
     championship_can_edit = selected_key in _unlocked_tournament_keys()
+    is_admin_full = bool(
+        session.get("admin_authenticated") and session.get("admin_role") == "full"
+    )
     saved_matches = [
         m
         for m in payload.get("editable_matches", [])
@@ -1052,6 +1055,7 @@ def campeonato():
         championship_keys=keys,
         championship_selected_key=selected_key,
         championship_can_edit=championship_can_edit,
+        is_admin_full=is_admin_full,
         tournament_feedback=feedback,
         championship_saved_matches=saved_matches,
     )

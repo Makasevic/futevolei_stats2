@@ -1877,8 +1877,8 @@ header.hero::after {
 
 .champ-stage-nav {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
     align-items: center;
 }
 
@@ -1894,8 +1894,8 @@ header.hero::after {
 }
 
 .champ-stage-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
@@ -1907,6 +1907,7 @@ header.hero::after {
     padding: 10px 12px;
     font-weight: var(--font-semibold);
     cursor: pointer;
+    flex: 0 0 auto;
 }
 
 .champ-stage-tab.is-active {
@@ -1925,8 +1926,10 @@ header.hero::after {
 
 .champ-stage-grid {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    grid-template-columns: 1fr;
     gap: 14px;
+    width: min(980px, 100%);
+    margin: 0 auto;
 }
 
 .champ-groups-matches {
@@ -1965,6 +1968,7 @@ header.hero::after {
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    align-items: flex-start;
 }
 
 .champ-team strong {
@@ -2036,6 +2040,32 @@ header.hero::after {
     gap: 10px;
     align-content: start;
     grid-auto-rows: max-content;
+}
+
+.champ-quick-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.champ-inline-panel {
+    display: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 12px;
+}
+
+.champ-inline-panel.is-open {
+    display: block;
+}
+
+#groups-matches-view {
+    display: none;
+}
+
+#groups-matches-view.is-open {
+    display: block;
 }
 
 .champ-subtabs {
