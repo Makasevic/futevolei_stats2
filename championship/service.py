@@ -10,11 +10,11 @@ from data_access.championship_repository import (
     fetch_scores_for_championship,
     upsert_score,
 )
-from .championship_20260101 import CHAMPIONSHIP_20260101
+from .championship_2026_02 import CHAMPIONSHIP_2026_02
 
 
 _CHAMPIONSHIPS = {
-    CHAMPIONSHIP_20260101["key"]: CHAMPIONSHIP_20260101,
+    CHAMPIONSHIP_2026_02["key"]: CHAMPIONSHIP_2026_02,
 }
 
 
