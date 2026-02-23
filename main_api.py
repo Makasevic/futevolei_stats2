@@ -1012,12 +1012,39 @@ def campeonato():
                 }
             return redirect(url_for("campeonato", championship=selected_key))
 
+        if action == "delete_championship_score":
+            if selected_key not in _unlocked_tournament_keys():
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": "Desbloqueie o torneio com a senha para apagar placares.",
+                }
+                return redirect(url_for("campeonato", championship=selected_key))
+
+            match_id = (request.form.get("championship_match_id") or "").strip()
+            try:
+                save_match_score(selected_key, match_id, None, None)
+                session["tournament_feedback"] = {
+                    "status": "success",
+                    "message": "Placar apagado com sucesso.",
+                }
+            except Exception as exc:
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": f"Erro ao apagar placar: {exc}",
+                }
+            return redirect(url_for("campeonato", championship=selected_key))
+
     selected_key = (request.args.get("championship") or default_key).strip()
     if selected_key not in keys:
         selected_key = default_key
 
     payload = get_championship_view(selected_key)
     championship_can_edit = selected_key in _unlocked_tournament_keys()
+    saved_matches = [
+        m
+        for m in payload.get("editable_matches", [])
+        if m.get("score_a") is not None and m.get("score_b") is not None
+    ]
     return render_template(
         "campeonato.html",
         active_page="campeonato",
@@ -1026,6 +1053,7 @@ def campeonato():
         championship_selected_key=selected_key,
         championship_can_edit=championship_can_edit,
         tournament_feedback=feedback,
+        championship_saved_matches=saved_matches,
     )
 
 

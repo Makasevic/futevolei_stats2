@@ -1975,6 +1975,13 @@ header.hero::after {
     word-break: break-word;
 }
 
+.champ-team-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(31, 42, 61, 0.08);
+}
+
 .champ-team--right {
     align-items: flex-end;
     text-align: right;
@@ -2027,12 +2034,17 @@ header.hero::after {
     background: #ffffff;
     display: grid;
     gap: 10px;
+    align-content: start;
+    grid-auto-rows: max-content;
 }
 
 .champ-subtabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     gap: 6px;
+    align-items: center;
 }
 
 .champ-subtab {
@@ -2040,8 +2052,12 @@ header.hero::after {
     border-radius: 999px;
     background: #ffffff;
     color: var(--muted);
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.2;
+    min-height: 28px;
+    white-space: nowrap;
+    flex: 0 0 auto;
     cursor: pointer;
 }
 
@@ -2063,6 +2079,14 @@ header.hero::after {
 .champ-ranking-box h3 {
     margin: 0 0 8px;
     font-size: 15px;
+}
+
+.champ-qualified-row td {
+    background: #e9f8ee;
+}
+
+.champ-eliminated-row td {
+    background: #ffecec;
 }
 
 @media (max-width: 1000px) {
