@@ -14,6 +14,11 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 from app_settings import get_config, update_config
 from awards import available_awards_years, get_awards_for_year
+from championship import (
+    available_championship_keys,
+    get_championship_view,
+    save_match_score,
+)
 from config import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
 from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
 from extraction import get_matches
@@ -947,6 +952,24 @@ def awards():
     )
 
 
+@app.route("/campeonato")
+def campeonato():
+    keys = available_championship_keys()
+    default_key = keys[0] if keys else date.today().strftime("%Y%m%d")
+    selected_key = (request.args.get("championship") or default_key).strip()
+    if selected_key not in keys:
+        selected_key = default_key
+
+    payload = get_championship_view(selected_key)
+    return render_template(
+        "campeonato.html",
+        active_page="campeonato",
+        championship=payload,
+        championship_keys=keys,
+        championship_selected_key=selected_key,
+    )
+
+
 def _safe_int(value: str | None, default: int) -> int:
     try:
         return int(value) if value is not None else default
@@ -1378,6 +1401,33 @@ def admin():
             )
             return redirect(url_for("admin"))
 
+        if action == "championship_score":
+            available_keys = available_championship_keys()
+            default_championship_key = (
+                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
+            )
+            selected_championship_key = (
+                request.form.get("championship_key", default_championship_key).strip()
+            )
+            if selected_championship_key not in available_keys:
+                selected_championship_key = default_championship_key
+            if role != "full":
+                _set_admin_feedback(
+                    "error", "Somente administradores completos podem editar placares de torneio."
+                )
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            match_id = request.form.get("championship_match_id", "").strip()
+            score_a_raw = request.form.get("score_a")
+            score_b_raw = request.form.get("score_b")
+            try:
+                save_match_score(selected_championship_key, match_id, score_a_raw, score_b_raw)
+                _set_admin_feedback("success", "Placar do torneio atualizado com sucesso.")
+            except Exception as exc:
+                _set_admin_feedback("error", f"Erro ao salvar placar do torneio: {exc}")
+
+            return redirect(url_for("admin", championship_key=selected_championship_key))
+
         if action == "bulk_create":
             bulk_matches = request.form.get("bulk_matches", "")
             match_date = _parse_form_date(request.form.get("bulk_date")) or date.today()
@@ -1479,6 +1529,16 @@ def admin():
     matches = _matches_from_df(df)
     players = _registered_players(df)
     players_text = "\n".join(players)
+    championship_keys = available_championship_keys()
+    default_championship_key = (
+        championship_keys[0] if championship_keys else date.today().strftime("%Y%m%d")
+    )
+    selected_championship_key = (
+        request.args.get("championship_key", default_championship_key).strip()
+    )
+    if selected_championship_key not in championship_keys:
+        selected_championship_key = default_championship_key
+    championship_payload = get_championship_view(selected_championship_key)
 
     return render_template(
         "admin.html",
@@ -1491,6 +1551,9 @@ def admin():
         players_text=players_text,
         matches=matches,
         today=date.today().isoformat(),
+        championship_keys=championship_keys,
+        championship_selected_key=selected_championship_key,
+        championship_payload=championship_payload,
     )
 
 
