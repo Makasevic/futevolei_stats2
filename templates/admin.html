@@ -36,7 +36,37 @@
         </div>
     </form>
 </section>
-{% else %}
+{% endif %}
+
+<section class="panel">
+    <div class="section-title">
+        <h2>Acesso ao Torneio</h2>
+        <span class="meta">Desbloqueie o torneio para liberar ediÃ§Ã£o na aba Torneios</span>
+    </div>
+    <form class="form-grid" method="post">
+        <input type="hidden" name="action" value="unlock_tournament" />
+        <label>
+            <span class="badge">Torneio</span>
+            <select class="input" name="championship_key" required>
+                {% for key in championship_keys %}
+                <option value="{{ key }}" {% if key == championship_selected_key %}selected{% endif %}>{{ key }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span class="badge">Senha do torneio</span>
+            <input type="password" name="tournament_password" placeholder="Digite a senha do torneio" class="input" required />
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Desbloquear torneio</button>
+            {% if championship_can_edit %}
+            <p class="meta">Este torneio jÃ¡ estÃ¡ desbloqueado nesta sessÃ£o.</p>
+            {% endif %}
+        </div>
+    </form>
+</section>
+
+{% if not (requires_auth and not authenticated) %}
 <section class="panel">
     <div class="section-title">
         <h2>Atualizar dados</h2>

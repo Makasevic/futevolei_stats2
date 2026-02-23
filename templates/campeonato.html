@@ -208,43 +208,6 @@
 {% endif %}
 </section>
 
-<section class="panel">
-    <div class="section-title">
-        <h2>Acesso ao Torneio</h2>
-        <span class="meta">Selecione o torneio e desbloqueie a edição com a senha dele</span>
-    </div>
-
-    <form class="form-grid" method="get" action="{{ url_for('campeonato') }}">
-        <label>
-            <span class="badge">Torneio</span>
-            <select id="championship-key" name="championship" class="select">
-                {% for championship_key in championship_keys %}
-                <option value="{{ championship_key }}" {% if championship_key == championship_selected_key %}selected{% endif %}>{{ championship_key }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <div class="form-actions">
-            <button class="btn-secondary" type="submit">Abrir torneio</button>
-        </div>
-    </form>
-
-    {% if not championship_can_edit %}
-    <form class="form-grid" method="post" style="margin-top: 10px;">
-        <input type="hidden" name="action" value="unlock_tournament" />
-        <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
-        <label>
-            <span class="badge">Senha do torneio</span>
-            <input class="input" type="password" name="tournament_password" placeholder="Digite a senha" required />
-        </label>
-        <div class="form-actions">
-            <button class="btn-primary" type="submit">Desbloquear edição</button>
-        </div>
-    </form>
-    {% else %}
-    <p class="meta" style="margin-top: 10px;">Edição deste torneio liberada nesta sessão.</p>
-    {% endif %}
-</section>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const stageTabs = Array.from(document.querySelectorAll('.champ-stage-tab'));

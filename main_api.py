@@ -1470,6 +1470,37 @@ def admin():
             _set_admin_feedback("success", "Sessão encerrada.")
             return redirect(url_for("admin"))
 
+        if action == "unlock_tournament":
+            available_keys = available_championship_keys()
+            default_championship_key = (
+                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
+            )
+            selected_championship_key = (
+                request.form.get("championship_key", default_championship_key).strip()
+            )
+            if selected_championship_key not in available_keys:
+                selected_championship_key = default_championship_key
+
+            if role == "full":
+                _set_admin_feedback("success", "Administrador completo ja possui acesso a todos os torneios.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            provided_password = request.form.get("tournament_password", "").strip()
+            expected_password = get_championship_edit_password(selected_championship_key)
+            if not expected_password:
+                _set_admin_feedback("error", "Este torneio nao possui senha de edicao configurada.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            if provided_password != expected_password:
+                _set_admin_feedback("error", "Senha do torneio incorreta.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            unlocked = _unlocked_tournament_keys()
+            unlocked.add(selected_championship_key)
+            _set_unlocked_tournament_keys(unlocked)
+            _set_admin_feedback("success", "Edicao do torneio desbloqueada para esta sessao.")
+            return redirect(url_for("admin", championship_key=selected_championship_key))
+
         if not authenticated:
             _set_admin_feedback("error", "Acesso não autorizado. Informe a senha para continuar.")
             return redirect(url_for("admin"))
@@ -1531,37 +1562,6 @@ def admin():
             except Exception as exc:
                 _set_admin_feedback("error", f"Erro ao salvar placar do torneio: {exc}")
 
-            return redirect(url_for("admin", championship_key=selected_championship_key))
-
-        if action == "unlock_tournament":
-            available_keys = available_championship_keys()
-            default_championship_key = (
-                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
-            )
-            selected_championship_key = (
-                request.form.get("championship_key", default_championship_key).strip()
-            )
-            if selected_championship_key not in available_keys:
-                selected_championship_key = default_championship_key
-
-            if role == "full":
-                _set_admin_feedback("success", "Administrador completo ja possui acesso a todos os torneios.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            provided_password = request.form.get("tournament_password", "").strip()
-            expected_password = get_championship_edit_password(selected_championship_key)
-            if not expected_password:
-                _set_admin_feedback("error", "Este torneio nao possui senha de edicao configurada.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            if provided_password != expected_password:
-                _set_admin_feedback("error", "Senha do torneio incorreta.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            unlocked = _unlocked_tournament_keys()
-            unlocked.add(selected_championship_key)
-            _set_unlocked_tournament_keys(unlocked)
-            _set_admin_feedback("success", "Edicao do torneio desbloqueada para esta sessao.")
             return redirect(url_for("admin", championship_key=selected_championship_key))
 
         if action == "bulk_create":
