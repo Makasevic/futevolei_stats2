@@ -1987,6 +1987,28 @@ header.hero::after {
     color: var(--muted);
 }
 
+.champ-score-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.champ-score-input {
+    width: 44px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f8faff;
+    text-align: center;
+    font-weight: var(--font-semibold);
+}
+
+.champ-score-save {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
 .champ-score-box {
     width: 34px;
     height: 30px;

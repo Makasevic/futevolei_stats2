@@ -152,7 +152,6 @@
         </div>
     </form>
 
-    {% if role != 'full' %}
     <form class="filter-bar" method="post" style="margin-bottom: 12px;">
         <input type="hidden" name="action" value="unlock_tournament" />
         <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
@@ -162,12 +161,14 @@
         </div>
         <div class="form-actions">
             <button class="btn-primary" type="submit">Desbloquear edicao</button>
+            {% if role == 'full' %}
+            <span class="meta">Com a senha de admin completa, a edicao ja esta liberada.</span>
+            {% endif %}
             {% if championship_can_edit %}
             <span class="meta">Edicao liberada para este torneio nesta sessao.</span>
             {% endif %}
         </div>
     </form>
-    {% endif %}
 
     <div class="match-grid">
         {% for match in championship_payload.editable_matches %}

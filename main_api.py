@@ -953,21 +953,79 @@ def awards():
     )
 
 
-@app.route("/campeonato")
+@app.route("/campeonato", methods=["GET", "POST"])
 def campeonato():
+    feedback = session.pop("tournament_feedback", None)
     keys = available_championship_keys()
     default_key = keys[0] if keys else date.today().strftime("%Y%m%d")
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+        selected_key = (request.form.get("championship_key") or default_key).strip()
+        if selected_key not in keys:
+            selected_key = default_key
+
+        if action == "unlock_tournament":
+            provided_password = (request.form.get("tournament_password") or "").strip()
+            expected_password = get_championship_edit_password(selected_key)
+            if not expected_password:
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": "Este torneio nao possui senha configurada.",
+                }
+            elif provided_password != expected_password:
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": "Senha do torneio incorreta.",
+                }
+            else:
+                unlocked = _unlocked_tournament_keys()
+                unlocked.add(selected_key)
+                _set_unlocked_tournament_keys(unlocked)
+                session["tournament_feedback"] = {
+                    "status": "success",
+                    "message": "Edicao desbloqueada para este torneio nesta sessao.",
+                }
+            return redirect(url_for("campeonato", championship=selected_key))
+
+        if action == "championship_score":
+            if selected_key not in _unlocked_tournament_keys():
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": "Desbloqueie o torneio com a senha para editar placares.",
+                }
+                return redirect(url_for("campeonato", championship=selected_key))
+
+            match_id = (request.form.get("championship_match_id") or "").strip()
+            score_a_raw = request.form.get("score_a")
+            score_b_raw = request.form.get("score_b")
+            try:
+                save_match_score(selected_key, match_id, score_a_raw, score_b_raw)
+                session["tournament_feedback"] = {
+                    "status": "success",
+                    "message": "Placar atualizado com sucesso.",
+                }
+            except Exception as exc:
+                session["tournament_feedback"] = {
+                    "status": "error",
+                    "message": f"Erro ao salvar placar: {exc}",
+                }
+            return redirect(url_for("campeonato", championship=selected_key))
+
     selected_key = (request.args.get("championship") or default_key).strip()
     if selected_key not in keys:
         selected_key = default_key
 
     payload = get_championship_view(selected_key)
+    championship_can_edit = selected_key in _unlocked_tournament_keys()
     return render_template(
         "campeonato.html",
         active_page="campeonato",
         championship=payload,
         championship_keys=keys,
         championship_selected_key=selected_key,
+        championship_can_edit=championship_can_edit,
+        tournament_feedback=feedback,
     )
 
 
@@ -1348,9 +1406,9 @@ def _set_unlocked_tournament_keys(keys: set[str]) -> None:
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    full_password = (ADMIN_PASSWORD or MATCH_ENTRY_PASSWORD or "admin").strip()
-    entry_password = (MATCH_ENTRY_PASSWORD or "").strip() or None
-    requires_auth = True
+    full_password = ADMIN_PASSWORD
+    entry_password = MATCH_ENTRY_PASSWORD
+    requires_auth = bool(full_password or entry_password)
 
     feedback = session.pop("admin_feedback", None)
     authenticated = session.get("admin_authenticated") or not requires_auth
