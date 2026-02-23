@@ -16,6 +16,7 @@ from app_settings import get_config, update_config
 from awards import available_awards_years, get_awards_for_year
 from championship import (
     available_championship_keys,
+    get_championship_edit_password,
     get_championship_view,
     save_match_score,
 )
@@ -218,7 +219,7 @@ def _descricao_periodo(
 
 
 def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
-    medalhas = ["🥇", "🥈", "🥉"]
+    medalhas = ["??", "??", "??"]
     linhas: List[Dict[str, str]] = []
     total_linhas = len(df)
 
@@ -226,7 +227,7 @@ def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
         if idx < len(medalhas):
             posicao = medalhas[idx]
         else:
-            posicao = "😱" if idx == total_linhas - 1 else f"{idx + 1:02d}"
+            posicao = "??" if idx == total_linhas - 1 else f"{idx + 1:02d}"
         linhas.append(
             {
                 "posicao": posicao,
@@ -243,7 +244,7 @@ def _format_ranking(df: pd.DataFrame, nome_col: str) -> List[Dict[str, str]]:
 
 
 def _build_highlights(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    medals = ["🥇", "🥈", "🥉"]
+    medals = ["??", "??", "??"]
     destaques = []
 
     for idx, linha in enumerate(linhas[:3]):
@@ -782,7 +783,7 @@ def _matches_from_df(df: pd.DataFrame | None) -> List[Dict[str, Any]]:
         match["identifier_display"] = str(display_identifier) if display_identifier not in (None, "") else ""
         formatted_date = match["date"].isoformat() if match["date"] else "Sem data"
         match["label"] = (
-            f"{formatted_date} — {match['winner1']} & {match['winner2']} x "
+            f"{formatted_date}  {match['winner1']} & {match['winner2']} x "
             f"{match['loser1']} & {match['loser2']}"
         )
         if match["identifier_display"]:
@@ -1334,11 +1335,22 @@ def _set_admin_feedback(level: str, message: str) -> None:
     session["admin_feedback"] = {"status": level, "message": message}
 
 
+def _unlocked_tournament_keys() -> set[str]:
+    raw = session.get("tournament_edit_keys", [])
+    if not isinstance(raw, list):
+        return set()
+    return {str(item).strip() for item in raw if str(item).strip()}
+
+
+def _set_unlocked_tournament_keys(keys: set[str]) -> None:
+    session["tournament_edit_keys"] = sorted(keys)
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    full_password = ADMIN_PASSWORD
-    entry_password = MATCH_ENTRY_PASSWORD
-    requires_auth = bool(full_password or entry_password)
+    full_password = (ADMIN_PASSWORD or MATCH_ENTRY_PASSWORD or "admin").strip()
+    entry_password = (MATCH_ENTRY_PASSWORD or "").strip() or None
+    requires_auth = True
 
     feedback = session.pop("admin_feedback", None)
     authenticated = session.get("admin_authenticated") or not requires_auth
@@ -1411,9 +1423,12 @@ def admin():
             )
             if selected_championship_key not in available_keys:
                 selected_championship_key = default_championship_key
-            if role != "full":
+            can_edit_tournament = role == "full" or (
+                selected_championship_key in _unlocked_tournament_keys()
+            )
+            if not can_edit_tournament:
                 _set_admin_feedback(
-                    "error", "Somente administradores completos podem editar placares de torneio."
+                    "error", "Desbloqueie este torneio com a senha para editar os placares."
                 )
                 return redirect(url_for("admin", championship_key=selected_championship_key))
 
@@ -1426,6 +1441,37 @@ def admin():
             except Exception as exc:
                 _set_admin_feedback("error", f"Erro ao salvar placar do torneio: {exc}")
 
+            return redirect(url_for("admin", championship_key=selected_championship_key))
+
+        if action == "unlock_tournament":
+            available_keys = available_championship_keys()
+            default_championship_key = (
+                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
+            )
+            selected_championship_key = (
+                request.form.get("championship_key", default_championship_key).strip()
+            )
+            if selected_championship_key not in available_keys:
+                selected_championship_key = default_championship_key
+
+            if role == "full":
+                _set_admin_feedback("success", "Administrador completo ja possui acesso a todos os torneios.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            provided_password = request.form.get("tournament_password", "").strip()
+            expected_password = get_championship_edit_password(selected_championship_key)
+            if not expected_password:
+                _set_admin_feedback("error", "Este torneio nao possui senha de edicao configurada.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            if provided_password != expected_password:
+                _set_admin_feedback("error", "Senha do torneio incorreta.")
+                return redirect(url_for("admin", championship_key=selected_championship_key))
+
+            unlocked = _unlocked_tournament_keys()
+            unlocked.add(selected_championship_key)
+            _set_unlocked_tournament_keys(unlocked)
+            _set_admin_feedback("success", "Edicao do torneio desbloqueada para esta sessao.")
             return redirect(url_for("admin", championship_key=selected_championship_key))
 
         if action == "bulk_create":
@@ -1539,6 +1585,9 @@ def admin():
     if selected_championship_key not in championship_keys:
         selected_championship_key = default_championship_key
     championship_payload = get_championship_view(selected_championship_key)
+    championship_can_edit = role == "full" or (
+        selected_championship_key in _unlocked_tournament_keys()
+    )
 
     return render_template(
         "admin.html",
@@ -1554,6 +1603,7 @@ def admin():
         championship_keys=championship_keys,
         championship_selected_key=selected_championship_key,
         championship_payload=championship_payload,
+        championship_can_edit=championship_can_edit,
     )
 
 
@@ -1848,3 +1898,4 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+

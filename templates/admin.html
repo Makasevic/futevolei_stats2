@@ -152,6 +152,23 @@
         </div>
     </form>
 
+    {% if role != 'full' %}
+    <form class="filter-bar" method="post" style="margin-bottom: 12px;">
+        <input type="hidden" name="action" value="unlock_tournament" />
+        <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
+        <div class="filter-group">
+            <label for="tournament-password">Senha do torneio</label>
+            <input id="tournament-password" class="input" type="password" name="tournament_password" placeholder="Senha" required />
+        </div>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Desbloquear edicao</button>
+            {% if championship_can_edit %}
+            <span class="meta">Edicao liberada para este torneio nesta sessao.</span>
+            {% endif %}
+        </div>
+    </form>
+    {% endif %}
+
     <div class="match-grid">
         {% for match in championship_payload.editable_matches %}
         <form class="match-card" method="post">
@@ -174,16 +191,16 @@
                     <strong>{{ match.team_a }} x {{ match.team_b }}</strong>
                     <p class="meta">ID: {{ match.id }}</p>
                 </div>
-                <button class="btn-primary" type="submit" {% if role != 'full' %}disabled{% endif %}>Salvar</button>
+                <button class="btn-primary" type="submit" {% if not championship_can_edit %}disabled{% endif %}>Salvar</button>
             </div>
             <div class="form-grid compact">
                 <label>
                     <span class="badge">Placar {{ match.team_a }}</span>
-                    <input class="input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" {% if role != 'full' %}readonly{% endif %} />
+                    <input class="input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" {% if not championship_can_edit %}readonly{% endif %} />
                 </label>
                 <label>
                     <span class="badge">Placar {{ match.team_b }}</span>
-                    <input class="input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" {% if role != 'full' %}readonly{% endif %} />
+                    <input class="input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" {% if not championship_can_edit %}readonly{% endif %} />
                 </label>
             </div>
         </form>

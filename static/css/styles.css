@@ -1931,7 +1931,7 @@ header.hero::after {
 
 .champ-groups-matches {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: 1fr;
     gap: 12px;
 }
 
@@ -1969,9 +1969,10 @@ header.hero::after {
 
 .champ-team strong {
     font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
 }
 
 .champ-team--right {
