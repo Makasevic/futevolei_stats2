@@ -1877,6 +1877,15 @@ header.hero::after {
     font-weight: 700;
 }
 
+.champ-main-title {
+    margin: 6px 0 14px;
+    text-align: center;
+    font-size: 26px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #1f2a3d;
+}
+
 .champ-stage-shell {
     display: grid;
     gap: 14px;
@@ -2142,6 +2151,13 @@ header.hero::after {
 }
 
 @media (max-width: 760px) {
+    .champ-main-title {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
     .champ-header {
         flex-direction: column;
         align-items: stretch;

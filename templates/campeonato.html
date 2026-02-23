@@ -51,18 +51,13 @@
 {%- endmacro %}
 
 {% block content %}
-<header class="champ-header panel">
-    <div>
-        <p class="eyebrow">torneios</p>
-        <p class="champ-header-description">{{ championship.description or championship.title }}</p>
-    </div>
+<h1 class="champ-main-title">Torneio redinha de 28 de fevereiro de 2026</h1>
 
-    {% if tournament_feedback %}
-    <div class="alert {{ 'success' if tournament_feedback.status == 'success' else 'error' }}" style="margin-top: 8px;">
-        {{ tournament_feedback.message }}
-    </div>
-    {% endif %}
-</header>
+{% if tournament_feedback %}
+<div class="alert {{ 'success' if tournament_feedback.status == 'success' else 'error' }}" style="margin-top: 8px;">
+    {{ tournament_feedback.message }}
+</div>
+{% endif %}
 
 <section class="panel champ-stage-shell">
     <div class="champ-stage-nav">
@@ -77,6 +72,7 @@
     <div id="champ-rules-panel" class="champ-inline-panel is-open">
         <h3>Regras</h3>
         <p class="meta">Ordem de classificação no grupo: número de vitórias, saldo de pontos e confronto direto.</p>
+        <p class="meta">Em caso de empate na ordem de classificação, haverá um jogo de 6 pontos, com necessidade de abrir 2 pontos de vantagem.</p>
         <p class="meta">Somente os dois melhores de cada grupo avançam para o mata-mata.</p>
     </div>
 
