@@ -1,0 +1,265 @@
+﻿{% extends 'base.html' %}
+
+{% macro match_card(match, championship_selected_key, championship_can_edit, championship) -%}
+<div class="champ-match-card">
+    <div class="champ-team">
+        <strong class="champ-team-tag" style="background-color: {{ championship.team_group_colors.get(match.team_a_id, '#F5F7FA') }};">{{ match.team_a }}</strong>
+        <span class="meta">{{ championship.team_groups.get(match.team_a_id, match.hint_a or '-') }}</span>
+    </div>
+
+    <div class="champ-score">
+        {% if championship_can_edit and match.team_a_id and match.team_b_id %}
+        <form method="post" class="champ-score-form">
+            <input type="hidden" name="action" value="championship_score" />
+            <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
+            <input type="hidden" name="championship_match_id" value="{{ match.id }}" />
+            <input class="champ-score-input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
+            <span>x</span>
+            <input class="champ-score-input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
+            <button class="btn-secondary champ-score-save" type="submit">Salvar</button>
+        </form>
+        {% else %}
+        <span class="champ-score-box">{{ '' if match.score_a is none else match.score_a }}</span>
+        <span>x</span>
+        <span class="champ-score-box">{{ '' if match.score_b is none else match.score_b }}</span>
+        {% endif %}
+    </div>
+
+    <div class="champ-team champ-team--right">
+        <strong class="champ-team-tag" style="background-color: {{ championship.team_group_colors.get(match.team_b_id, '#F5F7FA') }};">{{ match.team_b }}</strong>
+        <span class="meta">{{ championship.team_groups.get(match.team_b_id, match.hint_b or '-') }}</span>
+    </div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<header class="champ-header panel">
+    <div>
+        <p class="eyebrow">torneios</p>
+        <h1>Torneios</h1>
+    </div>
+
+    <form class="filter-bar" method="get" action="{{ url_for('campeonato') }}">
+        <div class="filter-group">
+            <label for="championship-key">Torneio</label>
+            <select id="championship-key" name="championship" class="select" onchange="this.form.submit()">
+                {% for championship_key in championship_keys %}
+                <option value="{{ championship_key }}" {% if championship_key == championship_selected_key %}selected{% endif %}>{{ championship_key }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    {% if not championship_can_edit %}
+    <form class="filter-bar" method="post">
+        <input type="hidden" name="action" value="unlock_tournament" />
+        <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
+        <div class="filter-group">
+            <label for="tournament-password">Senha do torneio</label>
+            <input id="tournament-password" class="input" type="password" name="tournament_password" placeholder="Senha" required />
+        </div>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Desbloquear edicao</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if tournament_feedback %}
+    <div class="alert {{ 'success' if tournament_feedback.status == 'success' else 'error' }}" style="margin-top: 8px;">
+        {{ tournament_feedback.message }}
+    </div>
+    {% endif %}
+</header>
+
+<section class="panel champ-stage-shell">
+    <div class="champ-stage-nav">
+        <div class="champ-stage-tabs">
+            <button type="button" class="champ-stage-tab is-active" data-stage="groups">Grupos</button>
+            <button type="button" class="champ-stage-tab" data-stage="quarterfinals">Quartas</button>
+            <button type="button" class="champ-stage-tab" data-stage="semifinals">Semi Final</button>
+            <button type="button" class="champ-stage-tab" data-stage="final">Final</button>
+        </div>
+    </div>
+
+    <div id="champ-rules-panel" class="champ-inline-panel is-open">
+        <h3>Regras</h3>
+        <p class="meta">Ordem de classificação no grupo: número de vitórias, saldo de pontos e confronto direto.</p>
+        <p class="meta">Somente os dois melhores de cada grupo avançam para o mata-mata.</p>
+    </div>
+
+    <article class="champ-stage-panel is-active" data-stage-panel="groups">
+        <div class="champ-stage-grid">
+            <h2>Jogos da Fase de Grupos</h2>
+            <div class="champ-quick-actions">
+                <button type="button" class="btn-secondary" id="groups-toggle-view">Ver ranking</button>
+            </div>
+
+            <div id="groups-matches-view" class="is-open">
+                <div class="champ-groups-matches">
+                    {% for group in championship.groups %}
+                    <div class="champ-group-block">
+                        <h3>{{ group.name }}</h3>
+                        {% for match in group.matches %}
+                        {{ match_card(match, championship_selected_key, championship_can_edit, championship) }}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="groups-ranking-view" class="champ-inline-panel">
+                <h3>Ranking Geral</h3>
+                <div class="table-wrapper">
+                    <table class="ranking-table">
+                        <thead>
+                            <tr><th>Pos</th><th>Dupla</th><th>V</th><th>D</th><th>Saldo</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for row in championship.general_classification %}
+                            <tr class="{% if row.group_stage_status == 'qualified' %}champ-qualified-row{% elif row.group_stage_status == 'eliminated' %}champ-eliminated-row{% endif %}">
+                                <td>{{ row.posicao }}º</td><td>{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td>{{ row.saldo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% for group in championship.groups %}
+                <h3 style="margin-top: 12px;">Ranking {{ group.name }}</h3>
+                <div class="table-wrapper">
+                    <table class="ranking-table">
+                        <thead>
+                            <tr><th>Pos</th><th>Dupla</th><th>V</th><th>D</th><th>Saldo</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for row in group.ranking %}
+                            <tr class="{% if row.group_stage_status == 'qualified' %}champ-qualified-row{% elif row.group_stage_status == 'eliminated' %}champ-eliminated-row{% endif %}">
+                                <td>{{ row.posicao }}º</td><td>{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td>{{ row.saldo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+
+    <article class="champ-stage-panel" data-stage-panel="quarterfinals">
+        <div class="champ-stage-grid">
+            <h2>Quartas de Final</h2>
+            {% for match in championship.quarterfinals %}
+            {{ match_card(match, championship_selected_key, championship_can_edit, championship) }}
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="champ-stage-panel" data-stage-panel="semifinals">
+        <div class="champ-stage-grid">
+            <h2>Semi Final</h2>
+            {% for match in championship.semifinals %}
+            {{ match_card(match, championship_selected_key, championship_can_edit, championship) }}
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="champ-stage-panel" data-stage-panel="final">
+        <div class="champ-stage-grid">
+            <h2>Final</h2>
+            {{ match_card(championship.final, championship_selected_key, championship_can_edit, championship) }}
+        </div>
+    </article>
+
+    {% if championship_can_edit %}
+    <article class="champ-stage-panel" data-stage-panel="saved">
+        <div class="champ-stage-grid">
+            <div class="section-title">
+                <h2>Jogos Salvos No Banco</h2>
+                <span class="meta">{{ championship_saved_matches|length }} com placar</span>
+            </div>
+            {% if championship_saved_matches %}
+            <div class="match-grid">
+                {% for match in championship_saved_matches %}
+                <form class="match-card" method="post">
+                    <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
+                    <input type="hidden" name="championship_match_id" value="{{ match.id }}" />
+                    <div class="match-card__header">
+                        <div>
+                            <p class="badge">{{ match.phase }}</p>
+                            <strong>{{ match.team_a }} x {{ match.team_b }}</strong>
+                            <p class="meta">ID: {{ match.id }}</p>
+                        </div>
+                        <div class="match-card__actions">
+                            <button class="btn-primary" type="submit" name="action" value="championship_score">Salvar</button>
+                            <button class="btn-secondary" type="submit" name="action" value="delete_championship_score">Apagar</button>
+                        </div>
+                    </div>
+                    <div class="form-grid compact">
+                        <label>
+                            <span class="badge">Placar {{ match.team_a }}</span>
+                            <input class="input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
+                        </label>
+                        <label>
+                            <span class="badge">Placar {{ match.team_b }}</span>
+                            <input class="input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
+                        </label>
+                    </div>
+                </form>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="meta">Nenhum jogo com placar salvo ainda.</p>
+            {% endif %}
+        </div>
+    </article>
+    {% endif %}
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const stageTabs = Array.from(document.querySelectorAll('.champ-stage-tab'));
+    const panels = Array.from(document.querySelectorAll('.champ-stage-panel'));
+    const rulesPanel = document.getElementById('champ-rules-panel');
+    const tabsContainer = document.querySelector('.champ-stage-tabs');
+    if (tabsContainer && {{ 'true' if championship_can_edit else 'false' }}) {
+        const jogosTab = document.createElement('button');
+        jogosTab.type = 'button';
+        jogosTab.className = 'champ-stage-tab';
+        jogosTab.dataset.stage = 'saved';
+        jogosTab.textContent = 'Jogos';
+        tabsContainer.appendChild(jogosTab);
+        stageTabs.push(jogosTab);
+    }
+
+    const setStage = (index) => {
+        if (index < 0 || index >= stageTabs.length) return;
+        stageTabs.forEach((tab, i) => tab.classList.toggle('is-active', i === index));
+        panels.forEach((panel) => panel.classList.remove('is-active'));
+        const stage = stageTabs[index].dataset.stage;
+        const target = document.querySelector(`[data-stage-panel="${stage}"]`);
+        if (target) target.classList.add('is-active');
+        if (rulesPanel) {
+            rulesPanel.classList.toggle('is-open', stage === 'groups');
+        }
+    };
+
+    stageTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => setStage(index));
+    });
+
+    const groupsToggle = document.getElementById('groups-toggle-view');
+    const groupsMatchesView = document.getElementById('groups-matches-view');
+    const groupsRankingView = document.getElementById('groups-ranking-view');
+    if (groupsToggle && groupsMatchesView && groupsRankingView) {
+        groupsToggle.addEventListener('click', () => {
+            const showingGroups = groupsMatchesView.classList.contains('is-open');
+            groupsMatchesView.classList.toggle('is-open', !showingGroups);
+            groupsRankingView.classList.toggle('is-open', showingGroups);
+            groupsToggle.textContent = showingGroups ? 'Ver grupos' : 'Ver ranking';
+        });
+    }
+
+    setStage(0);
+});
+</script>
+{% endblock %}
