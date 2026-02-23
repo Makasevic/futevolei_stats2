@@ -14,7 +14,7 @@ CHAMPIONSHIP_2026_02: Dict[str, Any] = {
         {"id": "T3", "name": "Marcelo e Diego"},
         {"id": "T4", "name": "Ze e Amigo"},
         {"id": "T5", "name": "Thadu e Hill"},
-        {"id": "T6", "name": "Andre e Luquinhas"},
+        {"id": "T6", "name": "Andre e Lukinhas"},
         {"id": "T7", "name": "Jorginho e Paulinho"},
         {"id": "T8", "name": "magrica e chapa"},
         {"id": "T9", "name": "Lucas e igor"},
