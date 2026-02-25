@@ -66,6 +66,7 @@
             <button type="button" class="champ-stage-tab" data-stage="quarterfinals">Quartas</button>
             <button type="button" class="champ-stage-tab" data-stage="semifinals">Semi Final</button>
             <button type="button" class="champ-stage-tab" data-stage="final">Final</button>
+            <button type="button" class="champ-stage-tab" data-stage="podium">Pódio</button>
         </div>
     </div>
 
@@ -157,6 +158,33 @@
         <div class="champ-stage-grid">
             <h2>Final</h2>
             {{ match_card(championship.final, championship_selected_key, championship_can_edit, championship) }}
+        </div>
+    </article>
+
+    <article class="champ-stage-panel" data-stage-panel="podium">
+        <div class="champ-stage-grid">
+            <h2>Pódio</h2>
+            <p class="meta">3º lugar definido entre os semifinalistas eliminados, com os mesmos critérios de desempate da fase de grupos.</p>
+            <div class="champ-podium-grid">
+                <article class="champ-podium-card champ-podium-card--first">
+                    <p class="champ-podium-emoji">🥇</p>
+                    <p class="champ-podium-place">1º lugar</p>
+                    <h3>{{ championship.podium.first.team }}</h3>
+                    <p class="meta">{% if championship.podium.first.status == 'confirmed' %}campeão{% else %}aguardando final{% endif %}</p>
+                </article>
+                <article class="champ-podium-card champ-podium-card--second">
+                    <p class="champ-podium-emoji">🥈</p>
+                    <p class="champ-podium-place">2º lugar</p>
+                    <h3>{{ championship.podium.second.team }}</h3>
+                    <p class="meta">{% if championship.podium.second.status == 'confirmed' %}vice-campeão{% else %}aguardando final{% endif %}</p>
+                </article>
+                <article class="champ-podium-card champ-podium-card--third">
+                    <p class="champ-podium-emoji">🥉</p>
+                    <p class="champ-podium-place">3º lugar</p>
+                    <h3>{{ championship.podium.third.team }}</h3>
+                    <p class="meta">{% if championship.podium.third.status == 'confirmed' %}desempate por regras da fase de grupos{% else %}aguardando semifinais{% endif %}</p>
+                </article>
+            </div>
         </div>
     </article>
 

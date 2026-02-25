@@ -2142,6 +2142,67 @@ header.hero::after {
     font-size: 15px;
 }
 
+.champ-podium-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.champ-podium-card {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    background: linear-gradient(165deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 8px 18px rgba(19, 30, 50, 0.06);
+    display: grid;
+    gap: 4px;
+}
+
+.champ-podium-card::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 12px;
+    border: 1px dashed rgba(31, 42, 61, 0.12);
+    pointer-events: none;
+}
+
+.champ-podium-emoji {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.champ-podium-place {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--font-semibold);
+}
+
+.champ-podium-card h3 {
+    margin: 2px 0 0;
+    font-size: 18px;
+}
+
+.champ-podium-card--first {
+    background: linear-gradient(165deg, #fffdf4 0%, #f9f1d4 100%);
+    border-color: #e6d7a5;
+}
+
+.champ-podium-card--second {
+    background: linear-gradient(165deg, #fbfcff 0%, #eaf0fb 100%);
+    border-color: #d3dbe8;
+}
+
+.champ-podium-card--third {
+    background: linear-gradient(165deg, #fffaf5 0%, #f6e7da 100%);
+    border-color: #e1c8af;
+}
+
 .champ-qualified-row td {
     background: #e9f8ee;
 }
@@ -2152,6 +2213,10 @@ header.hero::after {
 
 @media (max-width: 1000px) {
     .champ-stage-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .champ-podium-grid {
         grid-template-columns: 1fr;
     }
 }

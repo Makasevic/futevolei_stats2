@@ -110,6 +110,14 @@ def _winner(match: Dict[str, Any]) -> str | None:
     return match["team_a"] if match["score_a"] > match["score_b"] else match["team_b"]
 
 
+def _loser(match: Dict[str, Any]) -> str | None:
+    if not _is_played(match):
+        return None
+    if match["score_a"] == match["score_b"]:
+        return None
+    return match["team_b"] if match["score_a"] > match["score_b"] else match["team_a"]
+
+
 def _head_to_head(a: str, b: str, matches: Iterable[Dict[str, Any]]) -> int:
     wins_a = 0
     wins_b = 0
@@ -296,6 +304,53 @@ def _build_phase_summary(
         items.sort(key=lambda row: (-row["vitorias"], -row["saldo"], -row["pontos_pro"], row["team"].casefold()))
         grouped[label] = items
     return grouped
+
+
+def _build_podium(
+    matches_by_id: Dict[str, Dict[str, Any]],
+    group_matches: List[Dict[str, Any]],
+    all_group_stats: Dict[str, Dict[str, int]],
+    team_names: Dict[str, str],
+) -> Dict[str, Dict[str, Any]]:
+    sf1 = matches_by_id.get("SF1")
+    sf2 = matches_by_id.get("SF2")
+    final_match = matches_by_id.get("FINAL")
+
+    first_id: str | None = None
+    second_id: str | None = None
+    if final_match and _is_played(final_match):
+        first_id = _winner(final_match)
+        second_id = _loser(final_match)
+    elif final_match:
+        first_id = final_match.get("team_a")
+        second_id = final_match.get("team_b")
+
+    semifinal_losers: List[str] = []
+    for match in (sf1, sf2):
+        if not match:
+            continue
+        loser_id = _loser(match)
+        if loser_id:
+            semifinal_losers.append(loser_id)
+
+    third_id: str | None = None
+    if len(semifinal_losers) == 1:
+        third_id = semifinal_losers[0]
+    elif len(semifinal_losers) == 2:
+        loser_stats = {team_id: all_group_stats[team_id] for team_id in semifinal_losers}
+        ordered = _sort_teams(semifinal_losers, loser_stats, group_matches, team_names)
+        third_id = ordered[0] if ordered else None
+
+    def _podium_row(team_id: str | None, status: str) -> Dict[str, Any]:
+        if not team_id:
+            return {"team_id": None, "team": "A definir", "status": status}
+        return {"team_id": team_id, "team": team_names.get(team_id, team_id), "status": status}
+
+    return {
+        "first": _podium_row(first_id, "confirmed" if final_match and _is_played(final_match) else "pending"),
+        "second": _podium_row(second_id, "confirmed" if final_match and _is_played(final_match) else "pending"),
+        "third": _podium_row(third_id, "confirmed" if len(semifinal_losers) == 2 else "pending"),
+    }
 
 
 def get_championship_view(championship_key: str) -> Dict[str, Any]:
@@ -492,6 +547,12 @@ def get_championship_view(championship_key: str) -> Dict[str, Any]:
         )
 
     phase_summary = _build_phase_summary(matches, team_names)
+    podium = _build_podium(
+        matches_by_id=matches_by_id,
+        group_matches=group_matches,
+        all_group_stats=all_group_stats,
+        team_names=team_names,
+    )
 
     return {
         "key": championship_key,
@@ -507,6 +568,7 @@ def get_championship_view(championship_key: str) -> Dict[str, Any]:
         "team_group_colors": team_group_colors,
         "overall_summary": overall_rows,
         "phase_summary": phase_summary,
+        "podium": podium,
         "editable_matches": [
             _public_match(match, team_names)
             | {"phase": match["phase"], "group_id": match.get("group_id")}
