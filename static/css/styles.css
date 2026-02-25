@@ -2195,7 +2195,7 @@ header.hero::after {
 }
 
 .champ-podium-card--first {
-    background: linear-gradient(165deg, #fffdf4 0%, #f9f1d4 100%);
+    background: linear-gradient(165deg, #fffcf1 0%, #f6ebc4 100%);
     border-color: #e6d7a5;
     padding: 20px 18px;
     gap: 6px;
@@ -2215,13 +2215,13 @@ header.hero::after {
 }
 
 .champ-podium-card--second {
-    background: linear-gradient(165deg, #fbfcff 0%, #eaf0fb 100%);
+    background: linear-gradient(165deg, #fafcff 0%, #e4ebf9 100%);
     border-color: #d3dbe8;
     width: 85%;
 }
 
 .champ-podium-card--third {
-    background: linear-gradient(165deg, #fffaf5 0%, #f6e7da 100%);
+    background: linear-gradient(165deg, #fff9f3 0%, #f2dfcf 100%);
     border-color: #e1c8af;
     width: 70%;
 }
