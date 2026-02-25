@@ -25,7 +25,7 @@
             <input class="champ-score-input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
             <span>x</span>
             <input class="champ-score-input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
-            <button class="btn-secondary champ-score-save" type="submit">Salvar</button>
+            <button class="btn-secondary champ-score-save" type="submit">salvar</button>
         </form>
         {% else %}
         <span class="champ-score-box">{{ '' if match.score_a is none else match.score_a }}</span>
@@ -62,11 +62,11 @@
 <section class="panel champ-stage-shell">
     <div class="champ-stage-nav">
         <div class="champ-stage-tabs">
-            <button type="button" class="champ-stage-tab is-active" data-stage="groups">Grupos</button>
-            <button type="button" class="champ-stage-tab" data-stage="quarterfinals">Quartas</button>
-            <button type="button" class="champ-stage-tab" data-stage="semifinals">Semi Final</button>
-            <button type="button" class="champ-stage-tab" data-stage="final">Final</button>
-            <button type="button" class="champ-stage-tab" data-stage="podium">Pódio</button>
+            <button type="button" class="champ-stage-tab is-active" data-stage="groups">grupos</button>
+            <button type="button" class="champ-stage-tab" data-stage="quarterfinals">quartas</button>
+            <button type="button" class="champ-stage-tab" data-stage="semifinals">semi</button>
+            <button type="button" class="champ-stage-tab" data-stage="final">final</button>
+            <button type="button" class="champ-stage-tab" data-stage="podium">pódio</button>
         </div>
     </div>
 
@@ -207,8 +207,8 @@
                             <p class="meta">ID: {{ match.id }}</p>
                         </div>
                         <div class="match-card__actions">
-                            <button class="btn-primary" type="submit" name="action" value="championship_score">Salvar</button>
-                            <button class="btn-secondary" type="submit" name="action" value="delete_championship_score">Apagar</button>
+                            <button class="btn-primary" type="submit" name="action" value="championship_score">salvar</button>
+                            <button class="btn-secondary" type="submit" name="action" value="delete_championship_score">apagar</button>
                         </div>
                     </div>
                     <div class="form-grid compact">
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         jogosTab.type = 'button';
         jogosTab.className = 'champ-stage-tab';
         jogosTab.dataset.stage = 'saved';
-        jogosTab.textContent = 'Jogos';
+        jogosTab.textContent = 'jogos';
         tabsContainer.appendChild(jogosTab);
         stageTabs.push(jogosTab);
     }
