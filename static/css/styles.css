@@ -2073,6 +2073,12 @@ header.hero::after {
     flex-wrap: wrap;
 }
 
+.champ-quick-actions .btn-secondary.is-active {
+    background: #eceff1;
+    border-color: #d5dce2;
+    color: var(--text);
+}
+
 .champ-inline-panel {
     display: none;
     border: 1px solid var(--border);

@@ -80,7 +80,8 @@
         <div class="champ-stage-grid">
             <h2>Jogos da Fase de Grupos</h2>
             <div class="champ-quick-actions">
-                <button type="button" class="btn-secondary" id="groups-toggle-view">Ver ranking</button>
+                <button type="button" class="btn-secondary is-active" id="groups-show-matches">grupos</button>
+                <button type="button" class="btn-secondary" id="groups-show-ranking">ranking</button>
             </div>
 
             <div id="groups-matches-view" class="is-open">
@@ -236,16 +237,20 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => setStage(index));
     });
 
-    const groupsToggle = document.getElementById('groups-toggle-view');
+    const groupsShowMatches = document.getElementById('groups-show-matches');
+    const groupsShowRanking = document.getElementById('groups-show-ranking');
     const groupsMatchesView = document.getElementById('groups-matches-view');
     const groupsRankingView = document.getElementById('groups-ranking-view');
-    if (groupsToggle && groupsMatchesView && groupsRankingView) {
-        groupsToggle.addEventListener('click', () => {
-            const showingGroups = groupsMatchesView.classList.contains('is-open');
-            groupsMatchesView.classList.toggle('is-open', !showingGroups);
-            groupsRankingView.classList.toggle('is-open', showingGroups);
-            groupsToggle.textContent = showingGroups ? 'Ver grupos' : 'Ver ranking';
-        });
+    if (groupsShowMatches && groupsShowRanking && groupsMatchesView && groupsRankingView) {
+        const setGroupsView = (showMatches) => {
+            groupsMatchesView.classList.toggle('is-open', showMatches);
+            groupsRankingView.classList.toggle('is-open', !showMatches);
+            groupsShowMatches.classList.toggle('is-active', showMatches);
+            groupsShowRanking.classList.toggle('is-active', !showMatches);
+        };
+
+        groupsShowMatches.addEventListener('click', () => setGroupsView(true));
+        groupsShowRanking.addEventListener('click', () => setGroupsView(false));
     }
 
     setStage(0);
