@@ -308,8 +308,6 @@ def _build_phase_summary(
 
 def _build_podium(
     matches_by_id: Dict[str, Dict[str, Any]],
-    group_matches: List[Dict[str, Any]],
-    all_group_stats: Dict[str, Dict[str, int]],
     team_names: Dict[str, str],
 ) -> Dict[str, Dict[str, Any]]:
     sf1 = matches_by_id.get("SF1")
@@ -325,21 +323,14 @@ def _build_podium(
         first_id = final_match.get("team_a")
         second_id = final_match.get("team_b")
 
-    semifinal_losers: List[str] = []
-    for match in (sf1, sf2):
-        if not match:
-            continue
-        loser_id = _loser(match)
-        if loser_id:
-            semifinal_losers.append(loser_id)
-
     third_id: str | None = None
-    if len(semifinal_losers) == 1:
-        third_id = semifinal_losers[0]
-    elif len(semifinal_losers) == 2:
-        loser_stats = {team_id: all_group_stats[team_id] for team_id in semifinal_losers}
-        ordered = _sort_teams(semifinal_losers, loser_stats, group_matches, team_names)
-        third_id = ordered[0] if ordered else None
+    if first_id and final_match and _is_played(final_match):
+        for match in (sf1, sf2):
+            if not match or not _is_played(match):
+                continue
+            if first_id in {match.get("team_a"), match.get("team_b")}:
+                third_id = _loser(match)
+                break
 
     def _podium_row(team_id: str | None, status: str) -> Dict[str, Any]:
         if not team_id:
@@ -349,7 +340,7 @@ def _build_podium(
     return {
         "first": _podium_row(first_id, "confirmed" if final_match and _is_played(final_match) else "pending"),
         "second": _podium_row(second_id, "confirmed" if final_match and _is_played(final_match) else "pending"),
-        "third": _podium_row(third_id, "confirmed" if len(semifinal_losers) == 2 else "pending"),
+        "third": _podium_row(third_id, "confirmed" if third_id else "pending"),
     }
 
 
@@ -549,8 +540,6 @@ def get_championship_view(championship_key: str) -> Dict[str, Any]:
     phase_summary = _build_phase_summary(matches, team_names)
     podium = _build_podium(
         matches_by_id=matches_by_id,
-        group_matches=group_matches,
-        all_group_stats=all_group_stats,
         team_names=team_names,
     )
 
