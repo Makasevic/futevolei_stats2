@@ -31,6 +31,14 @@ body {
     min-height: 100vh;
 }
 
+button,
+input,
+select,
+textarea,
+table {
+    font: inherit;
+}
+
 h1, h2, h3, h4, h5, h6, strong, b {
     font-weight: var(--font-semibold);
 }
@@ -1921,6 +1929,7 @@ header.hero::after {
     color: var(--muted);
     border-radius: 10px;
     padding: 10px 12px;
+    font-size: 13px;
     font-weight: var(--font-semibold);
     cursor: pointer;
     flex: 0 0 auto;
@@ -2077,6 +2086,10 @@ header.hero::after {
     background: #eceff1;
     border-color: #d5dce2;
     color: var(--text);
+}
+
+.champ-quick-actions .btn-secondary {
+    font-size: 13px;
 }
 
 .champ-inline-panel {
@@ -2291,6 +2304,11 @@ header.hero::after {
     .champ-score-save {
         padding: 6px 10px;
         font-size: 13px;
+    }
+
+    .champ-stage-tab,
+    .champ-quick-actions .btn-secondary {
+        font-size: 14px;
     }
 
     .champ-team { align-items: flex-start; text-align: left; }

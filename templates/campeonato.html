@@ -108,7 +108,7 @@
                         <tbody>
                             {% for row in championship.general_classification %}
                             <tr class="{% if row.group_stage_status == 'qualified' %}champ-qualified-row{% elif row.group_stage_status == 'eliminated' %}champ-eliminated-row{% endif %}">
-                                <td>{{ row.posicao }}º</td><td>{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td>{{ row.saldo }}</td>
+                                <td class="tag">{{ row.posicao }}º</td><td class="name">{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td class="score">{{ row.saldo }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -125,7 +125,7 @@
                         <tbody>
                             {% for row in group.ranking %}
                             <tr class="{% if row.group_stage_status == 'qualified' %}champ-qualified-row{% elif row.group_stage_status == 'eliminated' %}champ-eliminated-row{% endif %}">
-                                <td>{{ row.posicao }}º</td><td>{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td>{{ row.saldo }}</td>
+                                <td class="tag">{{ row.posicao }}º</td><td class="name">{{ row.team }}</td><td>{{ row.vitorias }}</td><td>{{ row.derrotas }}</td><td class="score">{{ row.saldo }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
