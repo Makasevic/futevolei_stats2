@@ -318,6 +318,8 @@ header.hero::after {
     letter-spacing: -0.02em;
 }
 
+.admin-hero h1 { font-size: 22px; }
+
 .hero .chip {
     display: inline-flex;
     align-items: center;
@@ -689,6 +691,20 @@ header.hero::after {
 .section-title h2 {
     margin: 4px 0 2px;
     font-size: 22px;
+}
+
+.admin-content .section-title h2 { font-size: 18px; }
+
+.admin-content {
+    font-size: 14px;
+}
+
+.admin-content .input,
+.admin-content .select,
+.admin-content .btn-primary,
+.admin-content .btn-secondary,
+.admin-content .badge {
+    font-size: 14px;
 }
 
 .section-eyebrow {
@@ -1570,22 +1586,23 @@ header.hero::after {
     display: grid;
     grid-template-columns: 90px 90px minmax(160px, 1fr) 44px 16px 44px minmax(160px, 1fr) auto;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    gap: 6px;
+    padding: 6px 8px;
     border-radius: 10px;
     border: 1px solid var(--border);
     background: #ffffff;
-    box-shadow: 0 8px 18px rgba(31, 51, 84, 0.06);
-    font-size: 12px;
+    box-shadow: 0 6px 14px rgba(31, 51, 84, 0.05);
+    font-size: 11px;
 }
 
 .match-row__id {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 10px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    display: block;
 }
 
 .match-row__phase {
@@ -1607,6 +1624,12 @@ header.hero::after {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: block;
+    font-size: 12px;
+}
+
+.match-row__team--right {
+    text-align: right;
 }
 
 .match-row__vs {
@@ -1620,7 +1643,7 @@ header.hero::after {
 }
 
 .match-row--admin {
-    grid-template-columns: 308px minmax(140px, 1fr) 44px 16px 44px minmax(140px, 1fr) auto;
+    grid-template-columns: 308px minmax(140px, 1fr) 36px 12px 36px minmax(140px, 1fr) auto;
 }
 
 .admin-filter {
@@ -1630,24 +1653,26 @@ header.hero::after {
 }
 
 .admin-filter__select {
-    width: 160px;
-    min-width: 160px;
+    width: 150px;
+    min-width: 150px;
     padding: 8px 10px;
-    font-size: 13px;
-    height: 36px;
+    font-size: 12px;
+    height: 34px;
 }
 
 .input--mini {
-    padding: 6px 6px;
-    border-radius: 8px;
+    padding: 4px 6px;
+    height: 28px;
+    border-radius: 10px;
     font-size: 12px;
     text-align: center;
 }
 
 .btn-xs {
     padding: 4px 8px;
+    height: 28px;
     font-size: 11px;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 .match-card {

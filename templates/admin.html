@@ -38,6 +38,7 @@
 </section>
 {% endif %}
 
+<div class="admin-content">
 <section class="panel">
     <div class="section-title">
         <h2>Acesso ao Torneio</h2>
@@ -166,6 +167,8 @@
     </form>
 </section>
 
+</div>
+
 <section class="panel" style="margin-top: 18px;">
     <div class="section-title">
         <h2>Partidas cadastradas</h2>
@@ -174,7 +177,7 @@
     <form class="form-actions admin-filter" method="get">
         <label>
             <span class="badge">Data</span>
-            <select class="input admin-filter__select" name="match_date" onchange="this.form.submit()">
+            <select class="select admin-filter__select" name="match_date" onchange="this.form.submit()">
                 {% for match_date in match_dates %}
                 <option value="{{ match_date }}" {% if match_date == selected_match_date %}selected{% endif %}>{{ match_date }}</option>
                 {% endfor %}

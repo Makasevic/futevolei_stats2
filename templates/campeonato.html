@@ -203,7 +203,7 @@
                     <input type="hidden" name="championship_match_id" value="{{ match.id }}" />
                     <span class="match-row__id">ID: {{ match.id }}</span>
                     <span class="match-row__phase match-row__phase--{{ match.phase }}">{{ match.phase }}</span>
-                    <span class="match-row__team">{{ match.team_a }}</span>
+                    <span class="match-row__team match-row__team--right">{{ match.team_a }}</span>
                     <input class="input input--mini" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
                     <span class="match-row__vs">x</span>
                     <input class="input input--mini" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
