@@ -1583,6 +1583,9 @@ header.hero::after {
     color: var(--muted);
     font-size: 11px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .match-row__phase {
@@ -1600,6 +1603,10 @@ header.hero::after {
 
 .match-row__team {
     font-weight: var(--font-medium);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .match-row__vs {
@@ -1610,6 +1617,24 @@ header.hero::after {
 .match-row__actions {
     display: flex;
     gap: 6px;
+}
+
+.match-row--admin {
+    grid-template-columns: 308px minmax(140px, 1fr) 44px 16px 44px minmax(140px, 1fr) auto;
+}
+
+.admin-filter {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.admin-filter__select {
+    width: 160px;
+    min-width: 160px;
+    padding: 8px 10px;
+    font-size: 13px;
+    height: 36px;
 }
 
 .input--mini {

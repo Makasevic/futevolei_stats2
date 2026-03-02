@@ -775,6 +775,17 @@ def _matches_from_df(df: pd.DataFrame | None) -> List[Dict[str, Any]]:
             "loser2": str(row.get("loser2") or "").strip(),
             "score": str(row.get("score") or "").strip(),
         }
+        score_a = ""
+        score_b = ""
+        if match["score"]:
+            import re
+
+            parsed = re.match(r"^\s*(\d+)\s*[xX-]\s*(\d+)\s*$", match["score"])
+            if parsed:
+                score_a = parsed.group(1)
+                score_b = parsed.group(2)
+        match["score_a"] = score_a
+        match["score_b"] = score_b
         match["date"] = _normalize_admin_date(row.get("date"))
         identifier_value, identifier_field = _identifier_from_match_data(row)
         match["_identifier_value"] = identifier_value
@@ -801,6 +812,8 @@ def _serialize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         serialized["date"] = data_value.isoformat()
     else:
         serialized["date"] = str(data_value) if data_value is not None else None
+    if "score" in payload:
+        serialized["score"] = payload.get("score")
     return serialized
 
 
@@ -1614,6 +1627,13 @@ def admin():
             return redirect(url_for("admin"))
 
         if action in {"create", "update"}:
+            score_a_raw = request.form.get("score_a", "").strip()
+            score_b_raw = request.form.get("score_b", "").strip()
+            score_value = None
+            if score_a_raw == "" and score_b_raw == "":
+                score_value = ""
+            elif score_a_raw and score_b_raw and score_a_raw.isdigit() and score_b_raw.isdigit():
+                score_value = f"{int(score_a_raw)}x{int(score_b_raw)}"
             payload = {
                 "winner1": request.form.get("winner1", "").strip(),
                 "winner2": request.form.get("winner2", "").strip(),
@@ -1621,6 +1641,8 @@ def admin():
                 "loser2": request.form.get("loser2", "").strip(),
                 "date": _parse_form_date(request.form.get("date")),
             }
+            if score_value is not None:
+                payload["score"] = score_value
 
             match_id = request.form.get("match_id") if action == "update" else None
             id_field = request.form.get("id_field", "id")
@@ -1643,7 +1665,8 @@ def admin():
             except Exception as exc:  # pragma: no cover - feedback exibido na interface
                 _set_admin_feedback("error", f"Erro ao salvar partida: {exc}")
 
-            return redirect(url_for("admin"))
+            match_date_param = request.form.get("match_date") or None
+            return redirect(url_for("admin", match_date=match_date_param) if match_date_param else url_for("admin"))
 
         if action == "delete":
             match_id = request.form.get("match_id")
@@ -1659,10 +1682,23 @@ def admin():
             except Exception as exc:  # pragma: no cover - feedback exibido na interface
                 _set_admin_feedback("error", f"Erro ao excluir partida: {exc}")
 
-            return redirect(url_for("admin"))
+            match_date_param = request.form.get("match_date") or None
+            return redirect(url_for("admin", match_date=match_date_param) if match_date_param else url_for("admin"))
 
     df = _fetch_base_dataframe()
     matches = _matches_from_df(df)
+    match_dates = sorted(
+        {match["date"] for match in matches if match.get("date")},
+        reverse=True,
+    )
+    selected_match_date = _parse_form_date(request.args.get("match_date"))
+    if match_dates:
+        if selected_match_date not in match_dates:
+            selected_match_date = match_dates[0]
+        matches = [match for match in matches if match.get("date") == selected_match_date]
+    else:
+        selected_match_date = None
+        matches = []
     players = _registered_players(df)
     players_text = "\n".join(players)
     championship_keys = available_championship_keys()
@@ -1689,6 +1725,8 @@ def admin():
         players=players,
         players_text=players_text,
         matches=matches,
+        match_dates=[date_item.isoformat() for date_item in match_dates],
+        selected_match_date=selected_match_date.isoformat() if selected_match_date else "",
         today=date.today().isoformat(),
         championship_keys=championship_keys,
         championship_selected_key=selected_championship_key,
