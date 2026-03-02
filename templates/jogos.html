@@ -94,31 +94,21 @@
         <span class="badge">{{ periodo_legenda }}</span>
     </div>
 
-    <div class="table-wrapper">
-        <table class="ranking-table">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Vencedores</th>
-                    <th>Perdedores</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for jogo in partidas %}
-                <tr>
-                    <td class="tag" data-label="Data">{{ jogo.data }}</td>
-                    <td class="name" data-label="Vencedores">{{ jogo.vencedores }}</td>
-                    <td class="name" data-label="Perdedores">{{ jogo.perdedores }}</td>
-                </tr>
-                {% endfor %}
-                {% if partidas|length == 0 %}
-                <tr>
-                    <td colspan="3" class="meta">Nenhuma partida encontrada para o filtro selecionado.</td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
+    {% if partidas|length == 0 %}
+        <p class="meta">Nenhuma partida encontrada para o filtro selecionado.</p>
+    {% else %}
+        <div class="recent-matches">
+            {% for jogo in partidas %}
+                <div class="recent-match" data-date="{{ jogo.data }}">
+                    <span class="recent-dot" aria-hidden="true"></span>
+                    <div>
+                        <p class="recent-match__teams">{{ jogo.vencedores }} x {{ jogo.perdedores }}</p>
+                        <p class="recent-match__meta">{{ jogo.data }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 </section>
 
 <script>
@@ -235,6 +225,28 @@
     document.addEventListener('DOMContentLoaded', () => {
         const jogadoresSelect = document.getElementById('jogadores');
         initMultiSelect(jogadoresSelect);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const palette = [
+            '#2563eb', '#22c55e', '#f97316', '#a855f7', '#14b8a6',
+            '#ef4444', '#eab308', '#06b6d4', '#f43f5e', '#84cc16',
+            '#0ea5e9', '#8b5cf6'
+        ];
+        const colorMap = new Map();
+        let colorIndex = 0;
+        document.querySelectorAll('.recent-match[data-date]').forEach((card) => {
+            const dateKey = card.getAttribute('data-date') || '';
+            if (!colorMap.has(dateKey)) {
+                colorMap.set(dateKey, palette[colorIndex % palette.length]);
+                colorIndex += 1;
+            }
+            const dot = card.querySelector('.recent-dot');
+            if (dot) {
+                dot.style.background = colorMap.get(dateKey);
+                dot.style.boxShadow = `0 0 0 4px ${colorMap.get(dateKey)}30`;
+            }
+        });
     });
 </script>
 {% endblock %}

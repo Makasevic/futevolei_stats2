@@ -451,6 +451,13 @@ header.hero::after {
     flex-wrap: wrap;
 }
 
+.filter-bar .badge {
+    width: 130px;
+    display: inline-flex;
+    justify-content: center;
+    white-space: nowrap;
+}
+
 .filter-group {
     display: flex;
     align-items: center;
@@ -463,6 +470,11 @@ header.hero::after {
 .filter-bar > .btn-refresh { order: 2; }
 .filter-bar > .filter-group--players { order: 3; }
 
+.filter-bar > .btn-refresh {
+    height: 36px;
+    align-self: center;
+}
+
 .filter-group--players {
     align-items: center;
     flex-wrap: wrap;
@@ -471,11 +483,6 @@ header.hero::after {
 
 .filter-group--players .multi-select {
     flex: 1 1 260px;
-}
-
-.filter-group--players .btn-refresh {
-    height: 44px;
-    padding: 10px 16px;
 }
 
 .multi-select {
@@ -608,9 +615,11 @@ header.hero::after {
     background: linear-gradient(135deg, #2f6bff, #13b6a7);
     color: #ffffff;
     border: none;
-    padding: 12px 18px;
+    padding: 10px 16px;
     border-radius: 14px;
     font-weight: var(--font-bold);
+    font-size: 14px;
+    line-height: 1;
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
     box-shadow: 0 12px 30px rgba(47, 107, 255, 0.32);
