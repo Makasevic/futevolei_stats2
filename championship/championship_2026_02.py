@@ -6,7 +6,7 @@ CHAMPIONSHIP_2026_02: Dict[str, Any] = {
     "key": "2026-02",
     "title": "2026-02",
     "description": "Torneio redinha de 28 de fevereiro de 2026",
-    "edit_password": "redinha202602",
+    "edit_password": "redinha202602_ended",
     "teams": [
         {"id": "T1", "name": "Bruno e Julio"},
         {"id": "T2", "name": "Sacola e Gabriel"},

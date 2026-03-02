@@ -30,6 +30,9 @@
         </select>
     </div>
 
+    <button class="btn-refresh" type="submit">Aplicar filtros</button>
+
+
     <div class="filter-group" data-mode="Data">
         <label class="badge" for="data">Data</label>
         <select id="data" name="data" class="select" {% if datas|length == 0 %}disabled{% endif %}>
@@ -61,16 +64,22 @@
         </select>
     </div>
 
-    <div class="filter-group" data-mode="Jogadores">
+    <div class="filter-group filter-group--players" data-mode="Jogadores">
         <label class="badge" for="jogadores">Jogadores</label>
-        <select id="jogadores" name="jogadores" class="select" multiple size="5">
-            {% for jogador in jogadores %}
-                <option value="{{ jogador }}" {% if jogador in jogadores_selecionados %}selected{% endif %}>{{ jogador }}</option>
-            {% endfor %}
-        </select>
+        <div class="multi-select" data-placeholder="Buscar jogador...">
+            <div class="multi-select__control">
+                <div class="multi-select__chips" aria-live="polite"></div>
+                <input class="multi-select__input" type="text" placeholder="Buscar jogador..." autocomplete="off" />
+            </div>
+            <div class="multi-select__menu" role="listbox" aria-multiselectable="true"></div>
+            <select id="jogadores" name="jogadores" class="select multi-select__native" multiple size="5">
+                {% for jogador in jogadores %}
+                    <option value="{{ jogador }}" {% if jogador in jogadores_selecionados %}selected{% endif %}>{{ jogador }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
 
-    <button class="btn-refresh" type="submit">Aplicar filtros</button>
 </form>
 
 {% if mensagem_limite %}
@@ -132,5 +141,101 @@
     modoSelect.addEventListener('change', toggleFilters);
     periodoSelect.addEventListener('change', toggleFilters);
     document.addEventListener('DOMContentLoaded', toggleFilters);
+
+    function initMultiSelect(selectEl) {
+        if (!selectEl) return;
+        const wrapper = selectEl.closest('.multi-select');
+        if (!wrapper) return;
+        const input = wrapper.querySelector('.multi-select__input');
+        const menu = wrapper.querySelector('.multi-select__menu');
+        const chips = wrapper.querySelector('.multi-select__chips');
+        const options = Array.from(selectEl.options).map((opt) => ({
+            value: opt.value,
+            label: opt.text,
+            selected: opt.selected
+        }));
+
+        const updateNative = () => {
+            options.forEach((opt, idx) => {
+                selectEl.options[idx].selected = opt.selected;
+            });
+        };
+
+        const renderChips = () => {
+            chips.innerHTML = '';
+            const selected = options.filter((opt) => opt.selected);
+            if (selected.length === 0) {
+                return;
+            }
+            selected.forEach((opt) => {
+                const chip = document.createElement('span');
+                chip.className = 'multi-select__chip';
+                chip.textContent = opt.label;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'multi-select__chip-remove';
+                remove.setAttribute('aria-label', `Remover ${opt.label}`);
+                remove.textContent = 'x';
+                remove.addEventListener('click', () => {
+                    opt.selected = false;
+                    updateNative();
+                    renderChips();
+                    renderMenu(input.value);
+                });
+                chip.appendChild(remove);
+                chips.appendChild(chip);
+            });
+        };
+
+        const renderMenu = (filterText = '') => {
+            const query = filterText.trim().toLowerCase();
+            menu.innerHTML = '';
+            options
+                .filter((opt) => !query || opt.label.toLowerCase().includes(query))
+                .forEach((opt) => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = `multi-select__option${opt.selected ? ' is-selected' : ''}`;
+                    item.setAttribute('role', 'option');
+                    item.setAttribute('aria-selected', String(opt.selected));
+                    item.textContent = opt.label;
+                    item.addEventListener('click', () => {
+                        opt.selected = !opt.selected;
+                        updateNative();
+                        renderChips();
+                        renderMenu(input.value);
+                    });
+                    menu.appendChild(item);
+                });
+        };
+
+        const openMenu = () => {
+            wrapper.classList.add('is-open');
+            renderMenu(input.value);
+        };
+
+        const closeMenu = () => {
+            wrapper.classList.remove('is-open');
+        };
+
+        input.addEventListener('focus', openMenu);
+        input.addEventListener('input', () => renderMenu(input.value));
+        menu.addEventListener('mousedown', (event) => event.preventDefault());
+        document.addEventListener('click', (event) => {
+            if (!wrapper.contains(event.target)) {
+                closeMenu();
+            }
+        });
+
+        updateNative();
+        renderChips();
+        renderMenu('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const jogadoresSelect = document.getElementById('jogadores');
+        initMultiSelect(jogadoresSelect);
+    });
 </script>
 {% endblock %}
+
