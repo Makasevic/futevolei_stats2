@@ -196,31 +196,21 @@
                 <span class="meta">{{ championship_saved_matches|length }} com placar</span>
             </div>
             {% if championship_saved_matches %}
-            <div class="match-grid">
-                {% for match in championship_saved_matches %}
-                <form class="match-card" method="post">
+            <div class="match-list">
+                {% for match in championship_saved_matches|reverse %}
+                <form class="match-row match-row--compact" method="post">
                     <input type="hidden" name="championship_key" value="{{ championship_selected_key }}" />
                     <input type="hidden" name="championship_match_id" value="{{ match.id }}" />
-                    <div class="match-card__header">
-                        <div>
-                            <p class="badge">{{ match.phase }}</p>
-                            <strong>{{ match.team_a }} x {{ match.team_b }}</strong>
-                            <p class="meta">ID: {{ match.id }}</p>
-                        </div>
-                        <div class="match-card__actions">
-                            <button class="btn-primary" type="submit" name="action" value="championship_score">salvar</button>
-                            <button class="btn-secondary" type="submit" name="action" value="delete_championship_score">apagar</button>
-                        </div>
-                    </div>
-                    <div class="form-grid compact">
-                        <label>
-                            <span class="badge">Placar {{ match.team_a }}</span>
-                            <input class="input" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
-                        </label>
-                        <label>
-                            <span class="badge">Placar {{ match.team_b }}</span>
-                            <input class="input" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
-                        </label>
+                    <span class="match-row__id">ID: {{ match.id }}</span>
+                    <span class="match-row__phase match-row__phase--{{ match.phase }}">{{ match.phase }}</span>
+                    <span class="match-row__team">{{ match.team_a }}</span>
+                    <input class="input input--mini" type="number" min="0" name="score_a" value="{{ '' if match.score_a is none else match.score_a }}" />
+                    <span class="match-row__vs">x</span>
+                    <input class="input input--mini" type="number" min="0" name="score_b" value="{{ '' if match.score_b is none else match.score_b }}" />
+                    <span class="match-row__team">{{ match.team_b }}</span>
+                    <div class="match-row__actions">
+                        <button class="btn-primary btn-xs" type="submit" name="action" value="championship_score">salvar</button>
+                        <button class="btn-secondary btn-xs" type="submit" name="action" value="delete_championship_score">apagar</button>
                     </div>
                 </form>
                 {% endfor %}
