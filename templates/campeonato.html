@@ -80,7 +80,7 @@
 
     <article class="champ-stage-panel is-active" data-stage-panel="groups">
         <div class="champ-stage-grid">
-            <h2>Jogos da Fase de Grupos</h2>
+            <h2>Jogos da fase de grupos</h2>
             <div class="champ-quick-actions">
                 <button type="button" class="btn-secondary is-active" id="groups-show-matches">grupos</button>
                 <button type="button" class="btn-secondary" id="groups-show-ranking">ranking</button>
@@ -100,7 +100,7 @@
             </div>
 
             <div id="groups-ranking-view" class="champ-inline-panel">
-                <h3>Ranking Geral</h3>
+                <h3>Ranking geral</h3>
                 <div class="table-wrapper">
                     <table class="ranking-table">
                         <thead>
@@ -139,7 +139,7 @@
 
     <article class="champ-stage-panel" data-stage-panel="quarterfinals">
         <div class="champ-stage-grid">
-            <h2>Quartas de Final</h2>
+            <h2>Quartas de final</h2>
             {% for match in championship.quarterfinals %}
             {{ match_card(match, championship_selected_key, championship_can_edit, championship) }}
             {% endfor %}
@@ -148,7 +148,7 @@
 
     <article class="champ-stage-panel" data-stage-panel="semifinals">
         <div class="champ-stage-grid">
-            <h2>Semi Final</h2>
+            <h2>Semi final</h2>
             {% for match in championship.semifinals %}
             {{ match_card(match, championship_selected_key, championship_can_edit, championship) }}
             {% endfor %}
@@ -164,7 +164,7 @@
 
     <article class="champ-stage-panel" data-stage-panel="podium">
         <div class="champ-stage-grid">
-            <h2>Pódio - Fevereiro de 2026</h2>
+            <h2>Pódio - fevereiro de 2026</h2>
             <div class="champ-podium-grid">
                 <article class="champ-podium-card champ-podium-card--first">
                     <p class="champ-podium-emoji">🥇</p>
@@ -192,7 +192,7 @@
     <article class="champ-stage-panel" data-stage-panel="saved">
         <div class="champ-stage-grid">
             <div class="section-title">
-                <h2>Jogos Salvos No Banco</h2>
+                <h2>Jogos salvos no banco</h2>
                 <span class="meta">{{ championship_saved_matches|length }} com placar</span>
             </div>
             {% if championship_saved_matches %}
