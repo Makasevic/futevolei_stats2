@@ -119,6 +119,7 @@ h1, h2, h3, h4, h5, h6, strong, b {
     color: var(--text);
     font-weight: var(--font-semibold);
     letter-spacing: 0.01em;
+    font-size: 14px;
 }
 
 .menu__dropdown-icon {
@@ -151,6 +152,7 @@ h1, h2, h3, h4, h5, h6, strong, b {
     text-decoration: none;
     color: var(--muted);
     font-weight: var(--font-medium);
+    font-size: 14px;
     border: 1px solid transparent;
     background: rgba(255, 255, 255, 0.7);
     transition: all 140ms ease;
@@ -221,6 +223,7 @@ h1, h2, h3, h4, h5, h6, strong, b {
     background: rgba(255, 255, 255, 0.6);
     transition: all 140ms ease;
     font-weight: var(--font-medium);
+    font-size: 14px;
 }
 
 .menu__item:hover {
@@ -463,6 +466,7 @@ header.hero::after {
     outline: none;
     min-width: 170px;
     font-weight: var(--font-medium);
+    font-size: 14px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
@@ -1858,7 +1862,7 @@ header.hero::after {
 /* MOBILE (iOS/Android) — aumentar fonte e altura */
 @media (max-width: 600px) {
     .select {
-        font-size: 15px !important;
+        font-size: 14px !important;
         line-height: 1.4 !important;
         padding: 14px 14px !important;
         height: 50px !important;
