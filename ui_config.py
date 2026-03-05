@@ -62,7 +62,6 @@ class UiConfig:
         "180 dias",
         "360 dias",
         "Todos",
-        "Data",
     )
     default_ranking_period: str = "1 dia"
     default_games_period: str = "1 dia"

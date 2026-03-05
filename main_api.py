@@ -155,6 +155,7 @@ def _filter_rankings(
     mes: str | None,
     inicio: str | None,
     fim: str | None,
+    data: str | None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     base_df = _fetch_base_dataframe()
     config = get_config()
@@ -165,6 +166,11 @@ def _filter_rankings(
         df_filtrado = filtrar_dados(base_df, "Mês/Ano", mes)
     elif modo == "Intervalo":
         df_filtrado = _filtrar_por_intervalo(base_df, inicio, fim)
+    elif modo == "Data":
+        if data:
+            df_filtrado = filtrar_dados(base_df, "Data", data)
+        else:
+            df_filtrado = base_df.iloc[0:0]
     else:
         df_filtrado = filtrar_dados(base_df, "Dias", periodo) if periodo else base_df
 
@@ -176,7 +182,7 @@ def _filter_rankings(
         jogadores = jogadores[~jogadores["jogadores"].isin(excluidos)]
         duplas = duplas[~duplas["duplas"].isin(excluidos)]
 
-    aplicar_minimos = not (modo == "Dias" and periodo == "1 dia")
+    aplicar_minimos = not ((modo == "Dia" and periodo == "1 dia") or modo == "Data")
 
     if aplicar_minimos:
         media_top_10 = jogadores["jogos"].nlargest(10).mean()
@@ -205,7 +211,13 @@ def _filter_rankings(
 
 
 def _descricao_periodo(
-    modo: str, periodo: str | None, ano: str | None, mes: str | None, inicio: str | None, fim: str | None
+    modo: str,
+    periodo: str | None,
+    ano: str | None,
+    mes: str | None,
+    inicio: str | None,
+    fim: str | None,
+    data: str | None,
 ) -> str:
     if modo == "Ano" and ano:
         return f"Ano {ano}"
@@ -215,6 +227,8 @@ def _descricao_periodo(
         if inicio or fim:
             return f"Intervalo {inicio or '...'} a {fim or '...'}"
         return "Intervalo personalizado"
+    if modo == "Data" and data:
+        return f"Dia {data}"
     return periodo or "Todos"
 
 
@@ -878,28 +892,38 @@ def home():
     ui_config = _current_ui_config()
     periodos_disponiveis = list(ui_config.ranking_periods)
 
-    modo = request.args.get("modo", "Dias")
+    modo = request.args.get("modo", "Dia")
+    if modo == "Dias":
+        modo = "Dia"
     periodo = request.args.get("periodo", ui_config.default_ranking_period)
     inicio = request.args.get("inicio")
     fim = request.args.get("fim")
+    data_escolhida = request.args.get("data")
 
     base_df = _fetch_base_dataframe()
     datas_index = pd.to_datetime(base_df.index, errors="coerce")
     anos_disponiveis = sorted({str(int(dt.year)) for dt in datas_index if pd.notna(dt)})
     meses_disponiveis = sorted({dt.strftime("%Y-%m") for dt in datas_index if pd.notna(dt)})
+    datas_disponiveis = sorted(
+        {dt.normalize().date().isoformat() for dt in datas_index if pd.notna(dt)},
+        reverse=True,
+    )
 
     ano = request.args.get("ano", anos_disponiveis[-1] if anos_disponiveis else None)
     mes = request.args.get("mes", meses_disponiveis[-1] if meses_disponiveis else None)
 
-    if modo == "Dias" and periodo not in periodos_disponiveis:
+    if modo == "Dia" and periodo not in periodos_disponiveis:
         periodo = "1 dia"
     if modo == "Ano" and ano not in anos_disponiveis:
         ano = anos_disponiveis[-1] if anos_disponiveis else None
     if modo == "Mês/Ano" and mes not in meses_disponiveis:
         mes = meses_disponiveis[-1] if meses_disponiveis else None
+    if modo == "Data":
+        if data_escolhida not in datas_disponiveis:
+            data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
 
-    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim)
-    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim)
+    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim, data_escolhida)
+    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim, data_escolhida)
 
     jogadores_fmt = _format_ranking(jogadores, "jogadores")
     duplas_fmt = _format_ranking(duplas, "duplas")
@@ -913,6 +937,8 @@ def home():
         periodo_escolhido=periodo,
         modo=modo,
         periodos=periodos_disponiveis,
+        datas=datas_disponiveis,
+        data_selecionada=data_escolhida,
         anos=anos_disponiveis,
         ano_selecionado=ano,
         meses=meses_disponiveis,
@@ -1116,14 +1142,24 @@ def config_page():
 
 
 def _descricao_jogos(
-    modo: str, periodo: str | None, ano: str | None, mes: str | None, data: str | None
+    modo: str,
+    periodo: str | None,
+    ano: str | None,
+    mes: str | None,
+    data: str | None,
+    inicio: str | None,
+    fim: str | None,
 ) -> str:
     if modo == "Mês/Ano" and mes:
         return mes
     if modo == "Ano" and ano:
         return f"Ano {ano}"
-    if modo == "Dias" and periodo == "Data" and data:
+    if modo == "Data" and data:
         return f"Dia {data}"
+    if modo == "Intervalo":
+        if inicio or fim:
+            return f"Intervalo {inicio or '...'} a {fim or '...'}"
+        return "Intervalo personalizado"
     return periodo or "Todos"
 
 
@@ -1162,9 +1198,13 @@ def jogos():
     ui_config = _current_ui_config()
     periodos_disponiveis = list(ui_config.games_periods)
 
-    modo = request.args.get("modo", "Dias")
+    modo = request.args.get("modo", "Dia")
+    if modo == "Dias":
+        modo = "Dia"
     periodo = request.args.get("periodo", ui_config.default_games_period)
     data_escolhida = request.args.get("data")
+    inicio = request.args.get("inicio")
+    fim = request.args.get("fim")
 
     base_df = _fetch_base_dataframe()
     datas_index = pd.to_datetime(base_df.index, errors="coerce")
@@ -1183,25 +1223,32 @@ def jogos():
     filtro_valor = periodo
 
     if modo == "Dias":
+        modo = "Dia"
+    if modo == "Dia":
         if periodo not in periodos_disponiveis:
             periodo = "Todos"
-        if periodo == "Data":
-            if data_escolhida not in datas_disponiveis:
-                data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
-            filtro_modo = "Data"
-            filtro_valor = data_escolhida
-        else:
-            filtro_valor = periodo
+        filtro_valor = periodo
+        filtro_modo = "Dias"
+    elif modo == "Data":
+        if data_escolhida not in datas_disponiveis:
+            data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
+        filtro_modo = "Data"
+        filtro_valor = data_escolhida
     elif modo == "Mês/Ano":
         if mes not in meses_disponiveis:
             mes = meses_disponiveis[-1] if meses_disponiveis else None
         filtro_valor = mes
+    elif modo == "Intervalo":
+        filtro_modo = "Intervalo"
+        filtro_valor = None
     else:
         if ano not in anos_disponiveis:
             ano = anos_disponiveis[-1] if anos_disponiveis else None
         filtro_valor = ano
 
-    if filtro_valor is None:
+    if modo == "Intervalo":
+        df_filtrado = _filtrar_por_intervalo(base_df, inicio, fim)
+    elif filtro_valor is None:
         df_filtrado = base_df.iloc[0:0]
     else:
         df_filtrado = filtrar_dados(base_df, filtro_modo, filtro_valor)
@@ -1236,7 +1283,7 @@ def jogos():
     df_ordenado = df_filtrado.sort_index(ascending=False)
     partidas_fmt = _formatar_partidas(df_ordenado)
 
-    periodo_legenda = _descricao_jogos(modo, periodo, ano, mes, data_escolhida)
+    periodo_legenda = _descricao_jogos(modo, periodo, ano, mes, data_escolhida, inicio, fim)
 
     return render_template(
         "jogos.html",
@@ -1246,6 +1293,8 @@ def jogos():
         periodo_escolhido=periodo,
         datas=datas_disponiveis,
         data_selecionada=data_escolhida,
+        inicio=inicio,
+        fim=fim,
         meses=meses_disponiveis,
         mes_selecionado=mes,
         anos=anos_disponiveis,
@@ -1738,14 +1787,16 @@ def admin():
 @app.route("/api/ranking")
 def api_ranking():
     periodo = request.args.get("periodo", "90 dias")
-    modo = request.args.get("modo", "Dias")
+    modo = request.args.get("modo", "Dia")
+    if modo == "Dias":
+        modo = "Dia"
     ano = request.args.get("ano")
     mes = request.args.get("mes")
     inicio = request.args.get("inicio")
     fim = request.args.get("fim")
 
-    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim)
-    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim)
+    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim, None)
+    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim, None)
 
     return jsonify(
         {

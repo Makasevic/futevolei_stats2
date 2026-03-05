@@ -15,17 +15,27 @@
 <form class="filter-bar" method="get">
     <label class="badge" for="modo">Filtro</label>
     <select id="modo" name="modo" class="select">
-        <option value="Dias" {% if modo == 'Dias' %}selected{% endif %}>Dias</option>
+        <option value="Dia" {% if modo == 'Dia' %}selected{% endif %}>Dia</option>
         <option value="Ano" {% if modo == 'Ano' %}selected{% endif %}>Ano</option>
-        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/Ano</option>
-        <option value="Intervalo" {% if modo == 'Intervalo' %}selected{% endif %}>Intervalo personalizado</option>
+        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/ano</option>
+        <option value="Data" {% if modo == 'Data' %}selected{% endif %}>Data</option>
+        <option value="Intervalo" {% if modo == 'Intervalo' %}selected{% endif %}>Intervalo</option>
     </select>
 
-    <div class="filter-group" data-mode="Dias">
+    <div class="filter-group" data-mode="Dia">
         <label class="badge" for="periodo">Período</label>
         <select id="periodo" name="periodo" class="select">
             {% for opcao in periodos %}
                 <option value="{{ opcao }}" {% if opcao == periodo_escolhido %}selected{% endif %}>{{ opcao }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-group" data-mode="Data">
+        <label class="badge" for="data">Data</label>
+        <select id="data" name="data" class="select">
+            {% for dia in datas %}
+                <option value="{{ dia }}" {% if dia == data_selecionada %}selected{% endif %}>{{ dia }}</option>
             {% endfor %}
         </select>
     </div>

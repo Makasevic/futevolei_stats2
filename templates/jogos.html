@@ -16,12 +16,14 @@
 <form class="filter-bar" method="get">
     <label class="badge" for="modo">Modo de filtro</label>
     <select id="modo" name="modo" class="select">
-        <option value="Dias" {% if modo == 'Dias' %}selected{% endif %}>Dias</option>
-        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/Ano</option>
+        <option value="Dia" {% if modo == 'Dia' %}selected{% endif %}>Dia</option>
         <option value="Ano" {% if modo == 'Ano' %}selected{% endif %}>Ano</option>
+        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/ano</option>
+        <option value="Data" {% if modo == 'Data' %}selected{% endif %}>Data</option>
+        <option value="Intervalo" {% if modo == 'Intervalo' %}selected{% endif %}>Intervalo</option>
     </select>
 
-    <div class="filter-group" data-mode="Dias">
+    <div class="filter-group" data-mode="Dia">
         <label class="badge" for="periodo">Período</label>
         <select id="periodo" name="periodo" class="select">
             {% for opcao in periodos %}
@@ -62,6 +64,12 @@
                 <option value="{{ item }}" {% if item == ano_selecionado %}selected{% endif %}>{{ item }}</option>
             {% endfor %}
         </select>
+    </div>
+    <div class="filter-group" data-mode="Intervalo">
+        <label class="badge" for="inicio">In�cio</label>
+        <input type="date" id="inicio" name="inicio" class="select" value="{{ inicio }}" />
+        <label class="badge" for="fim">Fim</label>
+        <input type="date" id="fim" name="fim" class="select" value="{{ fim }}" />
     </div>
 
     <div class="filter-group filter-group--players" data-mode="Jogadores">
@@ -112,24 +120,17 @@
 </section>
 
 <script>
-    const modoSelect = document.getElementById('modo');
-    const periodoSelect = document.getElementById('periodo');
-    const filterGroups = document.querySelectorAll('.filter-group');
+    const modoSelect = document.getElementById('modo');\r\n    const filterGroups = document.querySelectorAll('.filter-group');
 
     function toggleFilters() {
         const selectedMode = modoSelect.value;
-        const selectedPeriodo = periodoSelect.value;
-
         filterGroups.forEach((group) => {
-            const groupMode = group.getAttribute('data-mode');
-            const isDataGroup = groupMode === 'Data' && selectedMode === 'Dias' && selectedPeriodo === 'Data';
-            const shouldShow = groupMode === selectedMode || isDataGroup || groupMode === 'Jogadores';
+            const groupMode = group.getAttribute('data-mode');\r\n            const shouldShow = groupMode === selectedMode || groupMode === 'Jogadores';
             group.style.display = shouldShow ? 'flex' : 'none';
         });
     }
 
     modoSelect.addEventListener('change', toggleFilters);
-    periodoSelect.addEventListener('change', toggleFilters);
     document.addEventListener('DOMContentLoaded', toggleFilters);
 
     function initMultiSelect(selectEl) {
@@ -250,4 +251,13 @@
     });
 </script>
 {% endblock %}
+
+
+
+
+
+
+
+
+
 
