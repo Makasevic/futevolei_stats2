@@ -24,7 +24,6 @@ def fetch_matches() -> List[MutableMapping[str, Any]]:
     response = _get_client().table(MATCHES_TABLE).select("*").order("date", desc=False).execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao buscar partidas no Supabase: {response.error}")
-    print(response)
     return list(response.data or [])
 
 

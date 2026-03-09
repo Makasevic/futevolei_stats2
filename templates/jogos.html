@@ -6,9 +6,9 @@
         <p class="eyebrow">agenda das partidas</p>
         <h1>Jogos registrados</h1>
         <p>
-            Visualize o histórico de partidas com filtros rápidos por período e
-            selecione jogadores específicos para encontrar confrontos. Os
-            resultados são ordenados do mais recente para o mais antigo.
+            Visualize o historico de partidas com filtros rapidos por periodo e
+            selecione jogadores especificos para encontrar confrontos. Os
+            resultados sao ordenados do mais recente para o mais antigo.
         </p>
     </div>
 </header>
@@ -18,13 +18,13 @@
     <select id="modo" name="modo" class="select">
         <option value="Dia" {% if modo == 'Dia' %}selected{% endif %}>Dia</option>
         <option value="Ano" {% if modo == 'Ano' %}selected{% endif %}>Ano</option>
-        <option value="Mês/Ano" {% if modo == 'Mês/Ano' %}selected{% endif %}>Mês/ano</option>
+        <option value="Mes/Ano" {% if modo == 'Mes/Ano' %}selected{% endif %}>Mes/ano</option>
         <option value="Data" {% if modo == 'Data' %}selected{% endif %}>Data</option>
         <option value="Intervalo" {% if modo == 'Intervalo' %}selected{% endif %}>Intervalo</option>
     </select>
 
     <div class="filter-group" data-mode="Dia">
-        <label class="badge" for="periodo">Período</label>
+        <label class="badge" for="periodo">Periodo</label>
         <select id="periodo" name="periodo" class="select">
             {% for opcao in periodos %}
                 <option value="{{ opcao }}" {% if opcao == periodo_escolhido %}selected{% endif %}>{{ opcao }}</option>
@@ -34,12 +34,11 @@
 
     <button class="btn-refresh" type="submit">Aplicar filtros</button>
 
-
     <div class="filter-group" data-mode="Data">
         <label class="badge" for="data">Data</label>
         <select id="data" name="data" class="select" {% if datas|length == 0 %}disabled{% endif %}>
             {% if datas|length == 0 %}
-                <option>Sem datas disponíveis</option>
+                <option>Sem datas disponiveis</option>
             {% else %}
                 {% for dia in datas %}
                     <option value="{{ dia }}" {% if dia == data_selecionada %}selected{% endif %}>{{ dia }}</option>
@@ -48,8 +47,8 @@
         </select>
     </div>
 
-    <div class="filter-group" data-mode="Mês/Ano">
-        <label class="badge" for="mes">Mês/Ano</label>
+    <div class="filter-group" data-mode="Mes/Ano">
+        <label class="badge" for="mes">Mes/Ano</label>
         <select id="mes" name="mes" class="select">
             {% for item in meses %}
                 <option value="{{ item }}" {% if item == mes_selecionado %}selected{% endif %}>{{ item }}</option>
@@ -65,8 +64,9 @@
             {% endfor %}
         </select>
     </div>
+
     <div class="filter-group" data-mode="Intervalo">
-        <label class="badge" for="inicio">In�cio</label>
+        <label class="badge" for="inicio">Inicio</label>
         <input type="date" id="inicio" name="inicio" class="select" value="{{ inicio }}" />
         <label class="badge" for="fim">Fim</label>
         <input type="date" id="fim" name="fim" class="select" value="{{ fim }}" />
@@ -87,7 +87,6 @@
             </select>
         </div>
     </div>
-
 </form>
 
 {% if mensagem_limite %}
@@ -120,12 +119,14 @@
 </section>
 
 <script>
-    const modoSelect = document.getElementById('modo');\r\n    const filterGroups = document.querySelectorAll('.filter-group');
+    const modoSelect = document.getElementById('modo');
+    const filterGroups = document.querySelectorAll('.filter-group');
 
     function toggleFilters() {
         const selectedMode = modoSelect.value;
         filterGroups.forEach((group) => {
-            const groupMode = group.getAttribute('data-mode');\r\n            const shouldShow = groupMode === selectedMode || groupMode === 'Jogadores';
+            const groupMode = group.getAttribute('data-mode');
+            const shouldShow = groupMode === selectedMode || groupMode === 'Jogadores';
             group.style.display = shouldShow ? 'flex' : 'none';
         });
     }
@@ -251,13 +252,3 @@
     });
 </script>
 {% endblock %}
-
-
-
-
-
-
-
-
-
-

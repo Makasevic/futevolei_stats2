@@ -6,6 +6,15 @@ import pandas as pd
 import numpy as np
 
 
+def _normalize_mode_label(modo: str) -> str:
+    normalized = (modo or "").strip()
+    if normalized == "Dias":
+        return "Dias"
+    if normalized in {"Mes/Ano", "M?s/Ano", "M??s/Ano"}:
+        return "Mes/Ano"
+    return normalized
+
+
 # ----------------------------------------------------------------------
 # 1) FILTRO ÚNICO  ------------------------------------------------------
 # ----------------------------------------------------------------------
@@ -18,7 +27,9 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
     • 'Ano'              – string 'YYYY'
     """
 
-    if modo == "Data":
+    modo_normalizado = _normalize_mode_label(modo)
+
+    if modo_normalizado == "Data":
         if valor in (None, ""):
             return df.iloc[0:0]
 
@@ -40,7 +51,7 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
         indice_normalizado = df.index.normalize()
         return df[indice_normalizado == data_alvo]
 
-    if modo == "Dias":
+    if modo_normalizado == "Dias":
         indice = df.index
 
         if isinstance(indice, pd.DatetimeIndex):
@@ -77,7 +88,7 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
 
         return df[df.index >= data_ini]
 
-    elif modo == "Mês/Ano":
+    elif modo_normalizado == "Mes/Ano":
         periodo = pd.Period(valor, freq="M")
         return df[df.index.to_period("M") == periodo]
 

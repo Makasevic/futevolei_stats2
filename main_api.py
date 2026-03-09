@@ -34,6 +34,17 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
 app.register_blueprint(batch_bp)
 
+
+def _normalize_filter_mode(value: str | None) -> str:
+    """Normaliza nomes de filtros legados para valores internos estaveis."""
+
+    normalized = (value or "Dia").strip()
+    if normalized == "Dias":
+        return "Dia"
+    if normalized in {"Mes/Ano", "Mês/Ano", "MÃªs/Ano"}:
+        return "Mes/Ano"
+    return normalized
+
 def _current_ui_config():
     """Retorna a configuração de UI imutável."""
 
@@ -221,7 +232,7 @@ def _descricao_periodo(
 ) -> str:
     if modo == "Ano" and ano:
         return f"Ano {ano}"
-    if modo == "Mês/Ano" and mes:
+    if modo == "Mes/Ano" and mes:
         return mes
     if modo == "Intervalo":
         if inicio or fim:
@@ -892,9 +903,7 @@ def home():
     ui_config = _current_ui_config()
     periodos_disponiveis = list(ui_config.ranking_periods)
 
-    modo = request.args.get("modo", "Dia")
-    if modo == "Dias":
-        modo = "Dia"
+    modo = _normalize_filter_mode(request.args.get("modo", "Dia"))
     periodo = request.args.get("periodo", ui_config.default_ranking_period)
     inicio = request.args.get("inicio")
     fim = request.args.get("fim")
@@ -1222,8 +1231,6 @@ def jogos():
     filtro_modo = modo
     filtro_valor = periodo
 
-    if modo == "Dias":
-        modo = "Dia"
     if modo == "Dia":
         if periodo not in periodos_disponiveis:
             periodo = "Todos"
@@ -1234,7 +1241,7 @@ def jogos():
             data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
         filtro_modo = "Data"
         filtro_valor = data_escolhida
-    elif modo == "Mês/Ano":
+    elif modo == "Mes/Ano":
         if mes not in meses_disponiveis:
             mes = meses_disponiveis[-1] if meses_disponiveis else None
         filtro_valor = mes
