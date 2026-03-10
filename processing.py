@@ -1,5 +1,6 @@
 from datetime import timedelta
 from collections import defaultdict
+from datetime import timedelta
 from typing import DefaultDict
 
 import pandas as pd
@@ -10,7 +11,7 @@ def _normalize_mode_label(modo: str) -> str:
     normalized = (modo or "").strip()
     if normalized == "Dias":
         return "Dias"
-    if normalized in {"Mes/Ano", "M?s/Ano", "M??s/Ano"}:
+    if normalized in {"Mes/Ano", "Mês/Ano", "MÃªs/Ano"}:
         return "Mes/Ano"
     return normalized
 

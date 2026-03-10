@@ -13,6 +13,11 @@ def criar_colunas_duplas(df):
         DataFrame: DataFrame atualizado com colunas de duplas ordenadas.
     """
     # Criar as colunas de duplas vencedoras e perdedoras
+    if df.empty:
+        df["dupla_winner"] = pd.Series(dtype=str)
+        df["dupla_loser"] = pd.Series(dtype=str)
+        return df
+
     df["dupla_winner"] = df.apply(lambda row: " e ".join(sorted([row["winner1"], row["winner2"]])), axis=1)
     df["dupla_loser"] = df.apply(lambda row: " e ".join(sorted([row["loser1"], row["loser2"]])), axis=1)
 
