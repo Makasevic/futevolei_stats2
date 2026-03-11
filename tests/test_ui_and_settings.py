@@ -2,8 +2,7 @@ import importlib
 import unittest
 from unittest.mock import patch
 
-import app_settings
-import ui_config
+from src.redinha_stats.config import app_settings, ui_config
 
 
 class UiConfigTests(unittest.TestCase):

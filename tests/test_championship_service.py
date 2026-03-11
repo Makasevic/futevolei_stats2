@@ -6,7 +6,7 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-service-key")
 
 from championship import service
-from data_access import championship_repository
+from src.redinha_stats.infrastructure.supabase import championship_repository
 
 
 class ChampionshipRepositoryTests(unittest.TestCase):

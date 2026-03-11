@@ -3,7 +3,7 @@ from supabase import create_client
 from uuid import uuid4
 
 # Importa secrets do seu sistema
-from config import SUPABASE_URL, SUPABASE_SERVICE_KEY
+from src.redinha_stats.config.settings import SUPABASE_SERVICE_KEY, SUPABASE_URL
 
 bp = Blueprint("batch_endpoints", __name__)
 

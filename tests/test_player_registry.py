@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from data_access import player_registry
+from src.redinha_stats.infrastructure.local import player_registry_store as player_registry
 
 
 class PlayerRegistryTests(unittest.TestCase):

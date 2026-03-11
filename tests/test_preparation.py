@@ -2,7 +2,10 @@ import unittest
 
 import pandas as pd
 
-from preparation import criar_colunas_duplas, preparar_dataframe
+from src.redinha_stats.domain.matches.preparation import (
+    criar_colunas_duplas,
+    preparar_dataframe,
+)
 
 
 class PreparationTests(unittest.TestCase):

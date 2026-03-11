@@ -6,4 +6,5 @@ import pytest
 
 
 if __name__ == "__main__":
-    raise SystemExit(pytest.main(sys.argv[1:] or ["tests"]))
+    default_args = ["tests", "--ignore-glob=tests/pytest-cache-files-*"]
+    raise SystemExit(pytest.main(sys.argv[1:] or default_args))

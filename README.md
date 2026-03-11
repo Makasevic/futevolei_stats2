@@ -1,11 +1,13 @@
-# Futevôlei Stats
+﻿# Futevolei Stats
 
-Aplicação Flask que expõe rankings e resumos de partidas de futevôlei. O fluxo principal está em
-`main_api.py`, que consome o Supabase para carregar e atualizar partidas.
+Aplicacao Flask que expoe rankings e resumos de partidas de futevolei. A
+entrada local e `app.py`, o entrypoint de deploy e `wsgi.py`, e a criacao da
+app passa por `src/redinha_stats/web/app_factory.py`.
 
-## Configuração
+## Configuracao
 
-Defina as credenciais exigidas pelo Supabase via variáveis de ambiente antes de iniciar o servidor:
+Defina as credenciais exigidas pelo Supabase via variaveis de ambiente antes de
+iniciar o servidor:
 
 ```bash
 export SUPABASE_URL="https://<sua-instancia>.supabase.co"
@@ -15,13 +17,13 @@ export ADMIN_PASSWORD="senha-admin"
 export MATCH_ENTRY_PASSWORD="senha-lancamento"
 ```
 
-Instale as dependências e suba o servidor localmente:
+Instale as dependencias e suba o servidor localmente:
 
 ```bash
 pip install -r requirements.txt
-python main_api.py  # inicia o Flask em 0.0.0.0:8000
+python app.py
 ```
 
-O arquivo `main_api.py` define as rotas de listagem, ranking e administração, além de renderizar os
-templates HTML presentes em `templates/` usando os dados processados em `processing.py` e
-`detalhamento.py`.
+O deploy usa `gunicorn wsgi:app`. O modulo `main_api.py` ainda existe como
+compatibilidade temporaria durante a refatoracao, mas a estrutura nova ja esta
+concentrada em `src/redinha_stats/`.

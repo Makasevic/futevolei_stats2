@@ -7,7 +7,7 @@ os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-service-key")
 
-import extraction
+from src.redinha_stats.domain.matches import extraction
 
 
 class ExtractionTests(unittest.TestCase):
@@ -57,7 +57,10 @@ class ExtractionTests(unittest.TestCase):
             }
         ]
 
-        with patch("extraction.fetch_matches", return_value=payload):
+        with patch(
+            "src.redinha_stats.domain.matches.extraction.fetch_matches",
+            return_value=payload,
+        ):
             matches = extraction.get_matches()
 
         self.assertEqual(matches[0]["winner1"], "Ana")

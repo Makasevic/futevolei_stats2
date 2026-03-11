@@ -3,8 +3,12 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from preparation import preparar_dataframe
-from processing import filtrar_dados, preparar_dados_duplas, preparar_dados_individuais
+from src.redinha_stats.domain.matches.preparation import preparar_dataframe
+from src.redinha_stats.domain.matches.processing import (
+    filtrar_dados,
+    preparar_dados_duplas,
+    preparar_dados_individuais,
+)
 
 
 def _sample_matches() -> pd.DataFrame:

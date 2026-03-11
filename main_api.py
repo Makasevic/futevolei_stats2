@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 import pandas as pd
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
-from app_settings import get_config, update_config
+from src.redinha_stats.config.app_settings import get_config, update_config
 from awards import available_awards_years, get_awards_for_year
 from championship import (
     available_championship_keys,
@@ -20,14 +20,44 @@ from championship import (
     get_championship_view,
     save_match_score,
 )
-from config import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
+from src.redinha_stats.config.settings import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
 from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
-from extraction import get_matches
-from preparation import preparar_dataframe
-from processing import filtrar_dados, preparar_dados_duplas, preparar_dados_individuais
-from data_access.supabase_repository import delete_match, insert_match, update_match
-from data_access.player_registry import add_player, load_registered_players
-from ui_config import get_ui_config
+from src.redinha_stats.domain.matches.extraction import get_matches
+from src.redinha_stats.domain.matches.preparation import preparar_dataframe
+from src.redinha_stats.domain.matches.processing import (
+    filtrar_dados,
+    preparar_dados_duplas,
+    preparar_dados_individuais,
+)
+from src.redinha_stats.infrastructure.local.player_registry_store import (
+    add_player,
+    load_registered_players,
+)
+from src.redinha_stats.infrastructure.supabase.matches_repository import (
+    delete_match,
+    insert_match,
+    update_match,
+)
+from src.redinha_stats.config.ui_config import get_ui_config
+from src.redinha_stats.web import admin_helpers
+from src.redinha_stats.web import data_helpers
+from src.redinha_stats.web import helpers as web_helpers
+from src.redinha_stats.web import info_helpers
+from src.redinha_stats.web.routes.api import (
+    hidden_players_response,
+    ranking_api_response,
+)
+from src.redinha_stats.web.routes.games import render_games_page
+from src.redinha_stats.web.routes.pages import (
+    championship_page_response,
+    ranking_page_response,
+    awards_page_response,
+    infos_page_response,
+)
+from src.redinha_stats.web.routes.config_page import config_page_response
+from src.redinha_stats.web.routes.details import detalhamento_page_response
+from src.redinha_stats.web.routes.versus import versus_page_response
+from src.redinha_stats.web.routes.admin import admin_page_response
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -45,180 +75,17 @@ def _normalize_filter_mode(value: str | None) -> str:
         return "Mes/Ano"
     return normalized
 
-def _current_ui_config():
-    """Retorna a configuração de UI imutável."""
-
-    return get_ui_config()
-
-
-def _build_awards_data(year: int) -> List[Dict[str, Any]]:
-    awards = get_awards_for_year(year)
-    for award in awards:
-        sorted_votes = sorted(
-            award["votes"].items(), key=lambda item: item[1], reverse=True
-        )
-        award["top_three"] = sorted_votes[:3]
-        winner_votes = sorted_votes[0][1]
-        award["winners"] = [
-            {"name": name, "votes": votes}
-            for name, votes in sorted_votes
-            if votes == winner_votes
-        ]
-        award["winner_votes"] = winner_votes
-        award["total_votes"] = sum(award["votes"].values())
-
-    return awards
-
-
-def _format_champion_names(names: List[str]) -> str:
-    if not names:
-        return "-"
-    if len(names) == 1:
-        return names[0]
-    if len(names) == 2:
-        return f"{names[0]} e {names[1]}"
-    return f"{', '.join(names[:-1])} e {names[-1]}"
-
-
-def _build_awards_champions(awards: List[Dict[str, Any]]) -> Dict[str, Any]:
-    trophies = {
-        "positive": Counter(),
-        "negative": Counter(),
-    }
-
-    for award in awards:
-        category = award.get("category_type", "positive")
-        for winner in award.get("winners", []):
-            trophies[category][winner["name"]] += 1
-
-    champions = {}
-    for category, counts in trophies.items():
-        if not counts:
-            champions[category] = {"names": "-", "count": 0}
-            continue
-        max_count = max(counts.values())
-        names = sorted([name for name, count in counts.items() if count == max_count])
-        champions[category] = {
-            "names": _format_champion_names(names),
-            "count": max_count,
-        }
-
-    return champions
+_current_ui_config = data_helpers.current_ui_config
+_build_awards_data = data_helpers.build_awards_data
+_format_champion_names = data_helpers.format_champion_names
+_build_awards_champions = data_helpers.build_awards_champions
 
 
 # --------------------------------- Dados ----------------------------------
-@lru_cache(maxsize=1)
-def _fetch_base_dataframe() -> pd.DataFrame:
-    """Busca as partidas e devolve o DataFrame com índice datetime."""
-    matches = get_matches()
-    df = preparar_dataframe(matches)
-
-    if not isinstance(df.index, pd.DatetimeIndex):
-        if "date" in df.columns:
-            df = df.set_index(pd.to_datetime(df["date"], errors="coerce"))
-        else:
-            df.index = pd.to_datetime(df.index, errors="coerce")
-
-    df = df.sort_index()
-    return df
-
-
-def _filtrar_por_intervalo(
-    df: pd.DataFrame, inicio: str | None, fim: str | None
-) -> pd.DataFrame:
-    """Filtra por intervalo customizável."""
-
-    if not isinstance(df.index, pd.DatetimeIndex):
-        df = df.copy()
-        df.index = pd.to_datetime(df.index, errors="coerce")
-
-    try:
-        data_inicio = pd.to_datetime(inicio) if inicio else None
-    except (TypeError, ValueError):
-        data_inicio = None
-
-    try:
-        data_fim = pd.to_datetime(fim) if fim else None
-    except (TypeError, ValueError):
-        data_fim = None
-
-    if data_inicio is None and data_fim is None:
-        return df
-
-    filtrado = df
-    if data_inicio is not None:
-        filtrado = filtrado[filtrado.index >= data_inicio]
-    if data_fim is not None:
-        filtrado = filtrado[filtrado.index <= data_fim]
-
-    return filtrado
-
-
-def _excluded_players() -> set:
-    config = _current_ui_config()
-    return set(config.excluded_players)
-
-
-def _filter_rankings(
-    modo: str,
-    periodo: str | None,
-    ano: str | None,
-    mes: str | None,
-    inicio: str | None,
-    fim: str | None,
-    data: str | None,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    base_df = _fetch_base_dataframe()
-    config = get_config()
-
-    if modo == "Ano" and ano:
-        df_filtrado = filtrar_dados(base_df, "Ano", ano)
-    elif modo == "Mês/Ano" and mes:
-        df_filtrado = filtrar_dados(base_df, "Mês/Ano", mes)
-    elif modo == "Intervalo":
-        df_filtrado = _filtrar_por_intervalo(base_df, inicio, fim)
-    elif modo == "Data":
-        if data:
-            df_filtrado = filtrar_dados(base_df, "Data", data)
-        else:
-            df_filtrado = base_df.iloc[0:0]
-    else:
-        df_filtrado = filtrar_dados(base_df, "Dias", periodo) if periodo else base_df
-
-    jogadores = preparar_dados_individuais(df_filtrado)
-    duplas = preparar_dados_duplas(df_filtrado)
-
-    excluidos = _excluded_players()
-    if excluidos:
-        jogadores = jogadores[~jogadores["jogadores"].isin(excluidos)]
-        duplas = duplas[~duplas["duplas"].isin(excluidos)]
-
-    aplicar_minimos = not ((modo == "Dia" and periodo == "1 dia") or modo == "Data")
-
-    if aplicar_minimos:
-        media_top_10 = jogadores["jogos"].nlargest(10).mean()
-        if media_top_10 > 0:
-            limiar = media_top_10 * config.min_participation_ratio
-            jogadores = jogadores[jogadores["jogos"] >= limiar]
-
-        # Para janelas curtas, reduza dinamicamente o mínimo de jogos de duplas
-        # para evitar que o ranking fique vazio quando houver poucas partidas.
-        if config.min_duo_matches > 0 and not duplas.empty:
-            max_jogos_duplas = int(duplas["jogos"].max())
-            limiar_duplas = (
-                config.min_duo_matches
-                if max_jogos_duplas >= config.min_duo_matches
-                else max_jogos_duplas
-            )
-
-            if limiar_duplas > 0:
-                duplas = duplas[duplas["jogos"] >= limiar_duplas]
-
-    # Garantir que os índices sejam contínuos após filtros, para não quebrar as medalhas
-    jogadores = jogadores.reset_index(drop=True)
-    duplas = duplas.reset_index(drop=True)
-
-    return base_df, jogadores, duplas
+_fetch_base_dataframe = data_helpers.fetch_base_dataframe
+_filtrar_por_intervalo = data_helpers.filtrar_por_intervalo
+_excluded_players = data_helpers.excluded_players
+_filter_rankings = data_helpers.filter_rankings
 
 
 def _descricao_periodo(
@@ -698,136 +565,22 @@ def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict
 # ------------------------------- Admin ------------------------------------
 _TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
 
-
-def _normalize_admin_date(value: Any) -> date | None:
-    if value is None:
-        return None
-
-    if isinstance(value, date) and not isinstance(value, datetime):
-        return value
-
-    if isinstance(value, datetime):
-        return value.date()
-
-    if isinstance(value, str):
-        try:
-            return datetime.fromisoformat(value).date()
-        except ValueError:
-            return None
-
-    return None
-
-
-def _is_valid_identifier(value: Any) -> bool:
-    return value not in (None, "") and value == value
-
-
-def _identifier_from_match_data(row: Dict[str, Any]) -> tuple[Any | None, str]:
-    for field in ("match_id", "id"):
-        value = row.get(field)
-        if _is_valid_identifier(value):
-            return value, field
-    return None, "id"
-
-
-def _players_from_df(df: pd.DataFrame | None) -> List[str]:
-    if df is None or df.empty:
-        return []
-
-    players: List[str] = []
-    seen = set()
-    for field in _TEAM_FIELDS:
-        if field not in df.columns:
-            continue
-        for value in df[field].tolist():
-            name = str(value or "").strip()
-            if name and name not in seen:
-                seen.add(name)
-                players.append(name)
-
-    players.sort()
-    return players
-
-
-def _players_ranked_by_games(df: pd.DataFrame | None) -> List[str]:
-    if df is None or df.empty:
-        return []
-
-    games_by_player: Counter[str] = Counter()
-    for field in _TEAM_FIELDS:
-        if field not in df.columns:
-            continue
-
-        for value in df[field].tolist():
-            if pd.isna(value):
-                continue
-
-            name = str(value).strip()
-            if not name or "Outro" in name:
-                continue
-
-            games_by_player[name] += 1
-
-    ordered_players = sorted(
-        games_by_player.items(),
-        key=lambda item: (-item[1], item[0].casefold()),
-    )
-    return [name for name, _ in ordered_players]
-
-
-def _registered_players(df: pd.DataFrame | None) -> List[str]:
-    """Combina jogadores das partidas com os cadastrados manualmente."""
-
-    base_players = set(_players_from_df(df))
-    manual_players = {name for name in load_registered_players() if name}
-    excluidos = _excluded_players()
-    combined = sorted((base_players | manual_players) - excluidos)
-    return combined
-
-
-def _matches_from_df(df: pd.DataFrame | None) -> List[Dict[str, Any]]:
-    if df is None or df.empty:
-        return []
-
-    registros: List[Dict[str, Any]] = []
-    for row in df.reset_index().to_dict("records"):
-        match: Dict[str, Any] = {
-            "id": row.get("id"),
-            "match_id": row.get("match_id"),
-            "winner1": str(row.get("winner1") or "").strip(),
-            "winner2": str(row.get("winner2") or "").strip(),
-            "loser1": str(row.get("loser1") or "").strip(),
-            "loser2": str(row.get("loser2") or "").strip(),
-            "score": str(row.get("score") or "").strip(),
-        }
-        score_a = ""
-        score_b = ""
-        if match["score"]:
-            import re
-
-            parsed = re.match(r"^\s*(\d+)\s*[xX-]\s*(\d+)\s*$", match["score"])
-            if parsed:
-                score_a = parsed.group(1)
-                score_b = parsed.group(2)
-        match["score_a"] = score_a
-        match["score_b"] = score_b
-        match["date"] = _normalize_admin_date(row.get("date"))
-        identifier_value, identifier_field = _identifier_from_match_data(row)
-        match["_identifier_value"] = identifier_value
-        match["_identifier_field"] = identifier_field
-        display_identifier = row.get("match_id") or row.get("id")
-        match["identifier_display"] = str(display_identifier) if display_identifier not in (None, "") else ""
-        formatted_date = match["date"].isoformat() if match["date"] else "Sem data"
-        match["label"] = (
-            f"{formatted_date}  {match['winner1']} & {match['winner2']} x "
-            f"{match['loser1']} & {match['loser2']}"
-        )
-        if match["identifier_display"]:
-            match["label"] += f" (ID: {match['identifier_display']})"
-        registros.append(match)
-
-    registros.sort(key=lambda item: item.get("date") or date.min, reverse=True)
-    return registros
+_normalize_admin_date = admin_helpers.normalize_admin_date
+_is_valid_identifier = admin_helpers.is_valid_identifier
+_identifier_from_match_data = admin_helpers.identifier_from_match_data
+_players_from_df = lambda df: admin_helpers.players_from_df(df, _TEAM_FIELDS)
+_players_ranked_by_games = lambda df: admin_helpers.players_ranked_by_games(df, _TEAM_FIELDS)
+_registered_players = lambda df: admin_helpers.registered_players(
+    df,
+    team_fields=_TEAM_FIELDS,
+    load_registered_players=load_registered_players,
+    excluded_players=_excluded_players,
+)
+_matches_from_df = lambda df: admin_helpers.matches_from_df(
+    df,
+    normalize_admin_date=_normalize_admin_date,
+    identifier_from_match_data=_identifier_from_match_data,
+)
 
 
 def _serialize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -863,35 +616,16 @@ def _parse_bulk_line(line: str) -> Dict[str, str] | None:
     }
 
 
-def _validate_registered_players(players: Iterable[str]) -> List[str]:
-    registrados = set(_registered_players(_fetch_base_dataframe()))
-    return [name for name in players if name not in registrados]
-
-
-def _validate_match_data(match_id: Any, action: str, payload: Dict[str, Any]) -> List[str]:
-    errors: List[str] = []
-
-    if action in {"Atualizar", "Excluir"} and match_id is None:
-        errors.append("Selecione uma partida para continuar.")
-
-    if action != "Excluir":
-        players = [payload.get(field, "") for field in _TEAM_FIELDS]
-        if any(not player for player in players):
-            errors.append("Informe os quatro jogadores da partida.")
-
-        if payload.get("winner1") == payload.get("winner2"):
-            errors.append("Os vencedores devem ser jogadores diferentes.")
-
-        if payload.get("loser1") == payload.get("loser2"):
-            errors.append("Os perdedores devem ser jogadores diferentes.")
-
-        if len({p for p in players if p}) < 4:
-            errors.append("Cada jogador só pode aparecer uma vez na partida.")
-
-        if not isinstance(payload.get("date"), date):
-            errors.append("Informe uma data válida.")
-
-    return errors
+_validate_registered_players = lambda players: admin_helpers.validate_registered_players(
+    players,
+    registered_players=_registered_players(_fetch_base_dataframe()),
+)
+_validate_match_data = lambda match_id, action, payload: admin_helpers.validate_match_data(
+    match_id,
+    action,
+    payload,
+    team_fields=_TEAM_FIELDS,
+)
 
 
 def _reset_cache() -> None:
@@ -900,212 +634,54 @@ def _reset_cache() -> None:
 # -------------------------------- Rotas -----------------------------------
 @app.route("/")
 def home():
-    ui_config = _current_ui_config()
-    periodos_disponiveis = list(ui_config.ranking_periods)
-
-    modo = _normalize_filter_mode(request.args.get("modo", "Dia"))
-    periodo = request.args.get("periodo", ui_config.default_ranking_period)
-    inicio = request.args.get("inicio")
-    fim = request.args.get("fim")
-    data_escolhida = request.args.get("data")
-
-    base_df = _fetch_base_dataframe()
-    datas_index = pd.to_datetime(base_df.index, errors="coerce")
-    anos_disponiveis = sorted({str(int(dt.year)) for dt in datas_index if pd.notna(dt)})
-    meses_disponiveis = sorted({dt.strftime("%Y-%m") for dt in datas_index if pd.notna(dt)})
-    datas_disponiveis = sorted(
-        {dt.normalize().date().isoformat() for dt in datas_index if pd.notna(dt)},
-        reverse=True,
-    )
-
-    ano = request.args.get("ano", anos_disponiveis[-1] if anos_disponiveis else None)
-    mes = request.args.get("mes", meses_disponiveis[-1] if meses_disponiveis else None)
-
-    if modo == "Dia" and periodo not in periodos_disponiveis:
-        periodo = "1 dia"
-    if modo == "Ano" and ano not in anos_disponiveis:
-        ano = anos_disponiveis[-1] if anos_disponiveis else None
-    if modo == "Mês/Ano" and mes not in meses_disponiveis:
-        mes = meses_disponiveis[-1] if meses_disponiveis else None
-    if modo == "Data":
-        if data_escolhida not in datas_disponiveis:
-            data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
-
-    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim, data_escolhida)
-    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim, data_escolhida)
-
-    jogadores_fmt = _format_ranking(jogadores, "jogadores")
-    duplas_fmt = _format_ranking(duplas, "duplas")
-
-    destaques = _build_highlights(jogadores_fmt)
-
-    return render_template(
-        "ranking.html",
-        active_page="ranking",
-        periodo_legenda=periodo_legenda,
-        periodo_escolhido=periodo,
-        modo=modo,
-        periodos=periodos_disponiveis,
-        datas=datas_disponiveis,
-        data_selecionada=data_escolhida,
-        anos=anos_disponiveis,
-        ano_selecionado=ano,
-        meses=meses_disponiveis,
-        mes_selecionado=mes,
-        inicio=inicio,
-        fim=fim,
-        jogos_total=len(df),
-        jogos_filtrados=len(df),
-        jogadores=dados_with_index(jogadores_fmt),
-        duplas=dados_with_index(duplas_fmt),
-        destaques=destaques,
+    return ranking_page_response(
+        current_ui_config=lambda: _current_ui_config(),
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        normalize_filter_mode=lambda value: _normalize_filter_mode(value),
+        filter_rankings=lambda *args: _filter_rankings(*args),
+        describe_period=lambda *args: _descricao_periodo(*args),
+        format_ranking=lambda *args: _format_ranking(*args),
+        with_index=lambda linhas: dados_with_index(linhas),
+        build_highlights=lambda linhas: _build_highlights(linhas),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
 @app.route("/infos")
 def infos():
-    df = _fetch_base_dataframe()
-    infos_payload = _resumo_infos(df)
-
-    return render_template(
-        "infos.html",
-        active_page="infos",
-        **infos_payload,
+    return infos_page_response(
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        build_infos_summary=lambda df: _resumo_infos(df),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
 @app.route("/awards")
 def awards():
-    available_years = available_awards_years()
-    default_year = available_years[0] if available_years else date.today().year
-    selected_year = _safe_int(request.args.get("year"), default_year)
-    if selected_year not in available_years:
-        selected_year = default_year
-
-    awards_data = _build_awards_data(selected_year)
-    total_votes = sum(award["total_votes"] for award in awards_data)
-    champions = _build_awards_champions(awards_data)
-    positive_awards = [award for award in awards_data if award["category_type"] == "positive"]
-    negative_awards = [award for award in awards_data if award["category_type"] == "negative"]
-    return render_template(
-        "awards.html",
-        awards=awards_data,
-        positive_awards=positive_awards,
-        negative_awards=negative_awards,
-        awards_total_votes=total_votes,
-        awards_years=available_years,
-        awards_selected_year=selected_year,
-        awards_positive_champion=champions["positive"],
-        awards_negative_champion=champions["negative"],
-        active_page="awards",
+    return awards_page_response(
+        available_awards_years=lambda: available_awards_years(),
+        safe_int=lambda value, default: _safe_int(value, default),
+        build_awards_data=lambda year: _build_awards_data(year),
+        build_awards_champions=lambda awards: _build_awards_champions(awards),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
 @app.route("/campeonato", methods=["GET", "POST"])
 def campeonato():
-    feedback = session.pop("tournament_feedback", None)
-    keys = available_championship_keys()
-    default_key = keys[0] if keys else date.today().strftime("%Y%m%d")
-
-    if request.method == "POST":
-        action = (request.form.get("action") or "").strip()
-        selected_key = (request.form.get("championship_key") or default_key).strip()
-        if selected_key not in keys:
-            selected_key = default_key
-
-        if action == "unlock_tournament":
-            provided_password = (request.form.get("tournament_password") or "").strip()
-            expected_password = get_championship_edit_password(selected_key)
-            if not expected_password:
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": "Este torneio nao possui senha configurada.",
-                }
-            elif provided_password != expected_password:
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": "Senha do torneio incorreta.",
-                }
-            else:
-                unlocked = _unlocked_tournament_keys()
-                unlocked.add(selected_key)
-                _set_unlocked_tournament_keys(unlocked)
-                session["tournament_feedback"] = {
-                    "status": "success",
-                    "message": "Edicao desbloqueada para este torneio nesta sessao.",
-                }
-            return redirect(url_for("campeonato", championship=selected_key))
-
-        if action == "championship_score":
-            if selected_key not in _unlocked_tournament_keys():
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": "Desbloqueie o torneio com a senha para editar placares.",
-                }
-                return redirect(url_for("campeonato", championship=selected_key))
-
-            match_id = (request.form.get("championship_match_id") or "").strip()
-            score_a_raw = request.form.get("score_a")
-            score_b_raw = request.form.get("score_b")
-            try:
-                save_match_score(selected_key, match_id, score_a_raw, score_b_raw)
-                session["tournament_feedback"] = {
-                    "status": "success",
-                    "message": "Placar atualizado com sucesso.",
-                }
-            except Exception as exc:
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": f"Erro ao salvar placar: {exc}",
-                }
-            return redirect(url_for("campeonato", championship=selected_key))
-
-        if action == "delete_championship_score":
-            if selected_key not in _unlocked_tournament_keys():
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": "Desbloqueie o torneio com a senha para apagar placares.",
-                }
-                return redirect(url_for("campeonato", championship=selected_key))
-
-            match_id = (request.form.get("championship_match_id") or "").strip()
-            try:
-                save_match_score(selected_key, match_id, None, None)
-                session["tournament_feedback"] = {
-                    "status": "success",
-                    "message": "Placar apagado com sucesso.",
-                }
-            except Exception as exc:
-                session["tournament_feedback"] = {
-                    "status": "error",
-                    "message": f"Erro ao apagar placar: {exc}",
-                }
-            return redirect(url_for("campeonato", championship=selected_key))
-
-    selected_key = (request.args.get("championship") or default_key).strip()
-    if selected_key not in keys:
-        selected_key = default_key
-
-    payload = get_championship_view(selected_key)
-    championship_can_edit = selected_key in _unlocked_tournament_keys()
-    is_admin_full = bool(
-        session.get("admin_authenticated") and session.get("admin_role") == "full"
-    )
-    saved_matches = [
-        m
-        for m in payload.get("editable_matches", [])
-        if m.get("score_a") is not None and m.get("score_b") is not None
-    ]
-    return render_template(
-        "campeonato.html",
-        active_page="campeonato",
-        championship=payload,
-        championship_keys=keys,
-        championship_selected_key=selected_key,
-        championship_can_edit=championship_can_edit,
-        is_admin_full=is_admin_full,
-        tournament_feedback=feedback,
-        championship_saved_matches=saved_matches,
+    return championship_page_response(
+        available_championship_keys=lambda: available_championship_keys(),
+        get_championship_edit_password=lambda key: get_championship_edit_password(key),
+        unlocked_tournament_keys=lambda: _unlocked_tournament_keys(),
+        set_unlocked_tournament_keys=lambda keys: _set_unlocked_tournament_keys(keys),
+        save_match_score=lambda championship_key, match_id, score_a, score_b: save_match_score(
+            championship_key, match_id, score_a, score_b
+        ),
+        get_championship_view=lambda key: get_championship_view(key),
+        redirect_to_championship=lambda selected_key: redirect(
+            url_for("campeonato", championship=selected_key)
+        ),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
@@ -1125,28 +701,12 @@ def _safe_float(value: str | None, default: float) -> float:
 
 @app.route("/config", methods=["GET", "POST"])
 def config_page():
-    app_config = get_config()
-    mensagem = None
-
-    if request.method == "POST":
-        update_config(
-            min_participation_ratio=_safe_float(
-                request.form.get("min_participation_ratio"), app_config.min_participation_ratio
-            ),
-            min_duo_matches=_safe_int(
-                request.form.get("min_duo_matches"), app_config.min_duo_matches
-            ),
-        )
-
-        app_config = get_config()
-        mensagem = "Configurações atualizadas com sucesso!"
-
-    return render_template(
-        "config.html",
-        active_page="config",
-        min_participation_ratio=app_config.min_participation_ratio,
-        min_duo_matches=app_config.min_duo_matches,
-        mensagem=mensagem,
+    return config_page_response(
+        get_config=lambda: get_config(),
+        update_config=lambda **kwargs: update_config(**kwargs),
+        safe_float=lambda value, default: _safe_float(value, default),
+        safe_int=lambda value, default: _safe_int(value, default),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
@@ -1204,631 +764,106 @@ def _formatar_partidas(df: pd.DataFrame) -> List[Dict[str, str]]:
 
 @app.route("/jogos")
 def jogos():
-    ui_config = _current_ui_config()
-    periodos_disponiveis = list(ui_config.games_periods)
-
-    modo = request.args.get("modo", "Dia")
-    if modo == "Dias":
-        modo = "Dia"
-    periodo = request.args.get("periodo", ui_config.default_games_period)
-    data_escolhida = request.args.get("data")
-    inicio = request.args.get("inicio")
-    fim = request.args.get("fim")
-
-    base_df = _fetch_base_dataframe()
-    datas_index = pd.to_datetime(base_df.index, errors="coerce")
-
-    anos_disponiveis = sorted({str(int(dt.year)) for dt in datas_index if pd.notna(dt)})
-    meses_disponiveis = sorted({dt.strftime("%Y-%m") for dt in datas_index if pd.notna(dt)})
-    datas_disponiveis = sorted(
-        {dt.normalize().date().isoformat() for dt in datas_index if pd.notna(dt)},
-        reverse=True,
-    )
-
-    ano = request.args.get("ano", anos_disponiveis[-1] if anos_disponiveis else None)
-    mes = request.args.get("mes", meses_disponiveis[-1] if meses_disponiveis else None)
-
-    filtro_modo = modo
-    filtro_valor = periodo
-
-    if modo == "Dia":
-        if periodo not in periodos_disponiveis:
-            periodo = "Todos"
-        filtro_valor = periodo
-        filtro_modo = "Dias"
-    elif modo == "Data":
-        if data_escolhida not in datas_disponiveis:
-            data_escolhida = datas_disponiveis[0] if datas_disponiveis else None
-        filtro_modo = "Data"
-        filtro_valor = data_escolhida
-    elif modo == "Mes/Ano":
-        if mes not in meses_disponiveis:
-            mes = meses_disponiveis[-1] if meses_disponiveis else None
-        filtro_valor = mes
-    elif modo == "Intervalo":
-        filtro_modo = "Intervalo"
-        filtro_valor = None
-    else:
-        if ano not in anos_disponiveis:
-            ano = anos_disponiveis[-1] if anos_disponiveis else None
-        filtro_valor = ano
-
-    if modo == "Intervalo":
-        df_filtrado = _filtrar_por_intervalo(base_df, inicio, fim)
-    elif filtro_valor is None:
-        df_filtrado = base_df.iloc[0:0]
-    else:
-        df_filtrado = filtrar_dados(base_df, filtro_modo, filtro_valor)
-
-    jogadores_unicos = sorted(
-        set(
-            base_df["winner1"].tolist()
-            + base_df["winner2"].tolist()
-            + base_df["loser1"].tolist()
-            + base_df["loser2"].tolist()
-        )
-    )
-    jogadores_unicos = [j for j in jogadores_unicos if j]
-
-    jogadores_selecionados = request.args.getlist("jogadores")
-    mensagem_limite = None
-
-    if len(jogadores_selecionados) > 4:
-        mensagem_limite = "Cada partida tem até 4 jogadores. Reduza o número de seleções."
-        df_filtrado = df_filtrado.iloc[0:0]
-    elif jogadores_selecionados:
-        jogadores_alvo = set(jogadores_selecionados)
-        colunas_jogadores = ["winner1", "winner2", "loser1", "loser2"]
-
-        def contem_todos_jogadores(row) -> bool:
-            jogadores_partida = {valor for valor in row if valor not in (None, "")}
-            return jogadores_alvo.issubset(jogadores_partida)
-
-        mask = df_filtrado[colunas_jogadores].apply(contem_todos_jogadores, axis=1)
-        df_filtrado = df_filtrado[mask]
-
-    df_ordenado = df_filtrado.sort_index(ascending=False)
-    partidas_fmt = _formatar_partidas(df_ordenado)
-
-    periodo_legenda = _descricao_jogos(modo, periodo, ano, mes, data_escolhida, inicio, fim)
-
-    return render_template(
-        "jogos.html",
-        active_page="jogos",
-        modo=modo,
-        periodos=periodos_disponiveis,
-        periodo_escolhido=periodo,
-        datas=datas_disponiveis,
-        data_selecionada=data_escolhida,
-        inicio=inicio,
-        fim=fim,
-        meses=meses_disponiveis,
-        mes_selecionado=mes,
-        anos=anos_disponiveis,
-        ano_selecionado=ano,
-        jogadores=jogadores_unicos,
-        jogadores_selecionados=jogadores_selecionados,
-        partidas=partidas_fmt,
-        periodo_legenda=periodo_legenda,
-        jogos_filtrados=len(df_filtrado),
-        jogos_total=len(base_df),
-        mensagem_limite=mensagem_limite,
+    return render_games_page(
+        current_ui_config=lambda: _current_ui_config(),
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        filter_interval=lambda df, inicio, fim: _filtrar_por_intervalo(df, inicio, fim),
+        filter_data=lambda df, modo, valor: filtrar_dados(df, modo, valor),
+        format_matches=lambda df: _formatar_partidas(df),
+        describe_games=lambda *args: _descricao_jogos(*args),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
 @app.route("/detalhamento")
 def detalhamento():
-    df = _fetch_base_dataframe()
-
-    jogadores_disponiveis = _jogadores_disponiveis(df)
-
-    tipo = request.args.get("tipo", "Jogador")
-    if tipo not in {"Jogador", "Dupla"}:
-        tipo = "Jogador"
-
-    detalhes = None
-    jogador_escolhido = request.args.get("jogador") if tipo == "Jogador" else None
-    jogador1 = request.args.get("j1") if tipo == "Dupla" else None
-    jogador2 = request.args.get("j2") if tipo == "Dupla" else None
-    parceiros_validos = []
-
-    if tipo == "Jogador":
-        if jogador_escolhido not in jogadores_disponiveis:
-            jogador_escolhido = None
-
-        if jogador_escolhido:
-            detalhes = calcular_metricas_jogador(df, jogador_escolhido)
-    else:
-        parceiros_por_jogador: dict[str, set[str]] = {j: set() for j in jogadores_disponiveis}
-        for _, row in df.iterrows():
-            duplas_partida = [
-                [row.get("winner1"), row.get("winner2")],
-                [row.get("loser1"), row.get("loser2")],
-            ]
-            for jogador_a, jogador_b in duplas_partida:
-                if not jogador_a or not jogador_b:
-                    continue
-                if "Outro" in str(jogador_a) or "Outro" in str(jogador_b):
-                    continue
-                parceiros_por_jogador.setdefault(jogador_a, set()).add(jogador_b)
-                parceiros_por_jogador.setdefault(jogador_b, set()).add(jogador_a)
-
-        if jogador1 not in jogadores_disponiveis:
-            jogador1 = None
-        parceiros_validos = sorted(parceiros_por_jogador.get(jogador1, set())) if jogador1 else []
-        if jogador2 not in parceiros_validos:
-            jogador2 = None
-
-        if jogador1 and jogador2:
-            detalhes = calcular_metricas_dupla(df, jogador1, jogador2)
-
-    return render_template(
-        "detalhamento.html",
-        active_page="detalhamento",
-        tipo=tipo,
-        jogadores=jogadores_disponiveis,
-        jogador_escolhido=jogador_escolhido,
-        jogador1=jogador1,
-        jogador2=jogador2,
-        parceiros_validos=parceiros_validos,
-        detalhes=detalhes,
+    return detalhamento_page_response(
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        jogadores_disponiveis=lambda df: _jogadores_disponiveis(df),
+        calcular_metricas_jogador=lambda df, jogador: calcular_metricas_jogador(df, jogador),
+        calcular_metricas_dupla=lambda df, jogador1, jogador2: calcular_metricas_dupla(df, jogador1, jogador2),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
 @app.route("/versus")
 def versus():
-    df = _fetch_base_dataframe()
-    tipo = request.args.get("tipo", "Jogador")
-    if tipo not in ("Jogador", "Dupla"):
-        tipo = "Jogador"
-
-    parceiros_por_jogador = {}
-    duplas_selecao = {
-        "d1a": request.args.get("d1a"),
-        "d1b": request.args.get("d1b"),
-        "d2a": request.args.get("d2a"),
-        "d2b": request.args.get("d2b"),
-    }
-    jogador1 = request.args.get("j1")
-    jogador2 = request.args.get("j2")
-
-    if tipo == "Dupla":
-        jogadores_disponiveis = _jogadores_disponiveis(df)
-        parceiros_por_jogador = _parceiros_por_jogador(df)
-        oponentes_por_dupla_jogadores = _oponentes_por_dupla_jogadores(df)
-        oponentes_por_jogador = {}
-
-        for chave, valor in duplas_selecao.items():
-            if valor not in jogadores_disponiveis:
-                duplas_selecao[chave] = None
-
-        def _dupla_valida(primeiro: str | None, segundo: str | None) -> bool:
-            if not primeiro or not segundo or primeiro == segundo:
-                return False
-            return segundo in parceiros_por_jogador.get(primeiro, [])
-
-        if not _dupla_valida(duplas_selecao["d1a"], duplas_selecao["d1b"]):
-            duplas_selecao["d1b"] = None
-        if not _dupla_valida(duplas_selecao["d2a"], duplas_selecao["d2b"]):
-            duplas_selecao["d2b"] = None
-    else:
-        jogadores_disponiveis = _jogadores_disponiveis(df)
-        oponentes_por_jogador = _oponentes_por_jogador(df)
-        oponentes_por_dupla_jogadores = {}
-
-        if jogador1 not in jogadores_disponiveis:
-            jogador1 = None
-        if jogador2 not in jogadores_disponiveis:
-            jogador2 = None
-
-    estatisticas = None
-    confronto = None
-    dupla1_nome = None
-    dupla2_nome = None
-
-    if tipo == "Dupla":
-        if duplas_selecao["d1a"] and duplas_selecao["d1b"]:
-            dupla1_nome = " e ".join(sorted([duplas_selecao["d1a"], duplas_selecao["d1b"]]))
-        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
-            dupla2_nome = " e ".join(sorted([duplas_selecao["d2a"], duplas_selecao["d2b"]]))
-
-        if dupla1_nome:
-            oponentes_dupla1 = set(oponentes_por_dupla_jogadores.get(dupla1_nome, []))
-            if duplas_selecao["d2a"] not in oponentes_dupla1:
-                duplas_selecao["d2a"] = None
-                duplas_selecao["d2b"] = None
-            elif duplas_selecao["d2b"] and duplas_selecao["d2b"] not in oponentes_dupla1:
-                duplas_selecao["d2b"] = None
-
-        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
-            parceiros_validos_d2a = set(parceiros_por_jogador.get(duplas_selecao["d2a"], []))
-            if duplas_selecao["d2b"] not in parceiros_validos_d2a:
-                duplas_selecao["d2b"] = None
-
-        if duplas_selecao["d2a"] and duplas_selecao["d2b"]:
-            dupla2_nome = " e ".join(sorted([duplas_selecao["d2a"], duplas_selecao["d2b"]]))
-
-        if dupla1_nome and dupla2_nome and dupla1_nome != dupla2_nome:
-            estatisticas = {
-                "jogador1": _estatisticas_dupla(df, dupla1_nome),
-                "jogador2": _estatisticas_dupla(df, dupla2_nome),
-            }
-            confronto = _confronto_direto_duplas(df, dupla1_nome, dupla2_nome)
-    else:
-        if jogador1 and jogador2 and jogador1 != jogador2:
-            estatisticas = {
-                "jogador1": _estatisticas_jogador_individual(df, jogador1),
-                "jogador2": _estatisticas_jogador_individual(df, jogador2),
-            }
-            confronto = _confronto_direto(df, jogador1, jogador2)
-
-    return render_template(
-        "versus.html",
-        active_page="versus",
-        tipo=tipo,
-        jogadores=jogadores_disponiveis,
-        jogador1=jogador1,
-        jogador2=jogador2,
-        dupla1_nome=dupla1_nome,
-        dupla2_nome=dupla2_nome,
-        duplas_selecao=duplas_selecao,
-        parceiros_por_jogador=parceiros_por_jogador,
-        oponentes_por_dupla_jogadores=oponentes_por_dupla_jogadores,
-        oponentes_por_jogador=oponentes_por_jogador,
-        estatisticas=estatisticas,
-        confronto=confronto,
+    return versus_page_response(
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        jogadores_disponiveis=lambda df: _jogadores_disponiveis(df),
+        parceiros_por_jogador=lambda df: _parceiros_por_jogador(df),
+        oponentes_por_dupla_jogadores=lambda df: _oponentes_por_dupla_jogadores(df),
+        oponentes_por_jogador=lambda df: _oponentes_por_jogador(df),
+        estatisticas_dupla=lambda df, dupla: _estatisticas_dupla(df, dupla),
+        confronto_direto_duplas=lambda df, dupla1, dupla2: _confronto_direto_duplas(df, dupla1, dupla2),
+        estatisticas_jogador_individual=lambda df, jogador: _estatisticas_jogador_individual(df, jogador),
+        confronto_direto=lambda df, jogador1, jogador2: _confronto_direto(df, jogador1, jogador2),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 
 
-def _parse_form_date(value: str | None) -> date | None:
-    if not value:
-        return None
-
-    try:
-        return date.fromisoformat(value)
-    except ValueError:
-        return None
-
-
-def _set_admin_feedback(level: str, message: str) -> None:
-    session["admin_feedback"] = {"status": level, "message": message}
-
-
-def _unlocked_tournament_keys() -> set[str]:
-    raw = session.get("tournament_edit_keys", [])
-    if not isinstance(raw, list):
-        return set()
-    return {str(item).strip() for item in raw if str(item).strip()}
-
-
-def _set_unlocked_tournament_keys(keys: set[str]) -> None:
-    session["tournament_edit_keys"] = sorted(keys)
+_parse_form_date = admin_helpers.parse_form_date
+_set_admin_feedback = lambda level, message: admin_helpers.set_admin_feedback(session, level, message)
+_unlocked_tournament_keys = lambda: admin_helpers.unlocked_tournament_keys(
+    session.get("tournament_edit_keys", [])
+)
+_set_unlocked_tournament_keys = lambda keys: admin_helpers.set_unlocked_tournament_keys(
+    session, keys
+)
 
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    full_password = ADMIN_PASSWORD
-    entry_password = MATCH_ENTRY_PASSWORD
-    requires_auth = bool(full_password or entry_password)
-
-    feedback = session.pop("admin_feedback", None)
-    authenticated = session.get("admin_authenticated") or not requires_auth
-    role = session.get("admin_role", "full") if authenticated else None
-
-    if request.method == "POST":
-        action = request.form.get("action")
-
-        if action == "login":
-            password = request.form.get("password", "")
-            if full_password and password == full_password:
-                session["admin_authenticated"] = True
-                session["admin_role"] = "full"
-                _set_admin_feedback("success", "Acesso liberado como administrador completo.")
-            elif entry_password and password == entry_password:
-                session["admin_authenticated"] = True
-                session["admin_role"] = "limited"
-                _set_admin_feedback("success", "Acesso liberado para lançamentos.")
-            else:
-                _set_admin_feedback("error", "Senha incorreta. Tente novamente.")
-
-            return redirect(url_for("admin"))
-
-        if action == "logout":
-            session.pop("admin_authenticated", None)
-            session.pop("admin_role", None)
-            _set_admin_feedback("success", "Sessão encerrada.")
-            return redirect(url_for("admin"))
-
-        if action == "unlock_tournament":
-            available_keys = available_championship_keys()
-            default_championship_key = (
-                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
-            )
-            selected_championship_key = (
-                request.form.get("championship_key", default_championship_key).strip()
-            )
-            if selected_championship_key not in available_keys:
-                selected_championship_key = default_championship_key
-
-            if role == "full":
-                _set_admin_feedback("success", "Administrador completo ja possui acesso a todos os torneios.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            provided_password = request.form.get("tournament_password", "").strip()
-            expected_password = get_championship_edit_password(selected_championship_key)
-            if not expected_password:
-                _set_admin_feedback("error", "Este torneio nao possui senha de edicao configurada.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            if provided_password != expected_password:
-                _set_admin_feedback("error", "Senha do torneio incorreta.")
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            unlocked = _unlocked_tournament_keys()
-            unlocked.add(selected_championship_key)
-            _set_unlocked_tournament_keys(unlocked)
-            _set_admin_feedback("success", "Edicao do torneio desbloqueada para esta sessao.")
-            return redirect(url_for("admin", championship_key=selected_championship_key))
-
-        if not authenticated:
-            _set_admin_feedback("error", "Acesso não autorizado. Informe a senha para continuar.")
-            return redirect(url_for("admin"))
-
-        if action == "refresh":
-            try:
-                _reset_cache()
-                _fetch_base_dataframe()
-                _set_admin_feedback("success", "Cache atualizado com sucesso!")
-            except Exception as exc:  # pragma: no cover - feedback exibido na interface
-                _set_admin_feedback("error", f"Erro ao atualizar cache: {exc}")
-
-            return redirect(url_for("admin"))
-
-        if action == "add_player":
-            player_name = request.form.get("player_name", "").strip()
-            if not player_name:
-                _set_admin_feedback("error", "Informe o nome do jogador.")
-                return redirect(url_for("admin"))
-
-            if add_player(player_name):
-                _set_admin_feedback("success", f"Jogador '{player_name}' cadastrado com sucesso!")
-            else:
-                _set_admin_feedback("error", "Jogador já cadastrado ou nome inválido.")
-
-            return redirect(url_for("admin"))
-
-        if role == "limited" and action in {"update", "delete"}:
-            _set_admin_feedback(
-                "error", "Somente administradores completos podem editar ou excluir partidas."
-            )
-            return redirect(url_for("admin"))
-
-        if action == "championship_score":
-            available_keys = available_championship_keys()
-            default_championship_key = (
-                available_keys[0] if available_keys else date.today().strftime("%Y%m%d")
-            )
-            selected_championship_key = (
-                request.form.get("championship_key", default_championship_key).strip()
-            )
-            if selected_championship_key not in available_keys:
-                selected_championship_key = default_championship_key
-            can_edit_tournament = role == "full" or (
-                selected_championship_key in _unlocked_tournament_keys()
-            )
-            if not can_edit_tournament:
-                _set_admin_feedback(
-                    "error", "Desbloqueie este torneio com a senha para editar os placares."
-                )
-                return redirect(url_for("admin", championship_key=selected_championship_key))
-
-            match_id = request.form.get("championship_match_id", "").strip()
-            score_a_raw = request.form.get("score_a")
-            score_b_raw = request.form.get("score_b")
-            try:
-                save_match_score(selected_championship_key, match_id, score_a_raw, score_b_raw)
-                _set_admin_feedback("success", "Placar do torneio atualizado com sucesso.")
-            except Exception as exc:
-                _set_admin_feedback("error", f"Erro ao salvar placar do torneio: {exc}")
-
-            return redirect(url_for("admin", championship_key=selected_championship_key))
-
-        if action == "bulk_create":
-            bulk_matches = request.form.get("bulk_matches", "")
-            match_date = _parse_form_date(request.form.get("bulk_date")) or date.today()
-
-            linhas = [linha.strip() for linha in bulk_matches.splitlines() if linha.strip()]
-            if not linhas:
-                _set_admin_feedback("error", "Informe ao menos uma linha de partida.")
-                return redirect(url_for("admin"))
-
-            parsed_matches: List[Dict[str, Any]] = []
-            errors: List[str] = []
-            missing_players: set[str] = set()
-
-            for idx, linha in enumerate(linhas, start=1):
-                parsed = _parse_bulk_line(linha)
-                if not parsed:
-                    errors.append(f"Linha {idx} em formato inválido.")
-                    continue
-
-                players = [parsed.get(field, "") for field in _TEAM_FIELDS]
-                missing_players.update(_validate_registered_players(players))
-                payload = {**parsed, "date": match_date}
-                validation_errors = _validate_match_data(None, "Adicionar", payload)
-                if validation_errors:
-                    errors.extend([f"Linha {idx}: {erro}" for erro in validation_errors])
-                else:
-                    parsed_matches.append(payload)
-
-            if missing_players:
-                errors.append(
-                    "Jogadores não cadastrados: " + ", ".join(sorted(missing_players))
-                )
-
-            if errors:
-                _set_admin_feedback("error", " ".join(errors))
-                return redirect(url_for("admin"))
-
-            try:
-                for payload in parsed_matches:
-                    insert_match(_serialize_payload(payload))
-                _reset_cache()
-                _set_admin_feedback(
-                    "success", f"{len(parsed_matches)} partida(s) cadastrada(s) em bloco!"
-                )
-            except Exception as exc:  # pragma: no cover - feedback exibido na interface
-                _set_admin_feedback("error", f"Erro ao salvar partidas em bloco: {exc}")
-
-            return redirect(url_for("admin"))
-
-        if action in {"create", "update"}:
-            score_a_raw = request.form.get("score_a", "").strip()
-            score_b_raw = request.form.get("score_b", "").strip()
-            score_value = None
-            if score_a_raw == "" and score_b_raw == "":
-                score_value = ""
-            elif score_a_raw and score_b_raw and score_a_raw.isdigit() and score_b_raw.isdigit():
-                score_value = f"{int(score_a_raw)}x{int(score_b_raw)}"
-            payload = {
-                "winner1": request.form.get("winner1", "").strip(),
-                "winner2": request.form.get("winner2", "").strip(),
-                "loser1": request.form.get("loser1", "").strip(),
-                "loser2": request.form.get("loser2", "").strip(),
-                "date": _parse_form_date(request.form.get("date")),
-            }
-            if score_value is not None:
-                payload["score"] = score_value
-
-            match_id = request.form.get("match_id") if action == "update" else None
-            id_field = request.form.get("id_field", "id")
-            errors = _validate_match_data(
-                match_id, "Atualizar" if action == "update" else "Adicionar", payload
-            )
-
-            if errors:
-                _set_admin_feedback("error", " ".join(errors))
-                return redirect(url_for("admin"))
-
-            try:
-                if action == "create":
-                    insert_match(_serialize_payload(payload))
-                    _set_admin_feedback("success", "Partida cadastrada com sucesso!")
-                else:
-                    update_match(match_id, _serialize_payload(payload), id_field=id_field)
-                    _set_admin_feedback("success", "Partida atualizada com sucesso!")
-                _reset_cache()
-            except Exception as exc:  # pragma: no cover - feedback exibido na interface
-                _set_admin_feedback("error", f"Erro ao salvar partida: {exc}")
-
-            match_date_param = request.form.get("match_date") or None
-            return redirect(url_for("admin", match_date=match_date_param) if match_date_param else url_for("admin"))
-
-        if action == "delete":
-            match_id = request.form.get("match_id")
-            id_field = request.form.get("id_field", "id")
-            if not _is_valid_identifier(match_id):
-                _set_admin_feedback("error", "Selecione uma partida para excluir.")
-                return redirect(url_for("admin"))
-
-            try:
-                delete_match(match_id, id_field=id_field)
-                _reset_cache()
-                _set_admin_feedback("success", "Partida removida com sucesso!")
-            except Exception as exc:  # pragma: no cover - feedback exibido na interface
-                _set_admin_feedback("error", f"Erro ao excluir partida: {exc}")
-
-            match_date_param = request.form.get("match_date") or None
-            return redirect(url_for("admin", match_date=match_date_param) if match_date_param else url_for("admin"))
-
-    df = _fetch_base_dataframe()
-    matches = _matches_from_df(df)
-    match_dates = sorted(
-        {match["date"] for match in matches if match.get("date")},
-        reverse=True,
-    )
-    selected_match_date = _parse_form_date(request.args.get("match_date"))
-    if match_dates:
-        if selected_match_date not in match_dates:
-            selected_match_date = match_dates[0]
-        matches = [match for match in matches if match.get("date") == selected_match_date]
-    else:
-        selected_match_date = None
-        matches = []
-    players = _registered_players(df)
-    players_text = "\n".join(players)
-    championship_keys = available_championship_keys()
-    default_championship_key = (
-        championship_keys[0] if championship_keys else date.today().strftime("%Y%m%d")
-    )
-    selected_championship_key = (
-        request.args.get("championship_key", default_championship_key).strip()
-    )
-    if selected_championship_key not in championship_keys:
-        selected_championship_key = default_championship_key
-    championship_payload = get_championship_view(selected_championship_key)
-    championship_can_edit = role == "full" or (
-        selected_championship_key in _unlocked_tournament_keys()
-    )
-
-    return render_template(
-        "admin.html",
-        active_page="admin",
-        authenticated=authenticated,
-        role=role or "full",
-        feedback=feedback,
-        requires_auth=requires_auth,
-        players=players,
-        players_text=players_text,
-        matches=matches,
-        match_dates=[date_item.isoformat() for date_item in match_dates],
-        selected_match_date=selected_match_date.isoformat() if selected_match_date else "",
-        today=date.today().isoformat(),
-        championship_keys=championship_keys,
-        championship_selected_key=selected_championship_key,
-        championship_payload=championship_payload,
-        championship_can_edit=championship_can_edit,
+    return admin_page_response(
+        admin_password=ADMIN_PASSWORD,
+        entry_password=MATCH_ENTRY_PASSWORD,
+        set_admin_feedback=lambda level, message: _set_admin_feedback(level, message),
+        available_championship_keys=lambda: available_championship_keys(),
+        get_championship_edit_password=lambda key: get_championship_edit_password(key),
+        unlocked_tournament_keys=lambda: _unlocked_tournament_keys(),
+        set_unlocked_tournament_keys=lambda keys: _set_unlocked_tournament_keys(keys),
+        reset_cache=lambda: _reset_cache(),
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        add_player=lambda name: add_player(name),
+        parse_bulk_line=lambda line: _parse_bulk_line(line),
+        validate_registered_players=lambda players: _validate_registered_players(players),
+        validate_match_data=lambda match_id, action, payload: _validate_match_data(match_id, action, payload),
+        insert_match=lambda payload: insert_match(payload),
+        serialize_payload=lambda payload: _serialize_payload(payload),
+        parse_form_date=lambda value: _parse_form_date(value),
+        update_match=lambda match_id, payload, id_field: update_match(match_id, payload, id_field=id_field),
+        delete_match=lambda match_id, id_field: delete_match(match_id, id_field=id_field),
+        is_valid_identifier=lambda value: _is_valid_identifier(value),
+        matches_from_df=lambda df: _matches_from_df(df),
+        registered_players=lambda df: _registered_players(df),
+        get_championship_view=lambda key: get_championship_view(key),
+        save_match_score=lambda championship_key, match_id, score_a, score_b: save_match_score(
+            championship_key, match_id, score_a, score_b
+        ),
+        redirect_to_admin=lambda **params: redirect(url_for("admin", **params)),
+        render_template=lambda template_name, **context: render_template(template_name, **context),
+        team_fields=_TEAM_FIELDS,
     )
 
 
 @app.route("/api/ranking")
 def api_ranking():
-    periodo = request.args.get("periodo", "90 dias")
-    modo = request.args.get("modo", "Dia")
-    if modo == "Dias":
-        modo = "Dia"
-    ano = request.args.get("ano")
-    mes = request.args.get("mes")
-    inicio = request.args.get("inicio")
-    fim = request.args.get("fim")
-
-    df, jogadores, duplas = _filter_rankings(modo, periodo, ano, mes, inicio, fim, None)
-    periodo_legenda = _descricao_periodo(modo, periodo, ano, mes, inicio, fim, None)
-
-    return jsonify(
-        {
-            "periodo": periodo_legenda,
-            "periodo_param": periodo,
-            "modo": modo,
-            "intervalo": {"inicio": inicio, "fim": fim} if modo == "Intervalo" else None,
-            "total_partidas": len(df),
-            "jogadores": _format_ranking(jogadores, "jogadores"),
-            "duplas": _format_ranking(duplas, "duplas"),
-        }
+    return ranking_api_response(
+        filter_rankings=lambda *args: _filter_rankings(*args),
+        describe_period=lambda *args: _descricao_periodo(*args),
+        format_ranking=lambda *args: _format_ranking(*args),
     )
 
 
 @app.route("/_oculto/jogadores")
 def hidden_players():
-    df = _fetch_base_dataframe()
-    players = _players_ranked_by_games(df)
-    output_format = request.args.get("formato", "json").lower()
-
-    if output_format == "txt":
-        content = "\n".join(players)
-        return app.response_class(content, mimetype="text/plain; charset=utf-8")
-
-    return jsonify({"jogadores": players})
+    return hidden_players_response(
+        fetch_base_dataframe=lambda: _fetch_base_dataframe(),
+        players_ranked_by_games=lambda df: _players_ranked_by_games(df),
+        response_factory=lambda content: app.response_class(
+            content, mimetype="text/plain; charset=utf-8"
+        ),
+    )
 
 
 def dados_with_index(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -1837,249 +872,23 @@ def dados_with_index(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
     return linhas
 
 
-def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
-    """Reproduz a lógica da antiga aba de infos em formato não-Streamlit."""
+_resumo_infos = info_helpers.build_infos_summary
 
-    config = get_config()
-    excluidos = _excluded_players()
 
-    df_jog = preparar_dados_individuais(df)
-    df_jog = df_jog[~df_jog["jogadores"].str.contains("Outro", na=False)].copy()
-    df_jog["vitórias"] = df_jog["vitórias"].astype(int)
-    df_jog["derrotas"] = df_jog["derrotas"].astype(int)
-    df_jog["jogos"] = df_jog["vitórias"] + df_jog["derrotas"]
-
-    df_duplas = preparar_dados_duplas(df)
-    df_duplas = df_duplas[~df_duplas["duplas"].str.contains("Outro", na=False)].copy()
-
-    media_top_10 = df_jog["jogos"].nlargest(10).mean()
-    if media_top_10 > 0:
-        limiar = media_top_10 * config.min_participation_ratio
-        df_jog = df_jog[df_jog["jogos"] >= limiar]
-
-    df_jog["saldo"] = df_jog["vitórias"] - df_jog["derrotas"]
-    df_jog = df_jog.set_index("jogadores")
-    jogadores_validos = set(df_jog.index)
-
-    dias_jogados = pd.to_datetime(df.index, errors="coerce").normalize().nunique()
-
-    def _melhor_aproveitamento(label: str, pior: bool = False) -> Dict[str, str]:
-        v = df_jog["vitórias"]
-        d = df_jog["derrotas"]
-        jogos = v + d
-        stats = df_jog.copy()
-        stats["jogos"] = jogos
-        stats = stats.drop(index=list(excluidos), errors="ignore")
-
-        if stats.empty:
-            return {"title": label, "value": "-", "detail": "-"}
-
-        n = len(stats)
-        total_jogos = stats["jogos"].sum()
-        media_dos_demais = (total_jogos - stats["jogos"]) / (n - 1) if n > 1 else 0
-        limiar = 0.20 * media_dos_demais
-        candidatos = stats[stats["jogos"] >= limiar].copy()
-
-        if candidatos.empty:
-            return {"title": label, "value": "-", "detail": "-"}
-
-        candidatos["aprov"] = candidatos["vitórias"] / candidatos["jogos"]
-        if pior:
-            cand_ord = candidatos.sort_values(["aprov", "jogos"], ascending=[True, False])
-        else:
-            cand_ord = candidatos.sort_values(
-                ["aprov", "jogos", "vitórias"], ascending=[False, False, False]
-            )
-
-        nome = cand_ord.index[0]
-        row = cand_ord.iloc[0]
-        return {
-            "title": label,
-            "value": nome,
-            "detail": f"{row['aprov']:.0%} de aproveitamento",
-        }
-
-    def _mais_fominha() -> Dict[str, str]:
-        if df_jog.empty:
-            return {"title": "O mais fominha", "value": "-", "detail": "-"}
-
-        jogostotal = df_jog["vitórias"] + df_jog["derrotas"]
-        jogador = jogostotal.idxmax()
-        return {
-            "title": "O mais fominha",
-            "value": jogador,
-            "detail": f"Jogos: {jogostotal.max():.0f}",
-        }
-
-    def _maior_vexame() -> Dict[str, str]:
-        registros: List[Dict[str, object]] = []
-        df_dias = df.copy()
-        df_dias.index = pd.to_datetime(df_dias.index, errors="coerce")
-        df_dias = df_dias[pd.notna(df_dias.index)]
-
-        for dia, df_dia in df_dias.groupby(df_dias.index.normalize()):
-            vitorias_dia = pd.Series(df_dia.iloc[:, 0:2].values.ravel()).value_counts()
-            derrotas_dia = pd.Series(df_dia.iloc[:, 2:4].values.ravel()).value_counts()
-
-            vitorias_dia = vitorias_dia.drop(list(excluidos), errors="ignore")
-            derrotas_dia = derrotas_dia.drop(list(excluidos), errors="ignore")
-
-            jogadores_dia = sorted(set(vitorias_dia.index) | set(derrotas_dia.index))
-            jogadores_dia = [j for j in jogadores_dia if j in jogadores_validos]
-            if not jogadores_dia:
-                continue
-
-            vitorias_dia = vitorias_dia.reindex(jogadores_dia, fill_value=0)
-            derrotas_dia = derrotas_dia.reindex(jogadores_dia, fill_value=0)
-
-            saldo_dia = derrotas_dia - vitorias_dia
-            if saldo_dia.empty:
-                continue
-
-            pior_jogador = saldo_dia.idxmax()
-            registros.append(
-                {
-                    "dia": dia,
-                    "jogador": pior_jogador,
-                    "saldo": int(saldo_dia.loc[pior_jogador]),
-                    "v": int(vitorias_dia.loc[pior_jogador]),
-                    "d": int(derrotas_dia.loc[pior_jogador]),
-                }
-            )
-
-        if not registros:
-            return {"title": "O maior vexame na história", "value": "-", "detail": "-"}
-
-        pior = max(registros, key=lambda r: r["saldo"])
-        data_fmt = pd.to_datetime(pior["dia"]).strftime("%d/%m/%Y")
-        return {
-            "title": "O maior vexame na história",
-            "value": pior["jogador"],
-            "detail": f"{pior['v']}-{pior['d']}  ({data_fmt})",
-        }
-
-    def _mais_paneleiro() -> Dict[str, str]:
-        EXCLUIR = {"Outro_1", "Outro_2"}
-
-        partner_counts: Dict[str, Counter] = {}
-        jogos_por_jogador = Counter()
-
-        for _, row in df.iterrows():
-            try:
-                w1, w2, l1, l2 = row.iloc[0], row.iloc[1], row.iloc[2], row.iloc[3]
-            except Exception:
-                continue
-
-            duplas = [(w1, w2), (l1, l2)]
-            for a, b in duplas:
-                if pd.isna(a) or pd.isna(b):
-                    continue
-                if a in EXCLUIR or b in EXCLUIR:
-                    continue
-                if a not in jogadores_validos or b not in jogadores_validos:
-                    continue
-                partner_counts.setdefault(a, Counter())
-                partner_counts.setdefault(b, Counter())
-                partner_counts[a][b] += 1
-                partner_counts[b][a] += 1
-                jogos_por_jogador[a] += 1
-                jogos_por_jogador[b] += 1
-
-        if not partner_counts:
-            return {"title": "O mais paneleiro", "value": "-", "detail": "-"}
-
-        registros = []
-        for jog, cnts in partner_counts.items():
-            total = sum(cnts.values())
-            if total <= 0:
-                continue
-            parceiro, juntos = max(cnts.items(), key=lambda kv: (kv[1], kv[0]))
-            share = juntos / total
-            registros.append(
-                {
-                    "jogador": jog,
-                    "parceiro": parceiro,
-                    "juntos": int(juntos),
-                    "jogos": int(total),
-                    "share": float(share),
-                }
-            )
-
-        if not registros:
-            return {"title": "O mais paneleiro", "value": "-", "detail": "-"}
-
-        stats = pd.DataFrame(registros).set_index("jogador")
-        n = len(stats)
-        media_dos_demais = (stats["jogos"].sum() - stats["jogos"]) / (n - 1) if n > 1 else pd.Series(0, index=stats.index)
-        limiar = 0.20 * media_dos_demais
-        cand = stats[stats["jogos"] >= limiar].copy()
-
-        if cand.empty:
-            return {"title": "O mais paneleiro", "value": "-", "detail": "-"}
-
-        cand = cand.sort_values(
-            ["share", "jogos", "juntos", "parceiro"], ascending=[False, False, False, True]
-        )
-        top = cand.iloc[0]
-        return {
-            "title": "O mais paneleiro",
-            "value": top.name,
-            "detail": f"com {top['parceiro']}: {top['share']:.0%} ({int(top['juntos'])}/{int(top['jogos'])} jogos)",
-        }
-
-    def _dupla_entrosada() -> Dict[str, str]:
-        duplas_validas = df_duplas[df_duplas["jogos"] >= config.min_duo_matches]
-        if duplas_validas.empty:
-            return {
-                "title": f"Dupla mais entrosada (mín de {config.min_duo_matches} jogos)",
-                "value": "-",
-                "detail": "-",
-            }
-
-        melhor_dupla = duplas_validas.iloc[0]
-
-        def _formatar_nome_iniciais(nome_completo: str) -> str:
-            partes = nome_completo.strip().split()
-            if not partes:
-                return nome_completo
-
-            primeiro_nome = partes[0]
-            ultimo_nome = partes[-1]
-
-            inicial = primeiro_nome[0]
-            return f"{inicial}. {ultimo_nome}"
-
-        nomes_colapsados = [_formatar_nome_iniciais(nome) for nome in str(melhor_dupla["duplas"]).split(" e ")]
-        nomes_ordenados = sorted(nomes_colapsados, key=lambda nome: (len(nome), nome))
-        dupla_formatada = " e ".join(nomes_ordenados)
-
-        return {
-            "title": f"Dupla mais entrosada (mín de {config.min_duo_matches} jogos)",
-            "value": dupla_formatada,
-            "detail": f"{melhor_dupla['aproveitamento']:.0f}% de aproveitamento",
-        }
-
-    destaques_primarios = [
-        _melhor_aproveitamento("O mais brabo"),
-        _mais_fominha(),
-        _dupla_entrosada(),
-    ]
-
-    destaques_secundarios = [
-        _melhor_aproveitamento("Ninguém quer jogar com", pior=True),
-        _maior_vexame(),
-        _mais_paneleiro(),
-    ]
-
-    return {
-        "resumo": {
-            "total_partidas": len(df),
-            "dias_jogados": dias_jogados,
-            "total_minutos": len(df) * 20,
-        },
-        "destaques_primarios": destaques_primarios,
-        "destaques_secundarios": destaques_secundarios,
-    }
+# Web helper implementations extracted from this module. Keep the original
+# names bound for compatibility while routing the behavior through the new
+# package.
+_normalize_filter_mode = web_helpers.normalize_filter_mode
+_descricao_periodo = web_helpers.describe_period
+_format_ranking = web_helpers.format_ranking
+_build_highlights = web_helpers.build_highlights
+_safe_int = web_helpers.safe_int
+_safe_float = web_helpers.safe_float
+_descricao_jogos = web_helpers.describe_games
+_formatar_partidas = web_helpers.format_matches
+dados_with_index = web_helpers.with_index
+_serialize_payload = lambda payload: web_helpers.serialize_payload(payload, _TEAM_FIELDS)
+_parse_bulk_line = web_helpers.parse_bulk_line
 
 
 if __name__ == "__main__":

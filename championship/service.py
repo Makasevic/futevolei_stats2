@@ -5,7 +5,7 @@ from copy import deepcopy
 from functools import cmp_to_key
 from typing import Any, Dict, Iterable, List
 
-from data_access.championship_repository import (
+from src.redinha_stats.infrastructure.supabase.championship_repository import (
     delete_score,
     fetch_scores_for_championship,
     upsert_score,
