@@ -1912,7 +1912,7 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
         }
 
     def _maior_vexame() -> Dict[str, str]:
-        registros: List[Dict[str, object]] = []
+        all_records: List[Dict[str, object]] = []
         df_dias = df.copy()
         df_dias.index = pd.to_datetime(df_dias.index, errors="coerce")
         df_dias = df_dias[pd.notna(df_dias.index)]
@@ -1931,31 +1931,45 @@ def _resumo_infos(df: pd.DataFrame) -> Dict[str, object]:
 
             vitorias_dia = vitorias_dia.reindex(jogadores_dia, fill_value=0)
             derrotas_dia = derrotas_dia.reindex(jogadores_dia, fill_value=0)
-
             saldo_dia = derrotas_dia - vitorias_dia
             if saldo_dia.empty:
                 continue
 
-            pior_jogador = saldo_dia.idxmax()
-            registros.append(
-                {
-                    "dia": dia,
-                    "jogador": pior_jogador,
-                    "saldo": int(saldo_dia.loc[pior_jogador]),
-                    "v": int(vitorias_dia.loc[pior_jogador]),
-                    "d": int(derrotas_dia.loc[pior_jogador]),
-                }
-            )
+            for jogador in jogadores_dia:
+                all_records.append(
+                    {
+                        "dia": dia,
+                        "jogador": jogador,
+                        "saldo": int(saldo_dia.loc[jogador]),
+                        "v": int(vitorias_dia.loc[jogador]),
+                        "d": int(derrotas_dia.loc[jogador]),
+                    }
+                )
 
-        if not registros:
+        if not all_records:
             return {"title": "O maior vexame na história", "value": "-", "detail": "-"}
 
-        pior = max(registros, key=lambda r: r["saldo"])
-        data_fmt = pd.to_datetime(pior["dia"]).strftime("%d/%m/%Y")
+        max_saldo = max(r["saldo"] for r in all_records)
+        piores = [r for r in all_records if r["saldo"] == max_saldo]
+
+        nomes = ", ".join(sorted({r["jogador"] for r in piores}))
+
+        if len(piores) == 1:
+            r = piores[0]
+            data_fmt = pd.to_datetime(r["dia"]).strftime("%d/%m/%Y")
+            detail = f"{r['v']}-{r['d']}  ({data_fmt})"
+        else:
+            dias_unicos = {r["dia"] for r in piores}
+            if len(dias_unicos) == 1:
+                data_fmt = pd.to_datetime(piores[0]["dia"]).strftime("%d/%m/%Y")
+                detail = f"saldo de {max_saldo}  ({data_fmt})"
+            else:
+                detail = f"saldo de {max_saldo} (empate histórico)"
+
         return {
             "title": "O maior vexame na história",
-            "value": pior["jogador"],
-            "detail": f"{pior['v']}-{pior['d']}  ({data_fmt})",
+            "value": nomes,
+            "detail": detail,
         }
 
     def _mais_paneleiro() -> Dict[str, str]:
