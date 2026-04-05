@@ -47,6 +47,7 @@ class UiConfig:
     )
     ranking_periods: Tuple[str, ...] = (
         "1 dia",
+        "7 dias",
         "30 dias",
         "60 dias",
         "90 dias",

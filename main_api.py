@@ -42,7 +42,7 @@ def _normalize_filter_mode(value: str | None) -> str:
     if normalized == "Dias":
         return "Dia"
     if normalized in {"Mes/Ano", "Mês/Ano", "MÃªs/Ano"}:
-        return "Mes/Ano"
+        return "Mês/Ano"
     return normalized
 
 def _current_ui_config():
@@ -232,7 +232,7 @@ def _descricao_periodo(
 ) -> str:
     if modo == "Ano" and ano:
         return f"Ano {ano}"
-    if modo == "Mes/Ano" and mes:
+    if modo == "Mês/Ano" and mes:
         return mes
     if modo == "Intervalo":
         if inicio or fim:

@@ -60,9 +60,9 @@
 
     <div class="filter-group" data-mode="Intervalo">
         <label class="badge" for="inicio">Início</label>
-        <input type="date" id="inicio" name="inicio" class="select" value="{{ inicio }}" />
+        <input type="date" id="inicio" name="inicio" class="select" value="{{ inicio or '' }}" />
         <label class="badge" for="fim">Fim</label>
-        <input type="date" id="fim" name="fim" class="select" value="{{ fim }}" />
+        <input type="date" id="fim" name="fim" class="select" value="{{ fim or '' }}" />
     </div>
 </form>
 

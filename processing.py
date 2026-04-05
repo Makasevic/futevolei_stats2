@@ -68,6 +68,9 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
             data_ini = df.index.max()
             return df[df.index >= data_ini]
 
+        elif valor == "7 dias":
+            data_ini = hoje - timedelta(days=7)
+
         elif valor == "30 dias":
             data_ini = hoje - timedelta(days=30)
 
