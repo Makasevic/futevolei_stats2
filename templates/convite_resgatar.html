@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="admin-panel">
-    <h1 class="admin-panel__title">Criar sua conta</h1>
-
-    {% if group_name %}
-    <p>Você foi convidado para participar do grupo <strong>{{ group_name }}</strong>.</p>
-    {% endif %}
+    <div>
+        <h1 class="admin-panel__title">Criar sua conta</h1>
+        {% if group_name %}
+        <p class="meta">Você foi convidado para participar do grupo <strong>{{ group_name }}</strong>.</p>
+        {% endif %}
+    </div>
 
     {% if error %}
     <div class="feedback feedback--error">{{ error }}</div>
@@ -15,35 +16,37 @@
         <section class="admin-form__section">
 
             <div class="admin-form__field">
-                <label for="name">Seu nome</label>
-                <input type="text" id="name" name="name" value="{{ pre_name }}" readonly
+                <label>Seu nome</label>
+                <input class="input" type="text" name="name" value="{{ pre_name }}" readonly
                        style="opacity:0.7;cursor:not-allowed">
-                <small>Nome definido pelo administrador do grupo.</small>
+                <small class="meta">Nome definido pelo administrador do grupo.</small>
             </div>
 
             <div class="admin-form__field">
                 <label for="birthday">Data de aniversário</label>
-                <input type="date" id="birthday" name="birthday" required>
+                <input class="input" type="date" id="birthday" name="birthday" required>
             </div>
 
             <div class="admin-form__field">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required autofocus>
+                <input class="input" type="email" id="email" name="email" required autofocus>
             </div>
 
             <div class="admin-form__field">
                 <label for="password">Senha</label>
-                <input type="password" id="password" name="password" required minlength="6">
+                <input class="input" type="password" id="password" name="password" required minlength="6">
             </div>
 
             <div class="admin-form__field">
                 <label for="password_confirm">Confirmar senha</label>
-                <input type="password" id="password_confirm" name="password_confirm" required minlength="6">
+                <input class="input" type="password" id="password_confirm" name="password_confirm" required minlength="6">
             </div>
 
         </section>
 
-        <button type="submit" class="btn btn--primary">Criar conta</button>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Criar conta</button>
+        </div>
     </form>
 </div>
 {% endblock %}

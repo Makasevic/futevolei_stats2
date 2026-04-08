@@ -1643,7 +1643,105 @@ header.hero::after {
 }
 
 .match-row--admin {
-    grid-template-columns: 308px minmax(140px, 1fr) 36px 12px 36px minmax(140px, 1fr) auto;
+    grid-template-columns: minmax(60px, 120px) minmax(120px, 1fr) 20px minmax(120px, 1fr) auto;
+}
+
+/* Players grid */
+.players-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 8px;
+}
+
+.player-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(47, 107, 255, 0.08);
+    border: 1px solid rgba(47, 107, 255, 0.18);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: var(--font-medium);
+    white-space: nowrap;
+}
+
+/* Admin sub-pages (convite, grupo novo, etc.) */
+.admin-panel {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-panel__title {
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+}
+
+/* Feedback / inline alerts */
+.feedback {
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-weight: var(--font-medium);
+    border: 1px solid var(--border);
+    background: var(--card);
+}
+
+.feedback--error {
+    background: rgba(255, 99, 132, 0.1);
+    border-color: rgba(255, 99, 132, 0.35);
+    color: #991b1b;
+}
+
+.feedback--success {
+    background: rgba(19, 182, 167, 0.1);
+    border-color: rgba(19, 182, 167, 0.35);
+    color: #0d6e66;
+}
+
+/* Admin form structure */
+.admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-form__section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-form__section-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: var(--text);
+}
+
+.admin-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-form__field label {
+    font-size: 13px;
+    font-weight: var(--font-semibold);
+    color: var(--muted);
+}
+
+.admin-form__field .input,
+.admin-form__field select {
+    width: 100%;
 }
 
 .admin-filter {

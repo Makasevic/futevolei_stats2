@@ -21,13 +21,13 @@
 
             <div class="admin-form__field">
                 <label for="name">Nome do grupo</label>
-                <input type="text" id="name" name="name" placeholder="Ex: Redinha SP" required>
+                <input class="input" type="text" id="name" name="name" placeholder="Ex: Redinha SP" required>
             </div>
 
             <div class="admin-form__field">
                 <label for="slug">Slug</label>
-                <input type="text" id="slug" name="slug" placeholder="Ex: redinha-sp" required>
-                <small>Só letras minúsculas, números e hífen. Aparece na URL: /g/<strong>slug</strong>/</small>
+                <input class="input" type="text" id="slug" name="slug" placeholder="Ex: redinha-sp" required>
+                <small class="meta">Só letras minúsculas, números e hífen. Aparece na URL: /g/<strong>slug</strong>/</small>
             </div>
         </section>
 
@@ -35,10 +35,13 @@
             <h2 class="admin-form__section-title">Confirmação</h2>
             <div class="admin-form__field">
                 <label for="superadmin_password">Senha de superadmin</label>
-                <input type="password" id="superadmin_password" name="superadmin_password" required>
+                <input class="input" type="password" id="superadmin_password" name="superadmin_password" required>
             </div>
-            <button type="submit" class="btn btn--primary">Criar grupo</button>
         </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Criar grupo</button>
+        </div>
 
     </form>
 </div>
