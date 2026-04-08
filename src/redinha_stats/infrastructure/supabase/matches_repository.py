@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any, Dict, List, MutableMapping
+from typing import Any, Dict, List, MutableMapping, Optional
 
 from supabase import Client, create_client
 
@@ -19,21 +19,35 @@ def _get_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 
-def fetch_matches() -> List[MutableMapping[str, Any]]:
-    """Return all matches stored in Supabase ordered by date."""
+def fetch_matches(group_id: Optional[str] = None) -> List[MutableMapping[str, Any]]:
+    """Return matches stored in Supabase ordered by date.
 
-    response = (
-        _get_client().table(MATCHES_TABLE).select("*").order("date", desc=False).execute()
-    )
+    If *group_id* is provided, only matches belonging to that group are returned.
+    When None, returns all matches (used during transition before Fase 2 migration).
+    """
+
+    query = _get_client().table(MATCHES_TABLE).select("*").order("date", desc=False)
+
+    if group_id is not None:
+        query = query.eq("group_id", group_id)
+
+    response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao buscar partidas no Supabase: {response.error}")
     return list(response.data or [])
 
 
-def insert_match(match: Dict[str, Any]) -> MutableMapping[str, Any]:
-    """Insert a new match in Supabase and return the created record."""
+def insert_match(match: Dict[str, Any], group_id: Optional[str] = None) -> MutableMapping[str, Any]:
+    """Insert a new match in Supabase and return the created record.
 
-    response = _get_client().table(MATCHES_TABLE).insert(match).execute()
+    If *group_id* is provided, it is merged into the payload.
+    """
+
+    payload = dict(match)
+    if group_id is not None:
+        payload["group_id"] = group_id
+
+    response = _get_client().table(MATCHES_TABLE).insert(payload).execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao inserir partida no Supabase: {response.error}")
 

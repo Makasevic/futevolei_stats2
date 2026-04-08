@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-panel">
+    <h1 class="admin-panel__title">Convidar jogador</h1>
+
+    {% if error %}
+    <div class="feedback feedback--error">{{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+    <div class="feedback feedback--success">{{ success }}</div>
+    {% endif %}
+
+    {% if invite_url %}
+    <div class="admin-form__section">
+        <h2 class="admin-form__section-title">Link gerado</h2>
+        <div class="admin-form__field">
+            <input type="text" id="invite-url" value="{{ invite_url }}" readonly onclick="this.select()">
+            <button type="button" class="btn btn--secondary" onclick="copyLink()">Copiar link</button>
+        </div>
+        <small>Envie este link para o jogador pelo WhatsApp.</small>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ base_url }}/admin/convite" class="admin-form">
+        <input type="hidden" name="link_type" value="existing">
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Selecionar jogador</h2>
+            <div class="admin-form__field">
+                <label for="player_name">Jogador</label>
+                <select name="player_name" id="player_name" required>
+                    <option value="">-- selecione --</option>
+                    {% for player in players %}
+                    <option value="{{ player }}">{{ player }}</option>
+                    {% endfor %}
+                </select>
+                <small>Cadastre o jogador pelo painel admin antes de gerar o convite.</small>
+            </div>
+        </section>
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Email (em breve)</h2>
+            <div class="admin-form__field">
+                <label for="email" style="opacity:0.5">Email do jogador</label>
+                <input type="email" id="email" name="email" placeholder="jogador@email.com" disabled style="opacity:0.5;cursor:not-allowed">
+                <small style="opacity:0.5">Envio por email ainda não disponível. Use o link gerado para compartilhar pelo WhatsApp.</small>
+            </div>
+        </section>
+
+        <button type="submit" class="btn btn--primary">Gerar link de convite</button>
+        <a href="{{ base_url }}/admin" class="btn btn--secondary">Voltar ao admin</a>
+    </form>
+</div>
+
+<script>
+function copyLink() {
+    const input = document.getElementById('invite-url');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado!');
+}
+</script>
+{% endblock %}

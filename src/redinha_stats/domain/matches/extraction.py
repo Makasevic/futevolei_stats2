@@ -39,8 +39,11 @@ def _normalize_match(record: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def get_matches() -> List[Dict[str, Any]]:
-    """Fetch matches from Supabase ready for dataframe preparation."""
+def get_matches(group_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Fetch matches from Supabase ready for dataframe preparation.
 
-    raw_matches = fetch_matches()
+    If *group_id* is provided, only matches belonging to that group are returned.
+    """
+
+    raw_matches = fetch_matches(group_id=group_id)
     return [_normalize_match(match) for match in raw_matches]

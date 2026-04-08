@@ -58,11 +58,17 @@ from src.redinha_stats.web.routes.config_page import config_page_response
 from src.redinha_stats.web.routes.details import detalhamento_page_response
 from src.redinha_stats.web.routes.versus import versus_page_response
 from src.redinha_stats.web.routes.admin import admin_page_response
+from src.redinha_stats.web import versus_helpers
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
 app.register_blueprint(batch_bp)
+
+from src.redinha_stats.web.group_blueprint import bp as group_bp  # noqa: E402
+from src.redinha_stats.web.superadmin_blueprint import bp as superadmin_bp  # noqa: E402
+app.register_blueprint(group_bp)
+app.register_blueprint(superadmin_bp)
 
 
 def _normalize_filter_mode(value: str | None) -> str:
@@ -250,317 +256,19 @@ def _oponentes_por_dupla(df: pd.DataFrame) -> Dict[str, List[str]]:
 
 
 def _estatisticas_jogador_individual(df: pd.DataFrame, jogador: str) -> Dict[str, int | float]:
-    tabela = preparar_dados_individuais(df)
-    tabela = tabela[~tabela["jogadores"].isin(_excluded_players())]
-    linha = tabela.loc[tabela["jogadores"] == jogador]
-
-    if linha.empty:
-        return {
-            "jogador": jogador,
-            "jogos": 0,
-            "vitorias": 0,
-            "derrotas": 0,
-            "saldo": 0,
-            "aproveitamento": 0.0,
-        }
-
-    registro = linha.iloc[0]
-    return {
-        "jogador": jogador,
-        "jogos": int(registro.get("jogos", 0)),
-        "vitorias": int(registro.get("vitórias", 0)),
-        "derrotas": int(registro.get("derrotas", 0)),
-        "saldo": int(registro.get("saldo", 0)),
-        "aproveitamento": float(registro.get("aproveitamento", 0.0)),
-    }
+    return versus_helpers.estatisticas_jogador_individual(df, jogador, excluded_players=_excluded_players())
 
 
 def _estatisticas_dupla(df: pd.DataFrame, dupla: str) -> Dict[str, int | float]:
-    tabela = preparar_dados_duplas(df[["winner1", "winner2", "loser1", "loser2"]])
-    tabela = tabela[~tabela["duplas"].str.contains("Outro", na=False)]
-    linha = tabela.loc[tabela["duplas"] == dupla]
-
-    if linha.empty:
-        return {
-            "jogador": dupla,
-            "jogos": 0,
-            "vitorias": 0,
-            "derrotas": 0,
-            "saldo": 0,
-            "aproveitamento": 0.0,
-        }
-
-    registro = linha.iloc[0]
-    return {
-        "jogador": dupla,
-        "jogos": int(registro.get("jogos", 0)),
-        "vitorias": int(registro.get("vitórias", 0)),
-        "derrotas": int(registro.get("derrotas", 0)),
-        "saldo": int(registro.get("saldo", 0)),
-        "aproveitamento": float(registro.get("aproveitamento", 0.0)),
-    }
-
-
-def _ordenar_partidas_por_data(df: pd.DataFrame, ascending: bool = True) -> pd.DataFrame:
-    if df.empty:
-        return df
-    if isinstance(df.index, pd.DatetimeIndex):
-        datas_partidas = df.index
-    else:
-        datas_partidas = pd.to_datetime(df.index, errors="coerce")
-
-    df_ordenado = df.copy()
-    df_ordenado["data_partida"] = datas_partidas
-    df_ordenado = df_ordenado.dropna(subset=["data_partida"])
-    return df_ordenado.sort_values("data_partida", ascending=ascending)
-
-
-def _montar_jogos_recentes_confronto_jogadores(
-    confrontos_df: pd.DataFrame, jogador1: str, limite: int = 30
-) -> List[Dict[str, object]]:
-    if confrontos_df.empty:
-        return []
-
-    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=False)
-    if df_ordenado.empty:
-        return []
-
-    partidas = df_ordenado.head(limite)
-    if partidas.empty:
-        return []
-
-    jogos = []
-    for row in partidas.itertuples():
-        vencedores = " e ".join([row.winner1, row.winner2])
-        perdedores = " e ".join([row.loser1, row.loser2])
-        venceu = jogador1 in [row.winner1, row.winner2]
-        data_partida = row.data_partida.strftime("%d/%m/%Y")
-        jogos.append(
-            {
-                "data": data_partida,
-                "vencedores": vencedores,
-                "perdedores": perdedores,
-                "venceu": venceu,
-            }
-        )
-    return jogos
-
-
-def _montar_jogos_recentes_confronto_duplas(
-    confrontos_df: pd.DataFrame, dupla1: str, limite: int = 30
-) -> List[Dict[str, object]]:
-    if confrontos_df.empty:
-        return []
-
-    df_ordenado = _ordenar_partidas_por_data(confrontos_df, ascending=False)
-    if df_ordenado.empty:
-        return []
-
-    partidas = df_ordenado.head(limite)
-    if partidas.empty:
-        return []
-
-    jogos = []
-    for row in partidas.itertuples():
-        vencedores = " e ".join([row.winner1, row.winner2])
-        perdedores = " e ".join([row.loser1, row.loser2])
-        venceu = row.dupla_winner == dupla1
-        data_partida = row.data_partida.strftime("%d/%m/%Y")
-        jogos.append(
-            {
-                "data": data_partida,
-                "vencedores": vencedores,
-                "perdedores": perdedores,
-                "venceu": venceu,
-            }
-        )
-    return jogos
+    return versus_helpers.estatisticas_dupla(df, dupla)
 
 
 def _confronto_direto(df: pd.DataFrame, jogador1: str, jogador2: str) -> Dict[str, Any]:
-    if jogador1 == jogador2:
-        return {
-            "total": 0,
-            "vitorias_j1": 0,
-            "vitorias_j2": 0,
-            "saldo": 0,
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    mask_j1_win = (
-        ((df["winner1"] == jogador1) | (df["winner2"] == jogador1))
-        & ((df["loser1"] == jogador2) | (df["loser2"] == jogador2))
-    )
-    mask_j2_win = (
-        ((df["winner1"] == jogador2) | (df["winner2"] == jogador2))
-        & ((df["loser1"] == jogador1) | (df["loser2"] == jogador1))
-    )
-
-    confrontos_df = df[mask_j1_win | mask_j2_win].copy()
-
-    if confrontos_df.empty:
-        return {
-            "total": 0,
-            "vitorias_j1": 0,
-            "vitorias_j2": 0,
-            "saldo": 0,
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    def _resultado_j1(row: pd.Series) -> int:
-        if (row["winner1"] == jogador1) or (row["winner2"] == jogador1):
-            return 1
-        if (row["loser1"] == jogador1) or (row["loser2"] == jogador1):
-            return -1
-        return 0
-
-    confrontos_df["resultado_j1"] = confrontos_df.apply(_resultado_j1, axis=1)
-
-    if not isinstance(confrontos_df.index, pd.DatetimeIndex):
-        confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
-
-    if getattr(confrontos_df.index, "tz", None) is not None:
-        confrontos_df.index = confrontos_df.index.tz_convert(None)
-
-    confrontos_df = confrontos_df[~confrontos_df.index.isna()]
-
-    if confrontos_df.empty:
-        return {
-            "total": 0,
-            "vitorias_j1": int(mask_j1_win.sum()),
-            "vitorias_j2": int(mask_j2_win.sum()),
-            "saldo": int(mask_j1_win.sum() - mask_j2_win.sum()),
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    inicio = confrontos_df.index.min().normalize().replace(day=1)
-    fim = pd.Timestamp.now().normalize().replace(day=1)
-    meses_range = pd.date_range(start=inicio, end=fim, freq="MS")
-
-    mensal = (
-        confrontos_df["resultado_j1"]
-        .resample("MS")
-        .sum()
-        .reindex(meses_range, fill_value=0)
-        .sort_index()
-    )
-    saldo_acumulado = mensal.cumsum()
-
-    serie_completa = [
-        {
-            "label": periodo.strftime("%b/%Y"),
-            "saldo": int(mensal.loc[periodo]),
-            "acumulado": int(saldo_acumulado.loc[periodo]),
-        }
-        for periodo in mensal.index
-    ]
-
-    serie_mensal = serie_completa[-12:]
-
-    vitorias_j1 = int(mask_j1_win.sum())
-    vitorias_j2 = int(mask_j2_win.sum())
-    jogos_recentes = _montar_jogos_recentes_confronto_jogadores(
-        confrontos_df, jogador1, limite=30
-    )
-
-    return {
-        "total": len(confrontos_df),
-        "vitorias_j1": vitorias_j1,
-        "vitorias_j2": vitorias_j2,
-        "saldo": vitorias_j1 - vitorias_j2,
-        "serie_mensal": serie_mensal,
-        "jogos_recentes": jogos_recentes,
-    }
+    return versus_helpers.confronto_direto(df, jogador1, jogador2)
 
 
 def _confronto_direto_duplas(df: pd.DataFrame, dupla1: str, dupla2: str) -> Dict[str, Any]:
-    if dupla1 == dupla2:
-        return {
-            "total": 0,
-            "vitorias_j1": 0,
-            "vitorias_j2": 0,
-            "saldo": 0,
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    mask_dupla1_win = (df["dupla_winner"] == dupla1) & (df["dupla_loser"] == dupla2)
-    mask_dupla2_win = (df["dupla_winner"] == dupla2) & (df["dupla_loser"] == dupla1)
-    confrontos_df = df[mask_dupla1_win | mask_dupla2_win].copy()
-
-    if confrontos_df.empty:
-        return {
-            "total": 0,
-            "vitorias_j1": 0,
-            "vitorias_j2": 0,
-            "saldo": 0,
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    confrontos_df["resultado_j1"] = confrontos_df["dupla_winner"].apply(
-        lambda valor: 1 if valor == dupla1 else -1
-    )
-
-    if not isinstance(confrontos_df.index, pd.DatetimeIndex):
-        confrontos_df.index = pd.to_datetime(confrontos_df.index, errors="coerce")
-
-    if getattr(confrontos_df.index, "tz", None) is not None:
-        confrontos_df.index = confrontos_df.index.tz_convert(None)
-
-    confrontos_df = confrontos_df[~confrontos_df.index.isna()]
-
-    if confrontos_df.empty:
-        return {
-            "total": int(mask_dupla1_win.sum() + mask_dupla2_win.sum()),
-            "vitorias_j1": int(mask_dupla1_win.sum()),
-            "vitorias_j2": int(mask_dupla2_win.sum()),
-            "saldo": int(mask_dupla1_win.sum() - mask_dupla2_win.sum()),
-            "serie_mensal": [],
-            "jogos_recentes": [],
-        }
-
-    inicio = confrontos_df.index.min().normalize().replace(day=1)
-    fim = pd.Timestamp.now().normalize().replace(day=1)
-    meses_range = pd.date_range(start=inicio, end=fim, freq="MS")
-
-    mensal = (
-        confrontos_df["resultado_j1"]
-        .resample("MS")
-        .sum()
-        .reindex(meses_range, fill_value=0)
-        .sort_index()
-    )
-    saldo_acumulado = mensal.cumsum()
-
-    serie_completa = [
-        {
-            "label": periodo.strftime("%b/%Y"),
-            "saldo": int(mensal.loc[periodo]),
-            "acumulado": int(saldo_acumulado.loc[periodo]),
-        }
-        for periodo in mensal.index
-    ]
-
-    serie_mensal = serie_completa[-12:]
-
-    vitorias_dupla1 = int(mask_dupla1_win.sum())
-    vitorias_dupla2 = int(mask_dupla2_win.sum())
-    jogos_recentes = _montar_jogos_recentes_confronto_duplas(
-        confrontos_df, dupla1, limite=30
-    )
-
-    return {
-        "total": len(confrontos_df),
-        "vitorias_j1": vitorias_dupla1,
-        "vitorias_j2": vitorias_dupla2,
-        "saldo": vitorias_dupla1 - vitorias_dupla2,
-        "serie_mensal": serie_mensal,
-        "jogos_recentes": jogos_recentes,
-    }
+    return versus_helpers.confronto_direto_duplas(df, dupla1, dupla2)
 
 # ------------------------------- Admin ------------------------------------
 _TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")

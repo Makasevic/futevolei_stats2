@@ -22,9 +22,14 @@ def current_ui_config():
     return get_ui_config()
 
 
-@lru_cache(maxsize=1)
-def fetch_base_dataframe() -> pd.DataFrame:
-    matches = get_matches()
+@lru_cache(maxsize=16)
+def fetch_base_dataframe(group_id: str | None = None) -> pd.DataFrame:
+    """Build and cache the base dataframe for *group_id*.
+
+    Pass ``group_id=None`` for the legacy single-tenant context (pre-Fase 2).
+    Each unique group_id gets its own cache slot (maxsize=16 groups).
+    """
+    matches = get_matches(group_id=group_id)
     df = preparar_dataframe(matches)
 
     if not isinstance(df.index, pd.DatetimeIndex):
@@ -36,8 +41,14 @@ def fetch_base_dataframe() -> pd.DataFrame:
     return df.sort_index()
 
 
-def reset_cached_dataframe() -> None:
-    fetch_base_dataframe.cache_clear()
+def reset_cached_dataframe(group_id: str | None = None) -> None:
+    """Invalida o cache para o grupo especificado (ou todo o cache se group_id=None)."""
+    if group_id is None:
+        fetch_base_dataframe.cache_clear()
+    else:
+        # Força re-fetch apenas para este grupo na próxima chamada.
+        # lru_cache não suporta invalidação parcial — limpamos tudo por segurança.
+        fetch_base_dataframe.cache_clear()
 
 
 def filtrar_por_intervalo(
@@ -80,8 +91,9 @@ def filter_rankings(
     inicio: str | None,
     fim: str | None,
     data: str | None,
+    group_id: str | None = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    base_df = fetch_base_dataframe()
+    base_df = fetch_base_dataframe(group_id)
     config = get_config()
 
     if modo == "Ano" and ano:

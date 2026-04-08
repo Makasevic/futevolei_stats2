@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-panel">
+    <h1 class="admin-panel__title">Novo torneio</h1>
+
+    {% if error %}
+    <div class="feedback feedback--error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ base_url }}/admin/torneio/novo" class="admin-form">
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Identificação</h2>
+
+            <div class="admin-form__field">
+                <label for="title">Título</label>
+                <input type="text" id="title" name="title" placeholder="Ex: Torneio Redinha Março 2026" required>
+            </div>
+
+            <div class="admin-form__field">
+                <label for="slug">Slug (identificador único)</label>
+                <input type="text" id="slug" name="slug" placeholder="Ex: 2026-03" required>
+                <small>Só letras, números e hífen. Aparece na URL do torneio.</small>
+            </div>
+
+            <div class="admin-form__field">
+                <label for="description">Descrição</label>
+                <input type="text" id="description" name="description" placeholder="Ex: Torneio de 28 de março de 2026">
+            </div>
+
+            <div class="admin-form__field">
+                <label for="edit_password">Senha de edição dos placares</label>
+                <input type="text" id="edit_password" name="edit_password" placeholder="Deixe vazio para sem senha">
+            </div>
+        </section>
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Times</h2>
+            <div class="admin-form__field">
+                <label for="teams">Um time por linha</label>
+                <textarea id="teams" name="teams" rows="18" placeholder="Bruno e Julio&#10;Sacola e Gabriel&#10;Marcelo e Diego&#10;..."></textarea>
+                <small>A ordem aqui define os IDs (T1, T2, T3…). Use os mesmos nomes ao montar os grupos.</small>
+            </div>
+        </section>
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Grupos</h2>
+
+            <div class="admin-form__field">
+                <label for="num_groups">Número de grupos</label>
+                <select id="num_groups" name="num_groups" onchange="updateGroups(this.value)">
+                    <option value="2">2 grupos</option>
+                    <option value="4" selected>4 grupos</option>
+                    <option value="8">8 grupos</option>
+                </select>
+            </div>
+
+            <div id="groups-container">
+                {% for i in range(4) %}
+                <div class="admin-form__group-block" id="group-block-{{ i }}">
+                    <div class="admin-form__field">
+                        <label for="group_{{ i }}_name">Nome do Grupo {{ i+1 }}</label>
+                        <input type="text" id="group_{{ i }}_name" name="group_{{ i }}_name" value="Grupo {{ i+1 }}">
+                    </div>
+                    <div class="admin-form__field">
+                        <label for="group_{{ i }}">Times do Grupo {{ i+1 }} (um por linha)</label>
+                        <textarea id="group_{{ i }}" name="group_{{ i }}" rows="5" placeholder="Bruno e Julio&#10;Sacola e Gabriel&#10;..."></textarea>
+                        <small>Use exatamente o mesmo nome digitado na lista de times acima.</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Confirmação</h2>
+            <div class="admin-form__field">
+                <label for="admin_password">Senha de admin</label>
+                <input type="password" id="admin_password" name="admin_password" required>
+            </div>
+            <button type="submit" class="btn btn--primary">Criar torneio</button>
+        </section>
+    </form>
+</div>
+
+<script>
+function updateGroups(n) {
+    n = parseInt(n);
+    document.querySelectorAll('.admin-form__group-block').forEach(function(el, idx) {
+        el.style.display = idx < n ? '' : 'none';
+        el.querySelectorAll('input, textarea').forEach(function(input) {
+            input.disabled = idx >= n;
+        });
+    });
+}
+// Inicializa com o valor padrão
+updateGroups(document.getElementById('num_groups').value);
+</script>
+{% endblock %}

@@ -10,6 +10,10 @@ from src.redinha_stats.infrastructure.supabase.championship_repository import (
     fetch_scores_for_championship,
     upsert_score,
 )
+from src.redinha_stats.infrastructure.supabase.championships_repository import (
+    fetch_championships_for_group,
+    fetch_championship_by_slug,
+)
 from .championship_2026_02 import CHAMPIONSHIP_2026_02
 
 
@@ -18,12 +22,41 @@ _CHAMPIONSHIPS = {
 }
 
 
-def available_championship_keys() -> List[str]:
-    return sorted(_CHAMPIONSHIPS.keys(), reverse=True)
+def _db_championship_to_config(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Converte um registro da tabela championships para o formato interno."""
+    config = row.get("config") or {}
+    return {
+        "key": row["slug"],
+        "title": row["title"],
+        "description": row.get("description") or "",
+        "edit_password": row.get("edit_password") or "",
+        "teams": config.get("teams", []),
+        "groups": config.get("groups", []),
+        "_source": "db",
+        "_db_id": row["id"],
+    }
 
 
-def get_championship_edit_password(championship_key: str) -> str | None:
-    config = _CHAMPIONSHIPS.get(championship_key, {})
+def _all_championships(group_id: str | None = None) -> Dict[str, Dict[str, Any]]:
+    """Retorna todos os campeonatos disponíveis: hardcoded + banco (quando group_id fornecido)."""
+    result = dict(_CHAMPIONSHIPS)
+    if group_id:
+        try:
+            db_rows = fetch_championships_for_group(group_id)
+            for row in db_rows:
+                key = row["slug"]
+                result[key] = _db_championship_to_config(row)
+        except Exception:
+            pass  # banco indisponível — continua com hardcoded
+    return result
+
+
+def available_championship_keys(group_id: str | None = None) -> List[str]:
+    return sorted(_all_championships(group_id).keys(), reverse=True)
+
+
+def get_championship_edit_password(championship_key: str, group_id: str | None = None) -> str | None:
+    config = _all_championships(group_id).get(championship_key, {})
     password = config.get("edit_password")
     if password is None:
         return None
@@ -344,11 +377,13 @@ def _build_podium(
     }
 
 
-def get_championship_view(championship_key: str) -> Dict[str, Any]:
-    if championship_key not in _CHAMPIONSHIPS:
+def get_championship_view(championship_key: str, group_id: str | None = None) -> Dict[str, Any]:
+    all_champs = _all_championships(group_id)
+    if championship_key not in all_champs:
         raise KeyError(f"Championship data for key {championship_key} not found")
+    _CHAMPIONSHIPS_RESOLVED = all_champs
 
-    template = deepcopy(_CHAMPIONSHIPS[championship_key])
+    template = deepcopy(_CHAMPIONSHIPS_RESOLVED[championship_key])
     teams = template["teams"]
     groups = template["groups"]
     def _display_name(name: str) -> str:
@@ -578,11 +613,11 @@ def _parse_score(value: str | None) -> int | None:
     return parsed
 
 
-def save_match_score(championship_key: str, match_id: str, score_a_raw: str | None, score_b_raw: str | None) -> None:
-    if championship_key not in _CHAMPIONSHIPS:
+def save_match_score(championship_key: str, match_id: str, score_a_raw: str | None, score_b_raw: str | None, group_id: str | None = None) -> None:
+    if championship_key not in _all_championships(group_id):
         raise ValueError("Campeonato nao encontrado.")
 
-    view = get_championship_view(championship_key)
+    view = get_championship_view(championship_key, group_id=group_id)
     match_map = {m["id"]: m for m in view["editable_matches"]}
     target = match_map.get(match_id)
     if not target:

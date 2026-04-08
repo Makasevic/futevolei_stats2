@@ -81,6 +81,9 @@ SUPABASE_SERVICE_KEY: Final[str] = require_secret("SUPABASE_SERVICE_KEY")
 
 ADMIN_PASSWORD: Final[Optional[str]] = optional_secret("ADMIN_PASSWORD")
 MATCH_ENTRY_PASSWORD: Final[Optional[str]] = optional_secret("MATCH_ENTRY_PASSWORD")
+SUPERADMIN_PASSWORD: Final[Optional[str]] = optional_secret("SUPERADMIN_PASSWORD")
+RESEND_API_KEY: Final[Optional[str]] = optional_secret("RESEND_API_KEY")
+INVITE_FROM_EMAIL: Final[str] = optional_secret("INVITE_FROM_EMAIL") or "noreply@redinha.app"
 
 __all__ = [
     "SUPABASE_URL",
@@ -88,6 +91,7 @@ __all__ = [
     "SUPABASE_SERVICE_KEY",
     "ADMIN_PASSWORD",
     "MATCH_ENTRY_PASSWORD",
+    "SUPERADMIN_PASSWORD",
     "optional_secret",
     "require_secret",
 ]
