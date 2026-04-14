@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-panel">
+    <h1 class="admin-panel__title">Criar novo grupo</h1>
+
+    {% if success_url %}
+    <div class="feedback feedback--success">
+        Grupo criado com sucesso!
+        <a href="{{ success_url }}">Acessar {{ success_url }}</a>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="feedback feedback--error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/grupos/novo" class="admin-form">
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Dados do grupo</h2>
+
+            <div class="admin-form__field">
+                <label for="name">Nome do grupo</label>
+                <input class="input" type="text" id="name" name="name" placeholder="Ex: Redinha SP" required>
+            </div>
+
+            <div class="admin-form__field">
+                <label for="slug">Slug</label>
+                <input class="input" type="text" id="slug" name="slug" placeholder="Ex: redinha-sp" required>
+                <small class="meta">Só letras minúsculas, números e hífen. Aparece na URL: /g/<strong>slug</strong>/</small>
+            </div>
+        </section>
+
+        <section class="admin-form__section">
+            <h2 class="admin-form__section-title">Confirmação</h2>
+            <div class="admin-form__field">
+                <label for="superadmin_password">Senha de superadmin</label>
+                <input class="input" type="password" id="superadmin_password" name="superadmin_password" required>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Criar grupo</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

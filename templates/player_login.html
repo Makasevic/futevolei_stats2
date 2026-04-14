@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-panel">
+    <h1 class="admin-panel__title">Entrar</h1>
+
+    {% if error %}
+    <div class="feedback feedback--error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ base_url }}/login" class="admin-form">
+        <section class="admin-form__section">
+            <div class="admin-form__field">
+                <label for="email">Email</label>
+                <input class="input" type="email" id="email" name="email" required autofocus>
+            </div>
+            <div class="admin-form__field">
+                <label for="password">Senha</label>
+                <input class="input" type="password" id="password" name="password" required>
+            </div>
+        </section>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Entrar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

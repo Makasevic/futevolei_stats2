@@ -9,8 +9,8 @@ from typing import DefaultDict, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from app_settings import get_config
-from processing import (
+from src.redinha_stats.config.app_settings import get_config
+from src.redinha_stats.domain.matches.processing import (
     preparar_dados_confrontos_duplas,
     preparar_dados_confrontos_jogadores,
     preparar_dados_individuais,

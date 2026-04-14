@@ -4,12 +4,8 @@
 <header class="hero admin-hero">
     <div class="hero__copy">
         <p class="badge">Administração</p>
-        <h1>Gerencie partidas direto no Supabase</h1>
-        <p>
-            Cadastro rápido de novos jogos e manutenção do histórico existente.
-            Use a lista de jogadores para evitar digitação duplicada e mantenha
-            o calendário sempre atualizado.
-        </p>
+        <h1>Gerencie partidas</h1>
+        <p>Cadastro de jogos e manutenção do histórico.</p>
     </div>
 </header>
 
@@ -38,11 +34,24 @@
 </section>
 {% endif %}
 
+{% if not (requires_auth and not authenticated) %}
 <div class="admin-content">
+
+<section class="panel">
+    <div class="section-title">
+        <h2>Atualizar dados</h2>
+        <span class="meta">Recarregue o cache de partidas do Supabase</span>
+    </div>
+    <form method="post" class="form-actions">
+        <input type="hidden" name="action" value="refresh" />
+        <button class="btn-secondary" type="submit">Atualizar dados</button>
+    </form>
+</section>
+
 <section class="panel">
     <div class="section-title">
         <h2>Acesso ao torneio</h2>
-        <span class="meta">Desbloqueie o torneio para liberar ediÃ§Ã£o na aba torneios</span>
+        <span class="meta">Desbloqueie para liberar edição na aba torneios</span>
     </div>
     <form class="form-grid" method="post">
         <input type="hidden" name="action" value="unlock_tournament" />
@@ -56,59 +65,54 @@
         </label>
         <label>
             <span class="badge">Senha do torneio</span>
-            <input type="password" name="tournament_password" placeholder="Digite a senha do torneio" class="input" required />
+            <input type="password" name="tournament_password" placeholder="Senha do torneio" class="input" required />
         </label>
         <div class="form-actions">
             <button type="submit" class="btn-primary">Desbloquear torneio</button>
             {% if championship_can_edit %}
-            <p class="meta">Este torneio jÃ¡ estÃ¡ desbloqueado nesta sessÃ£o.</p>
+            <p class="meta">Torneio desbloqueado nesta sessão.</p>
             {% endif %}
         </div>
     </form>
 </section>
 
-{% if not (requires_auth and not authenticated) %}
 <section class="panel">
     <div class="section-title">
-        <h2>Atualizar dados</h2>
-        <span class="meta">Recarregue o cache de partidas do Supabase</span>
+        <h2>Jogadores</h2>
+        <span class="meta">Lista de jogadores cadastrados no grupo</span>
     </div>
-    <form method="post" class="form-actions">
-        <input type="hidden" name="action" value="refresh" />
-        <button class="btn-secondary" type="submit">Atualizar dados do Supabase</button>
+
+    <div class="players-grid">
+        {% for player in players %}
+        <span class="player-tag">{{ player }}</span>
+        {% endfor %}
+    </div>
+
+    <form class="form-grid" method="post" style="margin-top: 16px;">
+        <input type="hidden" name="action" value="add_player" />
+        <label>
+            <span class="badge">Novo jogador</span>
+            <input class="input" name="player_name" placeholder="Nome completo" required />
+        </label>
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Adicionar</button>
+        </div>
     </form>
 </section>
 
 <section class="panel">
     <div class="section-title">
-        <h2>Jogadores cadastrados</h2>
-        <span class="meta">Adicione novos nomes e copie a lista completa</span>
+        <h2>Convidar jogador</h2>
+        <span class="meta">Gera um link para o jogador criar a conta</span>
     </div>
-    <form class="form-grid" method="post">
-        <input type="hidden" name="action" value="add_player" />
-        <label>
-            <span class="badge">Novo jogador</span>
-            <input class="input" name="player_name" placeholder="Nome" required />
-        </label>
-        <div class="form-actions">
-            <button class="btn-primary" type="submit">Cadastrar jogador</button>
-        </div>
-    </form>
-    <div class="form-grid" style="margin-top: 12px;">
-        <label>
-            <span class="badge">Lista completa</span>
-            <textarea id="players-text" class="input" readonly rows="6">{{ players_text }}</textarea>
-        </label>
-        <div class="form-actions">
-            <button class="btn-secondary" type="button" id="copy-players">Copiar lista</button>
-        </div>
-    </div>
+    <p class="meta" style="margin-bottom: 12px;">O jogador deve estar na lista acima antes de receber o convite.</p>
+    <a href="{{ base_url }}/admin/convite" class="btn-primary">Gerar link de convite</a>
 </section>
 
 <section class="panel">
     <div class="section-title">
         <h2>Cadastrar nova partida</h2>
-        <span class="meta">Preencha os quatro jogadores e a data do jogo</span>
+        <span class="meta">Dupla vencedora (esquerda) × dupla perdedora (direita)</span>
     </div>
     <form class="form-grid" method="post">
         <input type="hidden" name="action" value="create" />
@@ -140,29 +144,8 @@
         <div class="form-actions">
             <button class="btn-primary" type="submit">Cadastrar partida</button>
             {% if role != 'full' %}
-            <p class="meta">Edição e exclusão ficam disponíveis apenas para administradores completos.</p>
+            <p class="meta">Edição e exclusão disponíveis apenas para administradores completos.</p>
             {% endif %}
-        </div>
-    </form>
-</section>
-
-<section class="panel">
-    <div class="section-title">
-        <h2>Lançar partidas em bloco</h2>
-        <span class="meta">Use o formato "jogador_a e jogador_b x jogador_c e jogador_d" por linha</span>
-    </div>
-    <form class="form-grid" method="post">
-        <input type="hidden" name="action" value="bulk_create" />
-        <label>
-            <span class="badge">Data das partidas</span>
-            <input class="input" type="date" name="bulk_date" value="{{ today }}" />
-        </label>
-        <label style="grid-column: 1 / -1;">
-            <span class="badge">Partidas</span>
-            <textarea class="input" name="bulk_matches" rows="6" placeholder="jogador_a e jogador_b x jogador_c e jogador_d&#10;jogador_b e jogador_b x jogador_k e jogador_d" required></textarea>
-        </label>
-        <div class="form-actions">
-            <button class="btn-primary" type="submit">Cadastrar partidas em bloco</button>
         </div>
     </form>
 </section>
@@ -172,7 +155,7 @@
 <section class="panel" style="margin-top: 18px;">
     <div class="section-title">
         <h2>Partidas cadastradas</h2>
-        <span class="meta">Atualize ou remova registros diretamente</span>
+        <span class="meta">Atualize ou remova registros</span>
     </div>
     <form class="form-actions admin-filter" method="get">
         <label>
@@ -200,14 +183,11 @@
             <input type="hidden" name="loser1" value="{{ match.loser1 }}" />
             <input type="hidden" name="loser2" value="{{ match.loser2 }}" />
             <input type="hidden" name="date" value="{{ match.date.isoformat() if match.date else '' }}" />
-            <span class="match-row__id">ID: {{ match.identifier_display }}</span>
+            <span class="match-row__id">{{ match.identifier_display }}</span>
             <span class="match-row__team">{{ match.winner1 }} &amp; {{ match.winner2 }}</span>
-            <input class="input input--mini" type="number" min="0" name="score_a" value="{{ match.score_a }}" aria-label="Pontos da dupla vencedora" {% if role != 'full' %}readonly{% endif %} />
-            <span class="match-row__vs">x</span>
-            <input class="input input--mini" type="number" min="0" name="score_b" value="{{ match.score_b }}" aria-label="Pontos da dupla perdedora" {% if role != 'full' %}readonly{% endif %} />
+            <span class="match-row__vs">×</span>
             <span class="match-row__team">{{ match.loser1 }} &amp; {{ match.loser2 }}</span>
             <div class="match-row__actions">
-                <button class="btn-primary btn-xs" type="submit" name="action" value="update" {% if role != 'full' %}disabled{% endif %}>Salvar</button>
                 <button class="btn-secondary btn-xs" type="submit" name="action" value="delete" {% if role != 'full' %}disabled{% endif %}>Excluir</button>
             </div>
         </form>
@@ -226,20 +206,4 @@
 </form>
 {% endif %}
 
-<script>
-    const copyButton = document.getElementById('copy-players');
-    const playersText = document.getElementById('players-text');
-    if (copyButton && playersText) {
-        copyButton.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(playersText.value.trim());
-                copyButton.textContent = 'Copiado!';
-                setTimeout(() => (copyButton.textContent = 'Copiar lista'), 2000);
-            } catch (err) {
-                copyButton.textContent = 'Erro ao copiar';
-            }
-        });
-    }
-</script>
 {% endblock %}
-

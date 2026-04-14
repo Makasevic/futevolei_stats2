@@ -35,7 +35,7 @@
             </div>
         </div>
     </div>
-    <form class="filter-bar awards-filter" method="get" action="{{ url_for('awards') }}">
+    <form class="filter-bar awards-filter" method="get" action="{{ base_url }}/awards">
         <div class="filter-group">
             <label for="awards-year">Ano</label>
             <select id="awards-year" name="year" class="select" onchange="this.form.submit()">
