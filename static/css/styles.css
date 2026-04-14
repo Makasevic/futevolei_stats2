@@ -85,6 +85,56 @@ h1, h2, h3, h4, h5, h6, strong, b {
 .brand__text strong { display: block; font-size: 16px; letter-spacing: -0.02em; }
 .brand__text span { color: var(--muted); font-size: 13px; }
 
+.player-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.player-badge__name {
+    font-size: 14px;
+    font-weight: var(--font-semibold);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.player-badge__name:hover { color: var(--accent); }
+
+.player-badge__logout {
+    font-size: 12px;
+    font-weight: var(--font-medium);
+    color: var(--muted);
+    text-decoration: none;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.player-badge__logout:hover {
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+.player-badge--login {
+    font-size: 13px;
+    font-weight: var(--font-semibold);
+    color: var(--accent);
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--accent);
+    background: transparent;
+    letter-spacing: 0.01em;
+    transition: background 0.15s, color 0.15s;
+}
+
+.player-badge--login:hover {
+    background: var(--accent);
+    color: #ffffff;
+}
+
 .menu { 
     display: flex;
     align-items: center;
@@ -102,14 +152,14 @@ h1, h2, h3, h4, h5, h6, strong, b {
     background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 10px 14px;
+    padding: 8px 12px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-width: 48px;
-    height: 42px;
+    min-width: 42px;
+    height: 36px;
     box-shadow: 0 10px 25px rgba(31, 51, 84, 0.12);
 }
 
@@ -217,13 +267,13 @@ h1, h2, h3, h4, h5, h6, strong, b {
 .menu__item {
     color: var(--muted);
     text-decoration: none;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-radius: 12px;
     border: 1px solid transparent;
     background: rgba(255, 255, 255, 0.6);
     transition: all 140ms ease;
     font-weight: var(--font-medium);
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .menu__item:hover {
@@ -314,7 +364,7 @@ header.hero::after {
 
 .hero h1 {
     margin: 0 0 10px;
-    font-size: 36px;
+    font-size: 28px;
     letter-spacing: -0.02em;
 }
 
@@ -350,7 +400,7 @@ header.hero::after {
 }
 
 .awards-hero h1 {
-    font-size: 34px;
+    font-size: 26px;
     background: linear-gradient(120deg, #b8891d, #f2d27c);
     -webkit-background-clip: text;
     background-clip: text;
@@ -380,12 +430,12 @@ header.hero::after {
 }
 
 .awards-summary__card span {
-    font-size: 22px;
+    font-size: 16px;
 }
 
 .awards-summary__card strong {
     display: block;
-    font-size: 20px;
+    font-size: 15px;
 }
 
 .awards-summary__detail {
@@ -424,14 +474,14 @@ header.hero::after {
 }
 
 .stat-card__icon {
-    width: 56px;
-    height: 56px;
+    width: 46px;
+    height: 46px;
     display: grid;
     place-items: center;
-    border-radius: 16px;
+    border-radius: 14px;
     background: linear-gradient(145deg, rgba(47, 107, 255, 0.12), rgba(19, 182, 167, 0.12));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 24px rgba(47, 107, 255, 0.2);
-    font-size: 24px;
+    font-size: 20px;
 }
 
 .stat-card__label {
@@ -442,7 +492,7 @@ header.hero::after {
     color: #1d3f99;
 }
 
-.stat-card strong { display: block; font-size: 30px; margin: 0 0 6px; }
+.stat-card strong { display: block; font-size: 22px; margin: 0 0 4px; }
 .stat-card span { color: var(--muted); font-size: 13px; }
 
 .filter-bar {
@@ -473,7 +523,7 @@ header.hero::after {
 .filter-bar > .filter-group--players { order: 3; }
 
 .filter-bar > .btn-refresh {
-    height: 36px;
+    height: 31px;
     align-self: center;
 }
 
@@ -604,12 +654,12 @@ header.hero::after {
     background: #ffffff;
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 11px 12px;
+    padding: 8px 10px;
     border-radius: 12px;
     outline: none;
-    min-width: 170px;
+    min-width: 160px;
     font-weight: var(--font-medium);
-    font-size: 14px;
+    font-size: 13px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
@@ -617,14 +667,14 @@ header.hero::after {
     background: linear-gradient(135deg, #2f6bff, #13b6a7);
     color: #ffffff;
     border: none;
-    padding: 10px 16px;
-    border-radius: 14px;
+    padding: 8px 12px;
+    border-radius: 12px;
     font-weight: var(--font-bold);
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1;
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
-    box-shadow: 0 12px 30px rgba(47, 107, 255, 0.32);
+    box-shadow: 0 8px 22px rgba(47, 107, 255, 0.28);
 }
 
 .btn-refresh:hover { transform: translateY(-1px); }
@@ -690,7 +740,7 @@ header.hero::after {
 
 .section-title h2 {
     margin: 4px 0 2px;
-    font-size: 22px;
+    font-size: 18px;
 }
 
 .admin-content .section-title h2 { font-size: 18px; }
@@ -859,7 +909,7 @@ header.hero::after {
 }
 
 .awards-crown {
-    font-size: 26px;
+    font-size: 20px;
 }
 
 .awards-winner__name {
@@ -901,9 +951,10 @@ header.hero::after {
     background: transparent;
     color: var(--muted);
     border: none;
-    padding: 10px 14px;
+    padding: 7px 12px;
     border-radius: 10px;
     font-weight: var(--font-semibold);
+    font-size: 13px;
     letter-spacing: -0.01em;
     cursor: pointer;
     transition: all 140ms ease;
@@ -942,13 +993,13 @@ header.hero::after {
 }
 
 .highlight-card__icon {
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     display: grid;
     place-items: center;
-    border-radius: 16px;
+    border-radius: 13px;
     background: linear-gradient(145deg, rgba(47, 107, 255, 0.12), rgba(19, 182, 167, 0.12));
-    font-size: 24px;
+    font-size: 20px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 24px rgba(47, 107, 255, 0.18);
 }
 
@@ -963,11 +1014,11 @@ header.hero::after {
     text-transform: uppercase;
 }
 
-.highlight-card__value { margin: 0; font-size: 20px; }
+.highlight-card__value { margin: 0; font-size: 16px; }
 .highlight-card p { margin: 0; color: var(--muted); font-size: 14px; }
 
 .highlight-medal {
-    font-size: 32px;
+    font-size: 22px;
     line-height: 1;
     filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.18));
 }
@@ -1120,7 +1171,7 @@ header.hero::after {
 
 .compact-value {
     font-weight: var(--font-bold);
-    font-size: 18px;
+    font-size: 15px;
     margin-bottom: 2px;
 }
 
@@ -1189,12 +1240,12 @@ header.hero::after {
 }
 
 .score-ring {
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-size: 22px;
+    font-size: 17px;
     background: linear-gradient(160deg, rgba(47, 107, 255, 0.14), rgba(19, 182, 167, 0.14));
     border: 1px solid var(--border);
 }
@@ -1236,7 +1287,7 @@ header.hero::after {
 .profile-row .value {
     margin: 2px 0 0;
     font-weight: var(--font-bold);
-    font-size: 17px;
+    font-size: 15px;
 }
 
 .split-grid {
@@ -1323,7 +1374,7 @@ header.hero::after {
     }
 
     .container { padding: 28px 18px 100px; }
-    .hero h1 { font-size: 30px; }
+    .hero h1 { font-size: 24px; }
 }
 
 @media (max-width: 640px) {
@@ -1401,7 +1452,7 @@ header.hero::after {
 
 .info-hero h1 {
     margin: 0;
-    font-size: 38px;
+    font-size: 28px;
     letter-spacing: -0.03em;
 }
 
@@ -1440,7 +1491,7 @@ header.hero::after {
 
 .stat-badge strong {
     display: block;
-    font-size: 26px;
+    font-size: 20px;
     letter-spacing: -0.02em;
 }
 
@@ -1518,8 +1569,8 @@ header.hero::after {
 }
 
 .info-card h3 {
-    margin: 10px 0 6px;
-    font-size: 20px;
+    margin: 8px 0 4px;
+    font-size: 16px;
 }
 
 .info-card p {
@@ -1561,7 +1612,7 @@ header.hero::after {
 .btn-secondary {
     border: none;
     border-radius: 12px;
-    padding: 11px 14px;
+    padding: 9px 12px;
     font-weight: var(--font-bold);
     cursor: pointer;
 }
@@ -1677,7 +1728,7 @@ header.hero::after {
 }
 
 .admin-panel__title {
-    font-size: 26px;
+    font-size: 20px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
 }
@@ -1865,7 +1916,7 @@ header.hero::after {
 
 .xray-card__title {
     margin: 6px 0 4px;
-    font-size: 24px;
+    font-size: 18px;
     letter-spacing: -0.01em;
 }
 
@@ -1904,7 +1955,7 @@ header.hero::after {
 .xray-value {
     margin: 2px 0 4px;
     font-weight: var(--font-bold);
-    font-size: 18px;
+    font-size: 15px;
 }
 
 @media (max-width: 720px) {
@@ -1934,7 +1985,7 @@ header.hero::after {
 
 .xray-card__title {
     margin: 6px 0 4px;
-    font-size: 24px;
+    font-size: 18px;
     letter-spacing: -0.01em;
 }
 
@@ -1973,7 +2024,7 @@ header.hero::after {
 .xray-value {
     margin: 2px 0 4px;
     font-weight: var(--font-bold);
-    font-size: 18px;
+    font-size: 15px;
 }
 
 @media (max-width: 720px) {
@@ -2007,7 +2058,7 @@ header.hero::after {
     filter: blur(2px);
 }
 
-.info-hero h1 { margin: 0 0 8px; font-size: 38px; letter-spacing: -0.02em; }
+.info-hero h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
 .info-hero__text { color: var(--muted); margin: 0 0 14px; line-height: 1.6; }
 
 .info-hero__ribbon {
@@ -2026,7 +2077,7 @@ header.hero::after {
 }
 
 .ribbon-label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
-.ribbon-item strong { font-size: 26px; display: block; margin-top: 4px; letter-spacing: -0.01em; }
+.ribbon-item strong { font-size: 20px; display: block; margin-top: 4px; letter-spacing: -0.01em; }
 
 .info-hero__panel {
     background: #ffffff;
@@ -2086,7 +2137,7 @@ header.hero::after {
 }
 
 .hero-stat__label { margin: 0; color: var(--muted); font-weight: var(--font-semibold); letter-spacing: 0.01em; }
-.hero-stat__value { margin: 2px 0 0; font-size: 24px; font-weight: var(--font-bold); }
+.hero-stat__value { margin: 2px 0 0; font-size: 18px; font-weight: var(--font-bold); }
 
 .info-section {
     background: #ffffff;
@@ -2134,7 +2185,7 @@ header.hero::after {
     font-size: 12px;
 }
 
-.info-card h3 { margin: 10px 0 4px; font-size: 20px; }
+.info-card h3 { margin: 8px 0 4px; font-size: 16px; }
 
 .chip {
     display: inline-flex;
@@ -2182,7 +2233,7 @@ header.hero::after {
     .topbar__inner { padding: 12px 16px; }
     .container { padding: 22px 16px 90px; }
     .hero { padding: 18px; }
-    .hero h1 { font-size: 26px; }
+    .hero h1 { font-size: 20px; }
     .hero p { font-size: 14px; }
     .filter-bar { flex-direction: column; align-items: stretch; }
     .filter-group {
@@ -2240,7 +2291,7 @@ header.hero::after {
 
 .champ-header h1 {
     margin: 4px 0 0;
-    font-size: 28px;
+    font-size: 22px;
 }
 
 .champ-header-description {
@@ -2253,7 +2304,7 @@ header.hero::after {
 .champ-main-title {
     margin: 6px 0 14px;
     text-align: center;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1.1;
     font-weight: 800;
     color: #1f2a3d;
@@ -2563,7 +2614,7 @@ header.hero::after {
 
 .champ-podium-emoji {
     margin: 0;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1;
 }
 
@@ -2590,7 +2641,7 @@ header.hero::after {
 }
 
 .champ-podium-card--first .champ-podium-emoji {
-    font-size: 34px;
+    font-size: 26px;
 }
 
 .champ-podium-card--first .champ-podium-place {
@@ -2598,7 +2649,7 @@ header.hero::after {
 }
 
 .champ-podium-card--first h3 {
-    font-size: 24px;
+    font-size: 18px;
 }
 
 .champ-podium-card--second {

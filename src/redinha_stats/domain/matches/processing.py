@@ -52,7 +52,9 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
         if valor == "1 dia":
             data_ini = df.index.max()
             return df[df.index >= data_ini]
-        if valor == "30 dias":
+        if valor == "7 dias":
+            data_ini = hoje - timedelta(days=7)
+        elif valor == "30 dias":
             data_ini = hoje - timedelta(days=30)
         elif valor == "60 dias":
             data_ini = hoje - timedelta(days=60)
@@ -69,7 +71,10 @@ def filtrar_dados(df: pd.DataFrame, modo: str, valor: str) -> pd.DataFrame:
 
     if modo_normalizado == "Mes/Ano":
         periodo = pd.Period(valor, freq="M")
-        return df[df.index.to_period("M") == periodo]
+        idx = df.index
+        if isinstance(idx, pd.DatetimeIndex) and idx.tz is not None:
+            idx = idx.tz_convert("UTC").tz_localize(None)
+        return df[idx.to_period("M") == periodo]
 
     ano_int = int(valor)
     return df[df.index.year == ano_int]

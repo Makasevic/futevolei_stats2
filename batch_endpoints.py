@@ -4,6 +4,10 @@ from uuid import uuid4
 
 # Importa secrets do seu sistema
 from src.redinha_stats.config.settings import SUPABASE_SERVICE_KEY, SUPABASE_URL
+from src.redinha_stats.infrastructure.supabase.groups_repository import fetch_group_by_slug
+
+# Grupo fixo que lança partidas via GPT
+_GPT_GROUP_SLUG = "redinha"
 
 bp = Blueprint("batch_endpoints", __name__)
 
@@ -64,6 +68,12 @@ def confirm_batch(token):
     match_date = payload["date"]
     matches = payload["matches"]
 
+    # Resolve o group_id do grupo fixo que usa o GPT
+    group = fetch_group_by_slug(_GPT_GROUP_SLUG)
+    if not group:
+        return Response(f"<h2>❌ Grupo '{_GPT_GROUP_SLUG}' não encontrado</h2>", mimetype="text/html")
+    group_id = group["id"]
+
     # Prepara as linhas para inserir
     entries = []
     for m in matches:
@@ -73,6 +83,7 @@ def confirm_batch(token):
             "winner2": m["winner2"],
             "loser1": m["loser1"],
             "loser2": m["loser2"],
+            "group_id": group_id,
         })
 
     try:

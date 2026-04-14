@@ -12,7 +12,7 @@ def normalize_filter_mode(value: str | None) -> str:
     normalized = (value or "Dia").strip()
     if normalized == "Dias":
         return "Dia"
-    if normalized in {"Mes/Ano", "MÃªs/Ano", "MÃƒÂªs/Ano"}:
+    if normalized in {"Mes/Ano", "Mês/Ano", "MÃªs/Ano", "MÃƒÂªs/Ano"}:
         return "Mes/Ano"
     return normalized
 

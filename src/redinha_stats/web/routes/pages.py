@@ -31,7 +31,7 @@ def ranking_page_response(
     base_df = fetch_base_dataframe()
     datas_index = pd.to_datetime(base_df.index, errors="coerce")
     anos_disponiveis = sorted({str(int(dt.year)) for dt in datas_index if pd.notna(dt)})
-    meses_disponiveis = sorted({dt.strftime("%Y-%m") for dt in datas_index if pd.notna(dt)})
+    meses_disponiveis = sorted({dt.strftime("%Y-%m") for dt in datas_index if pd.notna(dt)}, reverse=True)
     datas_disponiveis = sorted(
         {dt.normalize().date().isoformat() for dt in datas_index if pd.notna(dt)},
         reverse=True,
@@ -44,7 +44,7 @@ def ranking_page_response(
         periodo = "1 dia"
     if modo == "Ano" and ano not in anos_disponiveis:
         ano = anos_disponiveis[-1] if anos_disponiveis else None
-    if modo == "MÃªs/Ano" and mes not in meses_disponiveis:
+    if modo == "Mes/Ano" and mes not in meses_disponiveis:
         mes = meses_disponiveis[-1] if meses_disponiveis else None
     if modo == "Data" and data_escolhida not in datas_disponiveis:
         data_escolhida = datas_disponiveis[0] if datas_disponiveis else None

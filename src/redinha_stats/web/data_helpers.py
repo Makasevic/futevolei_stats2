@@ -58,15 +58,21 @@ def filtrar_por_intervalo(
         df = df.copy()
         df.index = pd.to_datetime(df.index, errors="coerce")
 
-    try:
-        data_inicio = pd.to_datetime(inicio) if inicio else None
-    except (TypeError, ValueError):
-        data_inicio = None
+    tzinfo = getattr(df.index, "tz", None)
 
-    try:
-        data_fim = pd.to_datetime(fim) if fim else None
-    except (TypeError, ValueError):
-        data_fim = None
+    def _parse_date(value: str | None) -> pd.Timestamp | None:
+        if not value:
+            return None
+        try:
+            ts = pd.to_datetime(value)
+            if tzinfo is not None:
+                ts = ts.tz_localize(tzinfo)
+            return ts
+        except (TypeError, ValueError):
+            return None
+
+    data_inicio = _parse_date(inicio)
+    data_fim = _parse_date(fim)
 
     if data_inicio is None and data_fim is None:
         return df
@@ -75,7 +81,9 @@ def filtrar_por_intervalo(
     if data_inicio is not None:
         filtrado = filtrado[filtrado.index >= data_inicio]
     if data_fim is not None:
-        filtrado = filtrado[filtrado.index <= data_fim]
+        # inclui o dia inteiro do fim
+        data_fim_exclusive = data_fim + pd.Timedelta(days=1)
+        filtrado = filtrado[filtrado.index < data_fim_exclusive]
     return filtrado
 
 
