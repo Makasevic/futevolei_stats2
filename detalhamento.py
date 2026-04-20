@@ -215,14 +215,10 @@ def _aplicar_regras_ranking(tabela: pd.DataFrame, config) -> pd.DataFrame:
 def _formatar_parcerias(
     parcerias: Dict[str, Dict[str, int]],
     total_jogos: int,
-    parceiros_validos: Optional[set[str]] = None,
     jogador: Optional[str] = None,
     limite: int = 10,
 ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
-    if parceiros_validos:
-        parceiros_base = [nome for nome in parceiros_validos if nome and nome != jogador]
-    else:
-        parceiros_base = [nome for nome in parcerias.keys() if nome and nome != jogador]
+    parceiros_base = [nome for nome in parcerias.keys() if nome and nome != jogador]
 
     if not parceiros_base:
         return [], []
@@ -351,15 +347,9 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
 
     destaque_fregueses, destaque_carrascos = _saldo_confrontos_jogador(df, jogador)
 
-    df_base = df[["winner1", "winner2", "loser1", "loser2"]]
-    tabela_geral = preparar_dados_individuais(df_base)
-    tabela_geral = _aplicar_regras_ranking(tabela_geral, config)
-    parceiros_validos = set(tabela_geral["jogadores"].tolist()) if not tabela_geral.empty else set()
-
     parcerias_top, parcerias_bottom = _formatar_parcerias(
         parcerias_detalhes,
         total_jogos,
-        parceiros_validos,
         jogador=jogador,
         limite=10,
     )

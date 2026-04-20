@@ -3,7 +3,15 @@
     "allow": [
       "Bash(xargs grep:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(kill %1)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }
