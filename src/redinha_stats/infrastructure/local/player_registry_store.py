@@ -10,6 +10,10 @@ from typing import List
 _STORE_PATH = Path(__file__).resolve().parents[4] / "players_registry.json"
 
 
+def _normalize_player_name(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
 def _ensure_store() -> None:
     _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not _STORE_PATH.exists():
@@ -27,13 +31,13 @@ def load_registered_players() -> List[str]:
     except (json.JSONDecodeError, OSError):
         return []
 
-    return [str(item).strip() for item in data if str(item).strip()]
+    return [_normalize_player_name(str(item)) for item in data if _normalize_player_name(str(item))]
 
 
 def add_player(name: str) -> bool:
     """Adiciona um novo jogador ao registro persistido."""
 
-    normalized = name.strip()
+    normalized = _normalize_player_name(name)
     if not normalized:
         return False
 

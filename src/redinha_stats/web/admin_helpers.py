@@ -7,6 +7,10 @@ from typing import Any, Callable, Dict, Iterable, List, Sequence
 import pandas as pd
 
 
+def normalize_player_name(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
 def normalize_admin_date(value: Any) -> date | None:
     if value is None:
         return None
@@ -44,7 +48,7 @@ def players_from_df(df: pd.DataFrame | None, team_fields: Sequence[str]) -> List
         if field not in df.columns:
             continue
         for value in df[field].tolist():
-            name = str(value or "").strip()
+            name = normalize_player_name(value)
             if name and name not in seen:
                 seen.add(name)
                 players.append(name)
@@ -64,7 +68,7 @@ def players_ranked_by_games(df: pd.DataFrame | None, team_fields: Sequence[str])
         for value in df[field].tolist():
             if pd.isna(value):
                 continue
-            name = str(value).strip()
+            name = normalize_player_name(value)
             if not name or "Outro" in name:
                 continue
             games_by_player[name] += 1
@@ -84,7 +88,7 @@ def registered_players(
     excluded_players: Callable[[], set],
 ) -> List[str]:
     base_players = set(players_from_df(df, team_fields))
-    manual_players = {name for name in load_registered_players() if name}
+    manual_players = {normalize_player_name(name) for name in load_registered_players() if name}
     combined = sorted((base_players | manual_players) - excluded_players())
     return combined
 
@@ -103,10 +107,10 @@ def matches_from_df(
         match: Dict[str, Any] = {
             "id": row.get("id"),
             "match_id": row.get("match_id"),
-            "winner1": str(row.get("winner1") or "").strip(),
-            "winner2": str(row.get("winner2") or "").strip(),
-            "loser1": str(row.get("loser1") or "").strip(),
-            "loser2": str(row.get("loser2") or "").strip(),
+            "winner1": normalize_player_name(row.get("winner1")),
+            "winner2": normalize_player_name(row.get("winner2")),
+            "loser1": normalize_player_name(row.get("loser1")),
+            "loser2": normalize_player_name(row.get("loser2")),
             "score": str(row.get("score") or "").strip(),
         }
         score_a = ""

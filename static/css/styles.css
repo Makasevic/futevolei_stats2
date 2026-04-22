@@ -1042,6 +1042,23 @@ header.hero::after {
     box-shadow: 0 12px 32px rgba(31, 51, 84, 0.08);
 }
 
+.chart-frequency {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: var(--font-medium);
+}
+
+.chart-frequency .select {
+    min-width: 112px;
+}
+
+.chart-frequency--inline {
+    margin: 0 0 10px;
+}
+
 .ranking-table {
     width: 100%;
     border-collapse: collapse;
@@ -1921,6 +1938,12 @@ header.hero::after {
 .partner-quality-column__stars {
     font-size: 16px;
     line-height: 1.2;
+}
+
+.partner-quality-column__hint {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
 }
 
 .partner-quality-list {

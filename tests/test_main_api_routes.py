@@ -410,3 +410,28 @@ def test_admin_login_sets_session(client, main_api_module, monkeypatch):
         assert session["admin_authenticated"] is True
         assert session["admin_role"] == "full"
         assert session["admin_feedback"]["status"] == "success"
+
+
+def test_admin_create_match_collapses_repeated_spaces(client, main_api_module, monkeypatch):
+    captured_payloads = []
+    monkeypatch.setattr(main_api_module, "ADMIN_PASSWORD", "")
+    monkeypatch.setattr(main_api_module, "MATCH_ENTRY_PASSWORD", "")
+    monkeypatch.setattr(main_api_module, "_fetch_base_dataframe", lambda: object())
+    monkeypatch.setattr(main_api_module, "_registered_players", lambda df: ["J. Victor Adão", "Ana", "Bia", "Caio"])
+    monkeypatch.setattr(main_api_module, "insert_match", lambda payload: captured_payloads.append(payload))
+    monkeypatch.setattr(main_api_module, "_reset_cache", lambda: None)
+
+    response = client.post(
+        "/admin",
+        data={
+            "action": "create",
+            "winner1": "J. Victor  Adão",
+            "winner2": "Ana",
+            "loser1": "Bia",
+            "loser2": "Caio",
+            "date": "2026-04-22",
+        },
+    )
+
+    assert response.status_code == 302
+    assert captured_payloads[0]["winner1"] == "J. Victor Adão"

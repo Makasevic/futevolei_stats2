@@ -18,6 +18,10 @@ USERS_TABLE = "users"
 GROUP_MEMBERS_TABLE = "group_members"
 
 
+def _normalize_player_name(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
 @lru_cache(maxsize=1)
 def _get_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -39,7 +43,7 @@ def fetch_players_for_group(group_id: str) -> List[str]:
     names: List[str] = []
     for row in (response.data or []):
         user = row.get("users") or {}
-        name = str(user.get("name") or "").strip()
+        name = _normalize_player_name(str(user.get("name") or ""))
         if name:
             names.append(name)
 
@@ -54,7 +58,7 @@ def add_player_to_group(group_id: str, name: str, role: str = "player") -> Optio
     Retorna o registro de group_members criado, ou None se o jogador já estava no grupo.
     """
 
-    normalized = name.strip()
+    normalized = _normalize_player_name(name)
     if not normalized:
         raise ValueError("Nome do jogador não pode ser vazio.")
 

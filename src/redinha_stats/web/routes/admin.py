@@ -5,6 +5,8 @@ from typing import Any, Callable
 
 from flask import request, session
 
+from src.redinha_stats.web.admin_helpers import normalize_player_name
+
 
 def admin_page_response(
     *,
@@ -104,7 +106,7 @@ def admin_page_response(
             return redirect_to_admin()
 
         if action == "add_player":
-            player_name = request.form.get("player_name", "").strip()
+            player_name = normalize_player_name(request.form.get("player_name", ""))
             if not player_name:
                 set_admin_feedback("error", "Informe o nome do jogador.")
                 return redirect_to_admin()
@@ -190,10 +192,10 @@ def admin_page_response(
                 score_value = f"{int(score_a_raw)}x{int(score_b_raw)}"
 
             payload = {
-                "winner1": request.form.get("winner1", "").strip(),
-                "winner2": request.form.get("winner2", "").strip(),
-                "loser1": request.form.get("loser1", "").strip(),
-                "loser2": request.form.get("loser2", "").strip(),
+                "winner1": normalize_player_name(request.form.get("winner1", "")),
+                "winner2": normalize_player_name(request.form.get("winner2", "")),
+                "loser1": normalize_player_name(request.form.get("loser1", "")),
+                "loser2": normalize_player_name(request.form.get("loser2", "")),
                 "date": parse_form_date(request.form.get("date")),
             }
             if score_value is not None:

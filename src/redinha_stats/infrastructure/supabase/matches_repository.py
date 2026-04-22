@@ -11,6 +11,19 @@ from src.redinha_stats.config.settings import SUPABASE_ANON_KEY, SUPABASE_URL
 
 
 MATCHES_TABLE = "matches"
+TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
+
+
+def _normalize_player_name(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _sanitize_match_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    sanitized = dict(payload)
+    for field in TEAM_FIELDS:
+        if field in sanitized:
+            sanitized[field] = _normalize_player_name(sanitized[field])
+    return sanitized
 
 
 @lru_cache(maxsize=1)
@@ -43,7 +56,7 @@ def insert_match(match: Dict[str, Any], group_id: Optional[str] = None) -> Mutab
     If *group_id* is provided, it is merged into the payload.
     """
 
-    payload = dict(match)
+    payload = _sanitize_match_payload(match)
     if group_id is not None:
         payload["group_id"] = group_id
 
@@ -69,7 +82,7 @@ def update_match(
     response = (
         _get_client()
         .table(MATCHES_TABLE)
-        .update(updates)
+            .update(_sanitize_match_payload(updates))
         .eq(id_field, match_id)
         .execute()
     )

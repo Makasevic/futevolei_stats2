@@ -5,6 +5,8 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
+from src.redinha_stats.web.admin_helpers import normalize_player_name
+
 
 def normalize_filter_mode(value: str | None) -> str:
     """Normaliza nomes de filtros legados para valores internos estaveis."""
@@ -151,7 +153,7 @@ def with_index(linhas: List[Dict[str, str]]) -> List[Dict[str, str]]:
 def serialize_payload(payload: Dict[str, Any], team_fields: List[str]) -> Dict[str, Any]:
     data_value = payload.get("date")
     serialized: Dict[str, Any] = {
-        field: payload.get(field, "").strip() for field in team_fields
+        field: normalize_player_name(payload.get(field, "")) for field in team_fields
     }
     if isinstance(data_value, date):
         serialized["date"] = data_value.isoformat()
@@ -176,8 +178,8 @@ def parse_bulk_line(line: str) -> Dict[str, str] | None:
         return None
 
     return {
-        "winner1": match.group("w1").strip(),
-        "winner2": match.group("w2").strip(),
-        "loser1": match.group("l1").strip(),
-        "loser2": match.group("l2").strip(),
+        "winner1": normalize_player_name(match.group("w1")),
+        "winner2": normalize_player_name(match.group("w2")),
+        "loser1": normalize_player_name(match.group("l1")),
+        "loser2": normalize_player_name(match.group("l2")),
     }

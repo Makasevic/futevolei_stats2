@@ -66,7 +66,6 @@
         <div class="tab-content active general-tab-content" id="geral-parceiros">
             <div class="section-title section-title--compact">
                 <h2>Qualidade media dos parceiros</h2>
-                <span class="meta">Jogadores agrupados pela forca media dos parceiros com quem atuaram</span>
             </div>
             {% if detalhes and detalhes.qualidade_parceiros|length > 0 %}
                 <div class="partner-quality-grid">
@@ -74,7 +73,11 @@
                         <div class="partner-quality-column">
                             <div class="partner-quality-column__header">
                                 <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
-                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                                {% if coluna.rating == 5 %}
+                                    <span class="partner-quality-column__hint">Costuma atuar com parceiros mais fortes.</span>
+                                {% elif coluna.rating == 1 %}
+                                    <span class="partner-quality-column__hint">Costuma atuar com parceiros mais fracos.</span>
+                                {% endif %}
                             </div>
                             <div class="partner-quality-list">
                                 {% for jogador in coluna.jogadores %}
@@ -97,7 +100,6 @@
         <div class="tab-content general-tab-content" id="geral-rotatividade">
             <div class="section-title section-title--compact">
                 <h2>Rotatividade</h2>
-                <span class="meta">Jogadores agrupados por variedade de parceiros por jogo</span>
             </div>
             {% if detalhes and detalhes.rotatividade|length > 0 %}
                 <div class="partner-quality-grid">
@@ -105,7 +107,11 @@
                         <div class="partner-quality-column">
                             <div class="partner-quality-column__header">
                                 <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
-                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                                {% if coluna.rating == 5 %}
+                                    <span class="partner-quality-column__hint">Varia bastante os parceiros ao longo dos jogos.</span>
+                                {% elif coluna.rating == 1 %}
+                                    <span class="partner-quality-column__hint">Joga com um grupo mais repetido de parceiros.</span>
+                                {% endif %}
                             </div>
                             <div class="partner-quality-list">
                                 {% for jogador in coluna.jogadores %}
@@ -128,7 +134,6 @@
         <div class="tab-content general-tab-content" id="geral-assiduidade">
             <div class="section-title section-title--compact">
                 <h2>Assiduidade</h2>
-                <span class="meta">Jogadores agrupados por presenca nos dias registrados</span>
             </div>
             {% if detalhes and detalhes.assiduidade|length > 0 %}
                 <div class="partner-quality-grid">
@@ -136,7 +141,11 @@
                         <div class="partner-quality-column">
                             <div class="partner-quality-column__header">
                                 <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
-                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                                {% if coluna.rating == 5 %}
+                                    <span class="partner-quality-column__hint">Comparece em mais dias desde sua primeira participacao.</span>
+                                {% elif coluna.rating == 1 %}
+                                    <span class="partner-quality-column__hint">Comparece em menos dias desde sua primeira participacao.</span>
+                                {% endif %}
                             </div>
                             <div class="partner-quality-list">
                                 {% for jogador in coluna.jogadores %}
@@ -160,7 +169,6 @@
         <div class="tab-content general-tab-content" id="geral-media-jogos">
             <div class="section-title section-title--compact">
                 <h2>Media de jogos por dia</h2>
-                <span class="meta">Jogadores agrupados por volume nos dias em que compareceram</span>
             </div>
             {% if detalhes and detalhes.media_jogos|length > 0 %}
                 <div class="partner-quality-grid">
@@ -168,7 +176,11 @@
                         <div class="partner-quality-column">
                             <div class="partner-quality-column__header">
                                 <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
-                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                                {% if coluna.rating == 5 %}
+                                    <span class="partner-quality-column__hint">Joga mais partidas nos dias em que aparece.</span>
+                                {% elif coluna.rating == 1 %}
+                                    <span class="partner-quality-column__hint">Joga menos partidas nos dias em que aparece.</span>
+                                {% endif %}
                             </div>
                             <div class="partner-quality-list">
                                 {% for jogador in coluna.jogadores %}
@@ -192,7 +204,7 @@
         <div class="tab-content general-tab-content" id="geral-tendencia">
             <div class="section-title section-title--compact">
                 <h2>Tendencia</h2>
-                <span class="meta">Jogadores separados por movimento recente de desempenho</span>
+                <span class="meta">Compara o desempenho dos ultimos 3 meses com o desempenho dos ultimos 12 meses.</span>
             </div>
             <div class="trend-columns">
                 {% for coluna in detalhes.tendencia_colunas %}
@@ -327,8 +339,19 @@
 
         <section class="panel" style="margin-top:18px;">
             <div class="section-title">
-                <h2>Score ao longo do tempo</h2>
-                <span class="meta">Últimos registros do aproveitamento diário</span>
+                <div>
+                    <h2>Score ao longo do tempo</h2>
+                    <span class="meta">Aproveitamento por periodo</span>
+                </div>
+                {% if detalhes.score_series|length > 0 %}
+                    <label class="chart-frequency">
+                        <span>Frequ&ecirc;ncia</span>
+                        <select class="select score-frequency-select" data-chart-target="scoreChart">
+                            <option value="mes" selected>M&ecirc;s</option>
+                            <option value="dia">Dia</option>
+                        </select>
+                    </label>
+                {% endif %}
             </div>
             {% if detalhes.score_series|length == 0 %}
                 <p class="meta">Sem partidas suficientes para calcular o score.</p>
@@ -506,8 +529,19 @@
 
         <section class="panel" style="margin-top:18px;">
             <div class="section-title">
-                <h2>Score da dupla</h2>
-                <span class="meta">Aproveitamento diário e média móvel</span>
+                <div>
+                    <h2>Score da dupla</h2>
+                    <span class="meta">Aproveitamento por periodo</span>
+                </div>
+                {% if detalhes.score_series|length > 0 %}
+                    <label class="chart-frequency">
+                        <span>Frequ&ecirc;ncia</span>
+                        <select class="select score-frequency-select" data-chart-target="scoreChartDupla">
+                            <option value="mes" selected>M&ecirc;s</option>
+                            <option value="dia">Dia</option>
+                        </select>
+                    </label>
+                {% endif %}
             </div>
             {% if detalhes.score_series|length == 0 %}
                 <p class="meta">Sem partidas suficientes para calcular o score.</p>
@@ -625,17 +659,29 @@
             });
         });
 
-        const serieScore = {{ detalhes.score_series|default([])|tojson if detalhes else '[]' }};
+        {% if detalhes and detalhes.score_series_by_frequency is defined %}
+            const scoreSeriesByFrequency = {{ detalhes.score_series_by_frequency|tojson }};
+        {% elif detalhes and detalhes.score_series is defined %}
+            const scoreSeriesByFrequency = {{ {'mes': detalhes.score_series, 'dia': []}|tojson }};
+        {% else %}
+            const scoreSeriesByFrequency = { mes: [], dia: [] };
+        {% endif %}
+        const scoreCharts = {};
 
-        const createScoreChart = (canvasId, series) => {
+        const createScoreChart = (canvasId, series, frequency = 'mes') => {
             const canvas = document.getElementById(canvasId);
             if (!canvas || !window.Chart || !Array.isArray(series) || series.length === 0) return;
 
             const labels = series.map((item) => item.data);
             const scores = series.map((item) => item.score ?? null);
             const mediasMoveis = series.map((item) => item.media_movel ?? null);
+            const movingAverageLabel = frequency === 'dia' ? 'Media movel 30d (%)' : 'Media movel 3m (%)';
 
-            new Chart(canvas, {
+            if (scoreCharts[canvasId]) {
+                scoreCharts[canvasId].destroy();
+            }
+
+            scoreCharts[canvasId] = new Chart(canvas, {
                 type: 'line',
                 data: {
                     labels,
@@ -697,10 +743,20 @@
                     },
                 },
             });
+            scoreCharts[canvasId].data.datasets[1].label = movingAverageLabel;
+            scoreCharts[canvasId].update();
         };
 
-        createScoreChart('scoreChart', serieScore);
-        createScoreChart('scoreChartDupla', serieScore);
+        const renderScoreChart = (canvasId, frequency) => {
+            const series = scoreSeriesByFrequency?.[frequency] || [];
+            createScoreChart(canvasId, series, frequency);
+        };
+
+        document.querySelectorAll('.score-frequency-select').forEach((select) => {
+            const canvasId = select.dataset.chartTarget;
+            renderScoreChart(canvasId, select.value || 'mes');
+            select.addEventListener('change', () => renderScoreChart(canvasId, select.value));
+        });
     });
 </script>
 {% endblock %}

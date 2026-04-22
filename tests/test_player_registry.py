@@ -30,6 +30,12 @@ class PlayerRegistryTests(unittest.TestCase):
 
         self.assertEqual(player_registry.load_registered_players(), ["ana", "Carlos"])
 
+    def test_add_player_collapses_repeated_spaces(self) -> None:
+        self.assertTrue(player_registry.add_player("J. Victor  Adão"))
+        self.assertFalse(player_registry.add_player("J. Victor Adão"))
+
+        self.assertEqual(player_registry.load_registered_players(), ["J. Victor Adão"])
+
     def test_add_player_rejects_blank_names(self) -> None:
         self.assertFalse(player_registry.add_player("   "))
         self.assertFalse(self.store_path.exists())

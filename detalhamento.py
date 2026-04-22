@@ -113,6 +113,42 @@ def _agrupar_score_mensal(score_percentual: pd.Series) -> List[Dict[str, object]
     ]
 
 
+def _agrupar_score_diario(score_percentual: pd.Series) -> List[Dict[str, object]]:
+    if score_percentual is None or score_percentual.empty:
+        return []
+
+    if not isinstance(score_percentual.index, pd.DatetimeIndex):
+        return []
+
+    score_percentual = score_percentual.sort_index()
+    score_diario = score_percentual.groupby(score_percentual.index.normalize()).mean().dropna()
+    if score_diario.empty:
+        return []
+
+    ultimo_dia = score_diario.index.max()
+    inicio_periodo = (ultimo_dia - pd.DateOffset(days=89)).normalize()
+    score_diario = score_diario[score_diario.index >= inicio_periodo]
+    media_movel_30d = score_diario.rolling(30, min_periods=1).mean()
+
+    return [
+        {
+            "data": idx.strftime("%d/%m/%Y"),
+            "score": float(valor),
+            "media_movel": float(media_movel_30d.get(idx, np.nan))
+            if not pd.isna(media_movel_30d.get(idx, np.nan))
+            else None,
+        }
+        for idx, valor in score_diario.items()
+    ]
+
+
+def _montar_series_score(score_percentual: pd.Series) -> Dict[str, List[Dict[str, object]]]:
+    return {
+        "mes": _agrupar_score_mensal(score_percentual),
+        "dia": _agrupar_score_diario(score_percentual),
+    }
+
+
 def _ordenar_partidas_por_data(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -650,12 +686,13 @@ def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, objec
         limite=10,
     )
 
-    serie_score = _agrupar_score_mensal(score_percentual)
+    series_score = _montar_series_score(score_percentual)
     jogos_recentes = _montar_jogos_recentes_jogador(df, jogador, limite=30)
 
     return {
         "metricas": metricas,
-        "score_series": serie_score,
+        "score_series": series_score["mes"],
+        "score_series_by_frequency": series_score,
         "fregueses": destaque_fregueses,
         "carrascos": destaque_carrascos,
         "parcerias_top": parcerias_top,
@@ -1068,13 +1105,14 @@ def calcular_metricas_dupla(df: pd.DataFrame, jogador1: str, jogador2: str) -> D
         .rename(columns={"index": "nome"})
     )
 
-    serie_score = _agrupar_score_mensal(score_percentual)
+    series_score = _montar_series_score(score_percentual)
     jogos_recentes = _montar_jogos_recentes_dupla(df, jogador1, jogador2, limite=30)
 
     return {
         "metricas": metricas_dupla,
         "fregueses": fregueses.to_dict(orient="records"),
         "carrascos": carrascos.to_dict(orient="records"),
-        "score_series": serie_score,
+        "score_series": series_score["mes"],
+        "score_series_by_frequency": series_score,
         "jogos_recentes": jogos_recentes,
     }

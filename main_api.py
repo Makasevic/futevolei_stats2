@@ -293,7 +293,10 @@ _matches_from_df = lambda df: admin_helpers.matches_from_df(
 
 def _serialize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     data_value = payload.get("date")
-    serialized: Dict[str, Any] = {field: payload.get(field, "").strip() for field in _TEAM_FIELDS}
+    serialized: Dict[str, Any] = {
+        field: admin_helpers.normalize_player_name(payload.get(field, ""))
+        for field in _TEAM_FIELDS
+    }
     if isinstance(data_value, date):
         serialized["date"] = data_value.isoformat()
     else:
@@ -317,10 +320,10 @@ def _parse_bulk_line(line: str) -> Dict[str, str] | None:
         return None
 
     return {
-        "winner1": match.group("w1").strip(),
-        "winner2": match.group("w2").strip(),
-        "loser1": match.group("l1").strip(),
-        "loser2": match.group("l2").strip(),
+        "winner1": admin_helpers.normalize_player_name(match.group("w1")),
+        "winner2": admin_helpers.normalize_player_name(match.group("w2")),
+        "loser1": admin_helpers.normalize_player_name(match.group("l1")),
+        "loser2": admin_helpers.normalize_player_name(match.group("l2")),
     }
 
 
