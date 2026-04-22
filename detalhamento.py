@@ -30,6 +30,18 @@ def _formatar_estrelas(percentual: Optional[float]) -> str:
     return "⭐" * rating
 
 
+def _rating_por_percentil(percentual: Optional[float]) -> Optional[int]:
+    if percentual is None or pd.isna(percentual):
+        return None
+
+    rating = 1
+    for limite in (20, 40, 60, 80):
+        if percentual >= limite:
+            rating += 1
+
+    return max(1, min(5, rating))
+
+
 def _calcular_tendencia(
     score_diario: Optional[pd.Series], config
 ) -> Tuple[str, Optional[float], Optional[str]]:
@@ -262,6 +274,290 @@ def _formatar_parcerias(
     maiores_parcerias = _montar_tabela(top_series)
     menores_parcerias = _montar_tabela(bottom_series)
     return maiores_parcerias, menores_parcerias
+
+
+def _calcular_ranking_medio_parceiros(df: pd.DataFrame, tabela_geral: pd.DataFrame) -> Dict[str, float]:
+    if tabela_geral.empty or "rank" not in tabela_geral.columns:
+        return {}
+
+    ranking_map = dict(zip(tabela_geral["jogadores"], tabela_geral["rank"]))
+    jogadores_validos = set(ranking_map.keys())
+    parceiros_por_jogador: DefaultDict[str, DefaultDict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+
+    for row in df.itertuples():
+        duplas = ([row.winner1, row.winner2], [row.loser1, row.loser2])
+        for dupla in duplas:
+            jogadores_dupla = [j for j in dupla if j in jogadores_validos]
+            if len(jogadores_dupla) != 2:
+                continue
+            jogador_a, jogador_b = jogadores_dupla
+            parceiros_por_jogador[jogador_a][jogador_b] += 1
+            parceiros_por_jogador[jogador_b][jogador_a] += 1
+
+    ranking_medio_parceiros: Dict[str, float] = {}
+    for jogador_base, parceiros in parceiros_por_jogador.items():
+        soma_ponderada = 0.0
+        total_jogos_rank = 0
+        for parceiro, jogos_parceiro in parceiros.items():
+            if jogos_parceiro <= 0:
+                continue
+            ranking_parceiro = ranking_map.get(parceiro)
+            if ranking_parceiro is None or pd.isna(ranking_parceiro):
+                continue
+            soma_ponderada += float(ranking_parceiro) * jogos_parceiro
+            total_jogos_rank += jogos_parceiro
+        if total_jogos_rank > 0:
+            ranking_medio_parceiros[jogador_base] = soma_ponderada / total_jogos_rank
+
+    return ranking_medio_parceiros
+
+
+def _criar_colunas_estrelas() -> List[Dict[str, object]]:
+    return [
+        {"rating": rating, "estrelas": "⭐" * rating, "jogadores": []}
+        for rating in range(5, 0, -1)
+    ]
+
+
+def _atribuir_estrelas_por_ranking(registros_ordenados: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    total = len(registros_ordenados)
+    if total == 0:
+        return []
+
+    registros_com_rating = []
+    for idx, registro in enumerate(registros_ordenados):
+        rating = 5 - min(4, int(idx * 5 / total))
+        registros_com_rating.append(
+            {
+                **registro,
+                "rating": rating,
+                "estrelas": "⭐" * rating,
+                "posicao_faixa": idx + 1,
+            }
+        )
+    return registros_com_rating
+
+
+def _agrupar_registros_por_estrelas(registros: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    colunas = _criar_colunas_estrelas()
+    colunas_por_rating = {coluna["rating"]: coluna for coluna in colunas}
+
+    for registro in registros:
+        rating = registro.get("rating")
+        if rating in colunas_por_rating:
+            colunas_por_rating[rating]["jogadores"].append(registro)
+
+    for coluna in colunas:
+        coluna["jogadores"].sort(
+            key=lambda item: (
+                -float(item.get("percentil") or 0),
+                float(item.get("ordenacao_secundaria") or 0),
+                str(item.get("nome") or ""),
+            )
+        )
+
+    return colunas
+
+
+def _calcular_indicadores_gerais_jogadores(
+    df: pd.DataFrame,
+    jogadores: List[str],
+    config,
+) -> Dict[str, Dict[str, object]]:
+    indicadores: Dict[str, Dict[str, object]] = {}
+    if df.empty:
+        return indicadores
+
+    for jogador in jogadores:
+        vitorias_mask = df[["winner1", "winner2"]] == jogador
+        derrotas_mask = df[["loser1", "loser2"]] == jogador
+
+        vitorias_por_dia = vitorias_mask.sum(axis=1).groupby(df.index).sum()
+        derrotas_por_dia = derrotas_mask.sum(axis=1).groupby(df.index).sum()
+        jogos_por_dia = vitorias_por_dia + derrotas_por_dia
+        score_percentual = (vitorias_por_dia / jogos_por_dia * 100).dropna().sort_index()
+        total_jogos = int(jogos_por_dia.sum())
+
+        assiduidade_percentual = None
+        assiduidade_texto = "—"
+        media_partidas_por_dia = None
+        media_partidas_por_dia_texto = "—"
+        dias_jogados = 0
+        dias_registrados = 0
+
+        if isinstance(df.index, pd.DatetimeIndex) and not jogos_por_dia.empty:
+            jogos_por_data = jogos_por_dia.groupby(jogos_por_dia.index.normalize()).sum()
+            dias_com_participacao = jogos_por_data[jogos_por_data > 0]
+            if not dias_com_participacao.empty:
+                primeira_data = dias_com_participacao.index.min()
+                jogos_considerados = jogos_por_data[jogos_por_data.index >= primeira_data]
+                dias_jogados = int((jogos_considerados > 0).sum())
+                dias_registrados = int(len(jogos_considerados))
+                if dias_registrados > 0:
+                    assiduidade_percentual = dias_jogados / dias_registrados * 100
+                    assiduidade_texto = f"{assiduidade_percentual:.1f}% ({dias_jogados}/{dias_registrados} dias)"
+                if dias_jogados > 0:
+                    total_partidas_consideradas = float(jogos_considerados.sum())
+                    media_partidas_por_dia = total_partidas_consideradas / dias_jogados
+                    media_partidas_por_dia_texto = f"{media_partidas_por_dia:.2f} jogos/dia"
+
+        tendencia, tendencia_delta, tendencia_observacao = _calcular_tendencia(score_percentual, config)
+        if tendencia_delta is None:
+            tendencia_delta_texto = "—"
+        else:
+            tendencia_delta_texto = f"{tendencia_delta:+.1f} p.p."
+
+        indicadores[jogador] = {
+            "nome": jogador,
+            "jogos": total_jogos,
+            "assiduidade_percentual": assiduidade_percentual,
+            "assiduidade_texto": assiduidade_texto,
+            "dias_jogados": dias_jogados,
+            "dias_registrados": dias_registrados,
+            "media_partidas_por_dia": media_partidas_por_dia,
+            "media_partidas_por_dia_texto": media_partidas_por_dia_texto,
+            "tendencia": tendencia,
+            "tendencia_delta": tendencia_delta,
+            "tendencia_delta_texto": tendencia_delta_texto,
+            "tendencia_observacao": tendencia_observacao,
+        }
+
+    return indicadores
+
+
+def calcular_metricas_gerais(df: pd.DataFrame) -> Dict[str, object]:
+    config = get_config()
+
+    df_base = df[["winner1", "winner2", "loser1", "loser2"]]
+    tabela_geral = preparar_dados_individuais(df_base)
+    tabela_geral = _aplicar_regras_ranking(tabela_geral, config)
+    ranking_medio_parceiros = _calcular_ranking_medio_parceiros(df, tabela_geral)
+    jogadores_ranking = tabela_geral["jogadores"].tolist() if "jogadores" in tabela_geral.columns else []
+
+    registros_parceiros = []
+
+    for jogador, ranking_medio in ranking_medio_parceiros.items():
+        registro = {
+            "nome": jogador,
+            "ranking_medio": float(ranking_medio),
+            "ranking_medio_texto": f"{ranking_medio:.1f}",
+            "percentil": 0.0,
+            "percentil_texto": "—",
+            "ordenacao_secundaria": float(ranking_medio),
+        }
+        registros_parceiros.append(registro)
+    registros_parceiros = _atribuir_estrelas_por_ranking(
+        sorted(registros_parceiros, key=lambda item: (item["ranking_medio"], item["nome"]))
+    )
+
+    registros_rotatividade = []
+    if "rotatividade" in tabela_geral.columns:
+        for _, linha in tabela_geral.iterrows():
+            percentil = linha.get("rotatividade")
+            rotatividade_media = linha.get("rotatividade_media")
+            registro = {
+                "nome": linha.get("jogadores"),
+                "rotatividade_media": None if pd.isna(rotatividade_media) else float(rotatividade_media),
+                "rotatividade_media_texto": "—" if pd.isna(rotatividade_media) else f"{float(rotatividade_media):.2f}",
+                "percentil": float(percentil),
+                "percentil_texto": f"Percentil {float(percentil):.1f}",
+                "ordenacao_secundaria": -float(percentil),
+            }
+            registros_rotatividade.append(registro)
+    registros_rotatividade = _atribuir_estrelas_por_ranking(
+        sorted(
+            registros_rotatividade,
+            key=lambda item: (
+                -(item["rotatividade_media"] or 0),
+                -item["percentil"],
+                item["nome"],
+            ),
+        )
+    )
+
+    indicadores_jogadores = _calcular_indicadores_gerais_jogadores(df, jogadores_ranking, config)
+    ranking_assiduidade = sorted(
+        indicadores_jogadores.values(),
+        key=lambda item: (
+            -(item["assiduidade_percentual"] or 0),
+            -(item["media_partidas_por_dia"] or 0),
+            -int(item["jogos"] or 0),
+            str(item["nome"]),
+        ),
+    )
+    for idx, registro in enumerate(ranking_assiduidade, start=1):
+        registro["posicao"] = idx
+    registros_assiduidade = _atribuir_estrelas_por_ranking(
+        [
+            {
+                **registro,
+                "percentil": float(registro["assiduidade_percentual"] or 0),
+                "percentil_texto": registro["assiduidade_texto"],
+                "ordenacao_secundaria": -(registro["media_partidas_por_dia"] or 0),
+            }
+            for registro in ranking_assiduidade
+            if registro["assiduidade_percentual"] is not None
+        ]
+    )
+    ranking_media_jogos = sorted(
+        indicadores_jogadores.values(),
+        key=lambda item: (
+            -(item["media_partidas_por_dia"] or 0),
+            -(item["assiduidade_percentual"] or 0),
+            -int(item["jogos"] or 0),
+            str(item["nome"]),
+        ),
+    )
+    registros_media_jogos = _atribuir_estrelas_por_ranking(
+        [
+            {
+                **registro,
+                "percentil": float(registro["media_partidas_por_dia"] or 0),
+                "percentil_texto": registro["media_partidas_por_dia_texto"],
+                "ordenacao_secundaria": -(registro["assiduidade_percentual"] or 0),
+            }
+            for registro in ranking_media_jogos
+            if registro["media_partidas_por_dia"] is not None
+        ]
+    )
+
+    tendencia_colunas = [
+        {"tendencia": "Alta", "titulo": "Alta", "jogadores": []},
+        {"tendencia": "Neutro", "titulo": "Neutro", "jogadores": []},
+        {"tendencia": "Baixa", "titulo": "Baixa", "jogadores": []},
+    ]
+    tendencia_por_nome = {coluna["tendencia"]: coluna for coluna in tendencia_colunas}
+    for registro in indicadores_jogadores.values():
+        tendencia_por_nome.get(registro["tendencia"], tendencia_por_nome["Neutro"])["jogadores"].append(registro)
+    for coluna in tendencia_colunas:
+        coluna["jogadores"].sort(
+            key=lambda item: (
+                -(item["tendencia_delta"] or 0),
+                -(item["jogos"] or 0),
+                str(item["nome"]),
+            ),
+            reverse=coluna["tendencia"] == "Baixa",
+        )
+
+    return {
+        "qualidade_parceiros_colunas": _agrupar_registros_por_estrelas(registros_parceiros),
+        "qualidade_parceiros": sorted(
+            registros_parceiros,
+            key=lambda item: (-item["rating"], -item["percentil"], item["ranking_medio"], item["nome"]),
+        ),
+        "rotatividade_colunas": _agrupar_registros_por_estrelas(registros_rotatividade),
+        "rotatividade": sorted(
+            registros_rotatividade,
+            key=lambda item: (-item["rating"], -item["percentil"], item["nome"]),
+        ),
+        "assiduidade": ranking_assiduidade,
+        "assiduidade_colunas": _agrupar_registros_por_estrelas(registros_assiduidade),
+        "media_jogos": ranking_media_jogos,
+        "media_jogos_colunas": _agrupar_registros_por_estrelas(registros_media_jogos),
+        "tendencia_colunas": tendencia_colunas,
+    }
 
 
 def calcular_metricas_jogador(df: pd.DataFrame, jogador: str) -> Dict[str, object]:
@@ -518,37 +814,7 @@ def _obter_metricas_jogador(
     ranking_parceiro_percentil_texto = "—"
     ranking_parceiro_medio_texto = "—"
     if not tabela_geral.empty and "rank" in tabela_geral.columns:
-        ranking_map = dict(zip(tabela_geral["jogadores"], tabela_geral["rank"]))
-        jogadores_validos = set(ranking_map.keys())
-        parceiros_por_jogador: DefaultDict[str, DefaultDict[str, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
-
-        for row in df.itertuples():
-            duplas = ([row.winner1, row.winner2], [row.loser1, row.loser2])
-            for dupla in duplas:
-                jogadores_dupla = [j for j in dupla if j in jogadores_validos]
-                if len(jogadores_dupla) != 2:
-                    continue
-                jogador_a, jogador_b = jogadores_dupla
-                parceiros_por_jogador[jogador_a][jogador_b] += 1
-                parceiros_por_jogador[jogador_b][jogador_a] += 1
-
-        ranking_medio_parceiros: Dict[str, float] = {}
-        for jogador_base, parceiros in parceiros_por_jogador.items():
-            soma_ponderada = 0.0
-            total_jogos_rank = 0
-            for parceiro, jogos_parceiro in parceiros.items():
-                if jogos_parceiro <= 0:
-                    continue
-                ranking_parceiro = ranking_map.get(parceiro)
-                if ranking_parceiro is None or pd.isna(ranking_parceiro):
-                    continue
-                soma_ponderada += float(ranking_parceiro) * jogos_parceiro
-                total_jogos_rank += jogos_parceiro
-            if total_jogos_rank > 0:
-                ranking_medio_parceiros[jogador_base] = soma_ponderada / total_jogos_rank
-
+        ranking_medio_parceiros = _calcular_ranking_medio_parceiros(df, tabela_geral)
         ranking_parceiro_medio = ranking_medio_parceiros.get(jogador)
         if ranking_parceiro_medio is not None:
             ranking_parceiro_medio_texto = f"{ranking_parceiro_medio:.1f}"

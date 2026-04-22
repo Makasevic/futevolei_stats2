@@ -21,7 +21,7 @@ from championship import (
     save_match_score,
 )
 from src.redinha_stats.config.settings import ADMIN_PASSWORD, MATCH_ENTRY_PASSWORD
-from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
+from detalhamento import calcular_metricas_dupla, calcular_metricas_gerais, calcular_metricas_jogador
 from src.redinha_stats.domain.matches.extraction import get_matches
 from src.redinha_stats.domain.matches.preparation import preparar_dataframe
 from src.redinha_stats.domain.matches.processing import (
@@ -490,6 +490,7 @@ def detalhamento():
         jogadores_disponiveis=lambda df: _jogadores_disponiveis(df),
         calcular_metricas_jogador=lambda df, jogador: calcular_metricas_jogador(df, jogador),
         calcular_metricas_dupla=lambda df, jogador1, jogador2: calcular_metricas_dupla(df, jogador1, jogador2),
+        calcular_metricas_gerais=lambda df: calcular_metricas_gerais(df),
         render_template=lambda template_name, **context: render_template(template_name, **context),
     )
 

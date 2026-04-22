@@ -11,13 +11,14 @@ def detalhamento_page_response(
     jogadores_disponiveis: Callable[[Any], list[str]],
     calcular_metricas_jogador: Callable[[Any, str], Any],
     calcular_metricas_dupla: Callable[[Any, str, str], Any],
+    calcular_metricas_gerais: Callable[[Any], Any],
     render_template: Callable[..., Any],
 ) -> Any:
     df = fetch_base_dataframe()
     jogadores = jogadores_disponiveis(df)
 
     tipo = request.args.get("tipo", "Jogador")
-    if tipo not in {"Jogador", "Dupla"}:
+    if tipo not in {"Jogador", "Dupla", "Geral"}:
         tipo = "Jogador"
 
     detalhes = None
@@ -31,7 +32,7 @@ def detalhamento_page_response(
             jogador_escolhido = None
         if jogador_escolhido:
             detalhes = calcular_metricas_jogador(df, jogador_escolhido)
-    else:
+    elif tipo == "Dupla":
         parceiros_por_jogador: dict[str, set[str]] = {j: set() for j in jogadores}
         for _, row in df.iterrows():
             duplas_partida = [
@@ -53,6 +54,8 @@ def detalhamento_page_response(
             jogador2 = None
         if jogador1 and jogador2:
             detalhes = calcular_metricas_dupla(df, jogador1, jogador2)
+    else:
+        detalhes = calcular_metricas_gerais(df)
 
     return render_template(
         "detalhamento.html",

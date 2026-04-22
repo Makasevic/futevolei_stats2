@@ -17,6 +17,7 @@
     <select id="tipo" name="tipo" class="select">
         <option value="Jogador" {% if tipo == 'Jogador' %}selected{% endif %}>Jogador</option>
         <option value="Dupla" {% if tipo == 'Dupla' %}selected{% endif %}>Dupla</option>
+        <option value="Geral" {% if tipo == 'Geral' %}selected{% endif %}>Geral</option>
     </select>
 
     {% if tipo == 'Jogador' %}
@@ -27,7 +28,7 @@
                 <option value="{{ nome }}" {% if nome == jogador_escolhido %}selected{% endif %}>{{ nome }}</option>
             {% endfor %}
         </select>
-    {% else %}
+    {% elif tipo == 'Dupla' %}
         <label class="badge" for="j1">Jogador 1</label>
         <select id="j1" name="j1" class="select">
             <option value="">Selecione</option>
@@ -47,7 +48,176 @@
 
 </form>
 
-{% if tipo == 'Jogador' %}
+{% if tipo == 'Geral' %}
+    <section class="panel">
+        <div class="section-title">
+            <h2>Visao geral</h2>
+            <span class="meta">Indicadores gerais dos jogadores</span>
+        </div>
+
+        <div class="tab-switch general-tabs">
+            <button class="tab-button active" type="button" data-general-tab="geral-parceiros">Parceiros</button>
+            <button class="tab-button" type="button" data-general-tab="geral-rotatividade">Rotatividade</button>
+            <button class="tab-button" type="button" data-general-tab="geral-assiduidade">Assiduidade</button>
+            <button class="tab-button" type="button" data-general-tab="geral-media-jogos">Jogos/dia</button>
+            <button class="tab-button" type="button" data-general-tab="geral-tendencia">Tendencia</button>
+        </div>
+
+        <div class="tab-content active general-tab-content" id="geral-parceiros">
+            <div class="section-title section-title--compact">
+                <h2>Qualidade media dos parceiros</h2>
+                <span class="meta">Jogadores agrupados pela forca media dos parceiros com quem atuaram</span>
+            </div>
+            {% if detalhes and detalhes.qualidade_parceiros|length > 0 %}
+                <div class="partner-quality-grid">
+                    {% for coluna in detalhes.qualidade_parceiros_colunas %}
+                        <div class="partner-quality-column">
+                            <div class="partner-quality-column__header">
+                                <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
+                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                            </div>
+                            <div class="partner-quality-list">
+                                {% for jogador in coluna.jogadores %}
+                                    <div class="partner-quality-player">
+                                        <strong>{{ jogador.nome }}</strong>
+                                    </div>
+                                {% endfor %}
+                                {% if coluna.jogadores|length == 0 %}
+                                    <p class="meta">Sem jogadores nesta faixa.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="meta">Sem parcerias suficientes para classificar os jogadores.</p>
+            {% endif %}
+        </div>
+
+        <div class="tab-content general-tab-content" id="geral-rotatividade">
+            <div class="section-title section-title--compact">
+                <h2>Rotatividade</h2>
+                <span class="meta">Jogadores agrupados por variedade de parceiros por jogo</span>
+            </div>
+            {% if detalhes and detalhes.rotatividade|length > 0 %}
+                <div class="partner-quality-grid">
+                    {% for coluna in detalhes.rotatividade_colunas %}
+                        <div class="partner-quality-column">
+                            <div class="partner-quality-column__header">
+                                <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
+                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                            </div>
+                            <div class="partner-quality-list">
+                                {% for jogador in coluna.jogadores %}
+                                    <div class="partner-quality-player">
+                                        <strong>{{ jogador.nome }}</strong>
+                                    </div>
+                                {% endfor %}
+                                {% if coluna.jogadores|length == 0 %}
+                                    <p class="meta">Sem jogadores nesta faixa.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="meta">Sem dados suficientes para classificar rotatividade.</p>
+            {% endif %}
+        </div>
+
+        <div class="tab-content general-tab-content" id="geral-assiduidade">
+            <div class="section-title section-title--compact">
+                <h2>Assiduidade</h2>
+                <span class="meta">Jogadores agrupados por presenca nos dias registrados</span>
+            </div>
+            {% if detalhes and detalhes.assiduidade|length > 0 %}
+                <div class="partner-quality-grid">
+                    {% for coluna in detalhes.assiduidade_colunas %}
+                        <div class="partner-quality-column">
+                            <div class="partner-quality-column__header">
+                                <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
+                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                            </div>
+                            <div class="partner-quality-list">
+                                {% for jogador in coluna.jogadores %}
+                                    <div class="partner-quality-player">
+                                        <strong>{{ jogador.nome }}</strong>
+                                        <span>{{ jogador.assiduidade_texto }}</span>
+                                    </div>
+                                {% endfor %}
+                                {% if coluna.jogadores|length == 0 %}
+                                    <p class="meta">Sem jogadores nesta faixa.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="meta">Sem dados suficientes para classificar assiduidade.</p>
+            {% endif %}
+        </div>
+
+        <div class="tab-content general-tab-content" id="geral-media-jogos">
+            <div class="section-title section-title--compact">
+                <h2>Media de jogos por dia</h2>
+                <span class="meta">Jogadores agrupados por volume nos dias em que compareceram</span>
+            </div>
+            {% if detalhes and detalhes.media_jogos|length > 0 %}
+                <div class="partner-quality-grid">
+                    {% for coluna in detalhes.media_jogos_colunas %}
+                        <div class="partner-quality-column">
+                            <div class="partner-quality-column__header">
+                                <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
+                                <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                            </div>
+                            <div class="partner-quality-list">
+                                {% for jogador in coluna.jogadores %}
+                                    <div class="partner-quality-player">
+                                        <strong>{{ jogador.nome }}</strong>
+                                        <span>{{ jogador.media_partidas_por_dia_texto }}</span>
+                                    </div>
+                                {% endfor %}
+                                {% if coluna.jogadores|length == 0 %}
+                                    <p class="meta">Sem jogadores nesta faixa.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="meta">Sem dados suficientes para classificar media de jogos por dia.</p>
+            {% endif %}
+        </div>
+
+        <div class="tab-content general-tab-content" id="geral-tendencia">
+            <div class="section-title section-title--compact">
+                <h2>Tendencia</h2>
+                <span class="meta">Jogadores separados por movimento recente de desempenho</span>
+            </div>
+            <div class="trend-columns">
+                {% for coluna in detalhes.tendencia_colunas %}
+                    <div class="trend-column trend-column--{{ coluna.tendencia|lower }}">
+                        <div class="trend-column__header">
+                            <strong>{{ coluna.titulo }}</strong>
+                            <span class="meta">{{ coluna.jogadores|length }} jogador{{ 'es' if coluna.jogadores|length != 1 else '' }}</span>
+                        </div>
+                        <div class="partner-quality-list">
+                            {% for jogador in coluna.jogadores %}
+                                <div class="partner-quality-player">
+                                    <strong>{{ jogador.nome }}</strong>
+                                    <span>{{ jogador.tendencia_delta_texto }}{% if jogador.tendencia_observacao %} - {{ jogador.tendencia_observacao }}{% endif %}</span>
+                                </div>
+                            {% endfor %}
+                            {% if coluna.jogadores|length == 0 %}
+                                <p class="meta">Sem jogadores nesta faixa.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% elif tipo == 'Jogador' %}
     {% if detalhes %}
         {% set metricas = detalhes.metricas %}
         <section class="panel xray-panel">
@@ -277,7 +447,7 @@
             <p class="meta">Selecione um jogador para visualizar o detalhamento.</p>
         </section>
     {% endif %}
-{% else %}
+{% elif tipo == 'Dupla' %}
     {% if detalhes %}
         {% set metricas = detalhes.metricas %}
         <section class="panel xray-panel">
@@ -443,7 +613,19 @@
         bindChangeSubmit('#j1');
         bindChangeSubmit('#j2');
 
-        const serieScore = {{ detalhes.score_series|tojson if detalhes else '[]' }};
+        const generalTabButtons = document.querySelectorAll('[data-general-tab]');
+        const generalTabContents = document.querySelectorAll('.general-tab-content');
+        generalTabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-general-tab');
+                generalTabButtons.forEach((tabButton) => tabButton.classList.remove('active'));
+                generalTabContents.forEach((tabContent) => tabContent.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(targetId)?.classList.add('active');
+            });
+        });
+
+        const serieScore = {{ detalhes.score_series|default([])|tojson if detalhes else '[]' }};
 
         const createScoreChart = (canvasId, series) => {
             const canvas = document.getElementById(canvasId);

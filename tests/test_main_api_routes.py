@@ -327,6 +327,30 @@ def test_detalhamento_renders_player_metrics(client, main_api_module, monkeypatc
     assert captured["context"]["detalhes"]["metricas"]["jogador"] == "Ana"
 
 
+def test_detalhamento_renders_general_metrics(client, main_api_module, monkeypatch, sample_matches_df):
+    captured = _capture_template(monkeypatch, main_api_module)
+    monkeypatch.setattr(main_api_module, "_fetch_base_dataframe", lambda: sample_matches_df)
+    monkeypatch.setattr(main_api_module, "_jogadores_disponiveis", lambda df: ["Ana", "Bia", "Caio"])
+    monkeypatch.setattr(
+        main_api_module,
+        "calcular_metricas_gerais",
+        lambda df: {
+            "qualidade_parceiros_colunas": [
+                {"rating": 5, "estrelas": "*****", "jogadores": [{"nome": "Ana"}]},
+            ],
+            "qualidade_parceiros": [{"nome": "Ana"}],
+        },
+    )
+
+    response = client.get("/detalhamento?tipo=Geral")
+
+    assert response.status_code == 200
+    assert captured["template"] == "detalhamento.html"
+    assert captured["context"]["active_page"] == "detalhamento"
+    assert captured["context"]["tipo"] == "Geral"
+    assert captured["context"]["detalhes"]["qualidade_parceiros"][0]["nome"] == "Ana"
+
+
 def test_versus_renders_individual_comparison(client, main_api_module, monkeypatch, sample_matches_df):
     captured = _capture_template(monkeypatch, main_api_module)
     monkeypatch.setattr(main_api_module, "_fetch_base_dataframe", lambda: sample_matches_df)

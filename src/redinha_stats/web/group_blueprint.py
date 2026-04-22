@@ -54,7 +54,7 @@ from src.redinha_stats.web.routes.pages import (
     ranking_page_response,
 )
 from src.redinha_stats.web.routes.versus import versus_page_response
-from detalhamento import calcular_metricas_dupla, calcular_metricas_jogador
+from detalhamento import calcular_metricas_dupla, calcular_metricas_gerais, calcular_metricas_jogador
 
 
 bp = Blueprint("group", __name__, url_prefix="/g")
@@ -306,6 +306,7 @@ def detalhamento(slug: str):
         jogadores_disponiveis=_jogadores_disponiveis,
         calcular_metricas_jogador=calcular_metricas_jogador,
         calcular_metricas_dupla=calcular_metricas_dupla,
+        calcular_metricas_gerais=calcular_metricas_gerais,
         render_template=render_template,
     )
 
