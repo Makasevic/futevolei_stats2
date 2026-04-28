@@ -28,6 +28,8 @@ def admin_page_response(
     parse_form_date: Callable[[str | None], date | None],
     update_match: Callable[[Any, dict[str, Any], str], None],
     delete_match: Callable[[Any, str], None],
+    rename_player: Callable[[str, str], Any],
+    merge_players: Callable[[str, str], Any],
     is_valid_identifier: Callable[[Any], bool],
     matches_from_df: Callable[[Any], list[dict[str, Any]]],
     registered_players: Callable[[Any], list[str]],
@@ -116,8 +118,52 @@ def admin_page_response(
                 set_admin_feedback("error", "Jogador ja cadastrado ou nome invalido.")
             return redirect_to_admin()
 
-        if role == "limited" and action in {"update", "delete"}:
+        if role == "limited" and action in {"update", "delete", "rename_player", "merge_players"}:
             set_admin_feedback("error", "Somente administradores completos podem editar ou excluir partidas.")
+            return redirect_to_admin()
+
+        if action == "rename_player":
+            old_name = normalize_player_name(request.form.get("old_name", ""))
+            new_name = normalize_player_name(request.form.get("new_name", ""))
+            if not old_name or not new_name:
+                set_admin_feedback("error", "Selecione o jogador atual e informe o novo nome.")
+                return redirect_to_admin()
+            try:
+                result = rename_player(old_name, new_name)
+                reset_cache()
+                matches_updated = result.get("matches_updated", 0) if isinstance(result, dict) else 0
+                set_admin_feedback(
+                    "success",
+                    f"Jogador renomeado de '{old_name}' para '{new_name}'. "
+                    f"{matches_updated} referencia(s) em partidas atualizada(s).",
+                )
+            except ValueError as exc:
+                set_admin_feedback("error", str(exc))
+            except Exception as exc:
+                set_admin_feedback("error", f"Erro ao renomear jogador: {exc}")
+            return redirect_to_admin()
+
+        if action == "merge_players":
+            kept_name = normalize_player_name(request.form.get("kept_name", ""))
+            removed_name = normalize_player_name(request.form.get("removed_name", ""))
+            if not kept_name or not removed_name:
+                set_admin_feedback("error", "Selecione os dois jogadores para fundir.")
+                return redirect_to_admin()
+            try:
+                result = merge_players(kept_name, removed_name)
+                reset_cache()
+                matches_updated = result.get("matches_updated", 0) if isinstance(result, dict) else 0
+                user_deleted = result.get("user_deleted", False) if isinstance(result, dict) else False
+                tail = " Usuario antigo apagado." if user_deleted else " Usuario antigo mantido (esta em outros grupos)."
+                set_admin_feedback(
+                    "success",
+                    f"'{removed_name}' fundido em '{kept_name}'. "
+                    f"{matches_updated} referencia(s) em partidas atualizada(s).{tail}",
+                )
+            except ValueError as exc:
+                set_admin_feedback("error", str(exc))
+            except Exception as exc:
+                set_admin_feedback("error", f"Erro ao fundir jogadores: {exc}")
             return redirect_to_admin()
 
         if action == "championship_score":

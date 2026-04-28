@@ -33,6 +33,10 @@ from src.redinha_stats.infrastructure.local.player_registry_store import (
     add_player,
     load_registered_players,
 )
+from src.redinha_stats.infrastructure.supabase.players_repository import (
+    merge_players as _merge_players_global,
+    rename_player as _rename_player_global,
+)
 from src.redinha_stats.infrastructure.supabase.matches_repository import (
     delete_match,
     insert_match,
@@ -545,6 +549,8 @@ def admin():
         parse_form_date=lambda value: _parse_form_date(value),
         update_match=lambda match_id, payload, id_field: update_match(match_id, payload, id_field=id_field),
         delete_match=lambda match_id, id_field: delete_match(match_id, id_field=id_field),
+        rename_player=lambda old, new: _rename_player_global(old, new),
+        merge_players=lambda kept, removed: _merge_players_global(kept, removed),
         is_valid_identifier=lambda value: _is_valid_identifier(value),
         matches_from_df=lambda df: _matches_from_df(df),
         registered_players=lambda df: _registered_players(df),

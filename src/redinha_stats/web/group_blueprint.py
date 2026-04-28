@@ -31,6 +31,8 @@ from src.redinha_stats.infrastructure.supabase.matches_repository import (
 from src.redinha_stats.infrastructure.supabase.players_repository import (
     add_player_to_group,
     fetch_players_for_group,
+    merge_players,
+    rename_player,
 )
 from src.redinha_stats.infrastructure.supabase.championships_repository import create_championship
 from src.redinha_stats.infrastructure.supabase.invitations_repository import (
@@ -351,6 +353,8 @@ def admin(slug: str):
             match_id, payload, id_field=id_field
         ),
         delete_match=lambda match_id, id_field: delete_match(match_id, id_field=id_field),
+        rename_player=lambda old, new: rename_player(old, new),
+        merge_players=lambda kept, removed: merge_players(kept, removed),
         is_valid_identifier=admin_helpers.is_valid_identifier,
         matches_from_df=_matches_from_df,
         registered_players=_registered_players,

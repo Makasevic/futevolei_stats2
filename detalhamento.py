@@ -323,6 +323,10 @@ def _calcular_ranking_medio_parceiros(df: pd.DataFrame, tabela_geral: pd.DataFra
     )
 
     for row in df.itertuples():
+        jogadores_partida = [row.winner1, row.winner2, row.loser1, row.loser2]
+        if any("Outro" in str(jogador) for jogador in jogadores_partida):
+            continue
+
         duplas = ([row.winner1, row.winner2], [row.loser1, row.loser2])
         for dupla in duplas:
             jogadores_dupla = [j for j in dupla if j in jogadores_validos]
@@ -348,6 +352,46 @@ def _calcular_ranking_medio_parceiros(df: pd.DataFrame, tabela_geral: pd.DataFra
             ranking_medio_parceiros[jogador_base] = soma_ponderada / total_jogos_rank
 
     return ranking_medio_parceiros
+
+
+def _calcular_ranking_medio_adversarios(df: pd.DataFrame, tabela_geral: pd.DataFrame) -> Dict[str, float]:
+    if tabela_geral.empty or "rank" not in tabela_geral.columns:
+        return {}
+
+    ranking_map = dict(zip(tabela_geral["jogadores"], tabela_geral["rank"]))
+    jogadores_validos = set(ranking_map.keys())
+    medias_adversarios_por_jogo: DefaultDict[str, List[float]] = defaultdict(list)
+
+    for row in df.itertuples():
+        jogadores_partida = [row.winner1, row.winner2, row.loser1, row.loser2]
+        if any("Outro" in str(jogador) for jogador in jogadores_partida):
+            continue
+
+        vencedores = [row.winner1, row.winner2]
+        perdedores = [row.loser1, row.loser2]
+        if not all(jogador in ranking_map for jogador in vencedores + perdedores):
+            continue
+
+        ranking_medio_perdedores = (
+            float(ranking_map[perdedores[0]]) + float(ranking_map[perdedores[1]])
+        ) / 2
+        ranking_medio_vencedores = (
+            float(ranking_map[vencedores[0]]) + float(ranking_map[vencedores[1]])
+        ) / 2
+
+        for jogador in vencedores:
+            if jogador in jogadores_validos:
+                medias_adversarios_por_jogo[jogador].append(ranking_medio_perdedores)
+        for jogador in perdedores:
+            if jogador in jogadores_validos:
+                medias_adversarios_por_jogo[jogador].append(ranking_medio_vencedores)
+
+    ranking_medio_adversarios: Dict[str, float] = {}
+    for jogador_base, medias_por_jogo in medias_adversarios_por_jogo.items():
+        if medias_por_jogo:
+            ranking_medio_adversarios[jogador_base] = float(sum(medias_por_jogo) / len(medias_por_jogo))
+
+    return ranking_medio_adversarios
 
 
 def _criar_colunas_estrelas() -> List[Dict[str, object]]:
@@ -470,6 +514,7 @@ def calcular_metricas_gerais(df: pd.DataFrame) -> Dict[str, object]:
     tabela_geral = preparar_dados_individuais(df_base)
     tabela_geral = _aplicar_regras_ranking(tabela_geral, config)
     ranking_medio_parceiros = _calcular_ranking_medio_parceiros(df, tabela_geral)
+    ranking_medio_adversarios = _calcular_ranking_medio_adversarios(df, tabela_geral)
     jogadores_ranking = tabela_geral["jogadores"].tolist() if "jogadores" in tabela_geral.columns else []
 
     registros_parceiros = []
@@ -486,6 +531,21 @@ def calcular_metricas_gerais(df: pd.DataFrame) -> Dict[str, object]:
         registros_parceiros.append(registro)
     registros_parceiros = _atribuir_estrelas_por_ranking(
         sorted(registros_parceiros, key=lambda item: (item["ranking_medio"], item["nome"]))
+    )
+
+    registros_adversarios = []
+    for jogador, ranking_medio in ranking_medio_adversarios.items():
+        registro = {
+            "nome": jogador,
+            "ranking_medio": float(ranking_medio),
+            "ranking_medio_texto": f"{ranking_medio:.1f}",
+            "percentil": 0.0,
+            "percentil_texto": "â€”",
+            "ordenacao_secundaria": float(ranking_medio),
+        }
+        registros_adversarios.append(registro)
+    registros_adversarios = _atribuir_estrelas_por_ranking(
+        sorted(registros_adversarios, key=lambda item: (item["ranking_medio"], item["nome"]))
     )
 
     registros_rotatividade = []
@@ -581,6 +641,11 @@ def calcular_metricas_gerais(df: pd.DataFrame) -> Dict[str, object]:
         "qualidade_parceiros_colunas": _agrupar_registros_por_estrelas(registros_parceiros),
         "qualidade_parceiros": sorted(
             registros_parceiros,
+            key=lambda item: (-item["rating"], -item["percentil"], item["ranking_medio"], item["nome"]),
+        ),
+        "qualidade_adversarios_colunas": _agrupar_registros_por_estrelas(registros_adversarios),
+        "qualidade_adversarios": sorted(
+            registros_adversarios,
             key=lambda item: (-item["rating"], -item["percentil"], item["ranking_medio"], item["nome"]),
         ),
         "rotatividade_colunas": _agrupar_registros_por_estrelas(registros_rotatividade),

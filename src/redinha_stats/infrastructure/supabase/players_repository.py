@@ -16,6 +16,8 @@ from src.redinha_stats.config.settings import SUPABASE_SERVICE_KEY, SUPABASE_URL
 
 USERS_TABLE = "users"
 GROUP_MEMBERS_TABLE = "group_members"
+MATCHES_TABLE = "matches"
+TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
 
 
 def _normalize_player_name(value: str) -> str:
@@ -116,3 +118,179 @@ def add_player_to_group(group_id: str, name: str, role: str = "player") -> Optio
 
     data = insert_resp.data or []
     return data[0] if data else {}
+
+
+def _find_user_ids_by_name(client: Client, name: str) -> List[str]:
+    """Retorna todos os ``users.id`` cujo nome (case-insensitive) bate com *name*."""
+    target = name.casefold()
+    response = (
+        client.table(USERS_TABLE)
+        .select("id, name")
+        .execute()
+    )
+    if getattr(response, "error", None):
+        raise RuntimeError(f"Erro ao buscar usuarios por nome: {response.error}")
+    return [
+        row["id"]
+        for row in (response.data or [])
+        if str(row.get("name") or "").casefold() == target and row.get("id")
+    ]
+
+
+def _name_exists_in_matches(client: Client, name: str) -> bool:
+    """True se *name* aparece em qualquer dos 4 campos de time em qualquer match."""
+    for field in TEAM_FIELDS:
+        response = (
+            client.table(MATCHES_TABLE)
+            .select("id")
+            .eq(field, name)
+            .limit(1)
+            .execute()
+        )
+        if getattr(response, "error", None):
+            raise RuntimeError(f"Erro ao buscar partidas por nome: {response.error}")
+        if response.data:
+            return True
+    return False
+
+
+def _update_matches_player_name(
+    client: Client,
+    old_name: str,
+    new_name: str,
+) -> int:
+    """Substitui *old_name* por *new_name* nos campos de time de todas as matches.
+
+    Escopo global: como ``users.id`` e unico por pessoa em todo o app, o nome
+    deve ser consistente em todos os grupos onde a pessoa jogou.
+
+    Retorna o numero de partidas atualizadas (somatorio por campo).
+    """
+    total_updated = 0
+    for field in TEAM_FIELDS:
+        response = (
+            client.table(MATCHES_TABLE)
+            .update({field: new_name})
+            .eq(field, old_name)
+            .execute()
+        )
+        if getattr(response, "error", None):
+            raise RuntimeError(
+                f"Erro ao atualizar partidas (campo {field}): {response.error}"
+            )
+        total_updated += len(response.data or [])
+    return total_updated
+
+
+def rename_player(old_name: str, new_name: str) -> Dict[str, Any]:
+    """Renomeia um jogador globalmente.
+
+    Atualiza ``users.name`` (em todas as linhas de users com o nome antigo,
+    case-insensitive) e ``matches.{winner1,winner2,loser1,loser2}`` em todas
+    as matches do app onde o nome antigo aparece literalmente.
+
+    O jogador e identificado pelo nome — funciona mesmo que ele exista apenas
+    nas matches (sem registro em ``users``/``group_members``), caso comum
+    para dados legados.
+
+    Bloqueia se o novo nome ja existir em ``users`` ou em alguma match —
+    nesses casos use ``merge_players``.
+    """
+    old = _normalize_player_name(old_name)
+    new = _normalize_player_name(new_name)
+    if not old:
+        raise ValueError("Nome atual nao pode ser vazio.")
+    if not new:
+        raise ValueError("Novo nome nao pode ser vazio.")
+    if old.casefold() == new.casefold():
+        raise ValueError("O novo nome e igual ao atual.")
+
+    client = _get_client()
+
+    new_user_ids = _find_user_ids_by_name(client, new)
+    if new_user_ids:
+        raise ValueError(
+            f"Ja existe um usuario chamado '{new}'. Use a funcao de fusao."
+        )
+    if _name_exists_in_matches(client, new):
+        raise ValueError(
+            f"O nome '{new}' ja aparece em partidas. Use a funcao de fusao."
+        )
+
+    old_user_ids = _find_user_ids_by_name(client, old)
+    has_matches = _name_exists_in_matches(client, old)
+    if not old_user_ids and not has_matches:
+        raise ValueError(f"Jogador '{old}' nao encontrado.")
+
+    for uid in old_user_ids:
+        update_user_resp = (
+            client.table(USERS_TABLE)
+            .update({"name": new})
+            .eq("id", uid)
+            .execute()
+        )
+        if getattr(update_user_resp, "error", None):
+            raise RuntimeError(f"Erro ao renomear usuario: {update_user_resp.error}")
+
+    matches_updated = _update_matches_player_name(client, old, new)
+
+    return {"user_ids": old_user_ids, "matches_updated": matches_updated}
+
+
+def merge_players(kept_name: str, removed_name: str) -> Dict[str, Any]:
+    """Funde dois jogadores globalmente: tudo que era de *removed_name* passa a ser de *kept_name*.
+
+    - Atualiza ``matches`` em todos os grupos trocando o nome.
+    - Apaga todas as memberships e o registro de ``users`` do *removed* (em todos os grupos).
+    - Funciona mesmo se um dos lados existir apenas em matches (sem registro em users).
+    """
+    kept = _normalize_player_name(kept_name)
+    removed = _normalize_player_name(removed_name)
+    if not kept or not removed:
+        raise ValueError("Informe os dois nomes para fundir.")
+    if kept.casefold() == removed.casefold():
+        raise ValueError("Os dois nomes sao iguais — nada a fundir.")
+
+    client = _get_client()
+
+    kept_user_ids = _find_user_ids_by_name(client, kept)
+    removed_user_ids = _find_user_ids_by_name(client, removed)
+
+    has_kept = bool(kept_user_ids) or _name_exists_in_matches(client, kept)
+    has_removed = bool(removed_user_ids) or _name_exists_in_matches(client, removed)
+    if not has_kept:
+        raise ValueError(f"Jogador '{kept}' nao encontrado.")
+    if not has_removed:
+        raise ValueError(f"Jogador '{removed}' nao encontrado.")
+
+    matches_updated = _update_matches_player_name(client, removed, kept)
+
+    user_deleted = False
+    for uid in removed_user_ids:
+        member_resp = (
+            client.table(GROUP_MEMBERS_TABLE)
+            .delete()
+            .eq("user_id", uid)
+            .execute()
+        )
+        if getattr(member_resp, "error", None):
+            raise RuntimeError(
+                f"Erro ao remover vinculos do jogador: {member_resp.error}"
+            )
+
+        delete_resp = (
+            client.table(USERS_TABLE)
+            .delete()
+            .eq("id", uid)
+            .execute()
+        )
+        if getattr(delete_resp, "error", None):
+            raise RuntimeError(f"Erro ao apagar usuario fundido: {delete_resp.error}")
+        user_deleted = True
+
+    return {
+        "kept_user_ids": kept_user_ids,
+        "removed_user_ids": removed_user_ids,
+        "matches_updated": matches_updated,
+        "user_deleted": user_deleted,
+    }

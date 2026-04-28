@@ -57,6 +57,7 @@
 
         <div class="tab-switch general-tabs">
             <button class="tab-button active" type="button" data-general-tab="geral-parceiros">Parceiros</button>
+            <button class="tab-button" type="button" data-general-tab="geral-adversarios">Adversarios</button>
             <button class="tab-button" type="button" data-general-tab="geral-rotatividade">Rotatividade</button>
             <button class="tab-button" type="button" data-general-tab="geral-assiduidade">Assiduidade</button>
             <button class="tab-button" type="button" data-general-tab="geral-media-jogos">Jogos/dia</button>
@@ -94,6 +95,40 @@
                 </div>
             {% else %}
                 <p class="meta">Sem parcerias suficientes para classificar os jogadores.</p>
+            {% endif %}
+        </div>
+
+        <div class="tab-content general-tab-content" id="geral-adversarios">
+            <div class="section-title section-title--compact">
+                <h2>Qualidade media dos adversarios</h2>
+            </div>
+            {% if detalhes and detalhes.qualidade_adversarios|length > 0 %}
+                <div class="partner-quality-grid">
+                    {% for coluna in detalhes.qualidade_adversarios_colunas %}
+                        <div class="partner-quality-column">
+                            <div class="partner-quality-column__header">
+                                <span class="partner-quality-column__stars">{{ coluna.estrelas }}</span>
+                                {% if coluna.rating == 5 %}
+                                    <span class="partner-quality-column__hint">Costuma enfrentar adversarios mais fortes.</span>
+                                {% elif coluna.rating == 1 %}
+                                    <span class="partner-quality-column__hint">Costuma enfrentar adversarios mais fracos.</span>
+                                {% endif %}
+                            </div>
+                            <div class="partner-quality-list">
+                                {% for jogador in coluna.jogadores %}
+                                    <div class="partner-quality-player">
+                                        <strong>{{ jogador.nome }}</strong>
+                                    </div>
+                                {% endfor %}
+                                {% if coluna.jogadores|length == 0 %}
+                                    <p class="meta">Sem jogadores nesta faixa.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="meta">Sem adversarios suficientes para classificar os jogadores.</p>
             {% endif %}
         </div>
 
