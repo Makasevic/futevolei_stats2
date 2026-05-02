@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -14,6 +15,12 @@ class ChampionshipRepositoryTests(unittest.TestCase):
         self.assertEqual(championship_repository._db_championship_key("202602"), "20260201")
         self.assertEqual(championship_repository._db_championship_key(" 2026-02 "), "20260201")
         self.assertEqual(championship_repository._db_championship_key("custom-key"), "custom-key")
+
+    def test_db_championship_key_namespaces_group_keys(self) -> None:
+        self.assertEqual(
+            championship_repository._db_championship_key("202602", group_id="group-1"),
+            "group-1:20260201",
+        )
 
 
 class ChampionshipServiceTests(unittest.TestCase):
@@ -58,6 +65,27 @@ class ChampionshipServiceTests(unittest.TestCase):
 
         self.assertEqual(service._head_to_head("A", "B", matches), 4)
         self.assertEqual(service._head_to_head("B", "A", matches), -4)
+
+    def test_get_championship_view_scopes_saved_scores_by_group(self) -> None:
+        calls = []
+        championship = {
+            "key": "2026-02",
+            "title": "Teste",
+            "description": "",
+            "edit_password": "",
+            "teams": [],
+            "groups": [],
+        }
+
+        with patch.object(service, "_all_championships", return_value={"2026-02": championship}):
+            with patch.object(
+                service,
+                "fetch_scores_for_championship",
+                side_effect=lambda key, group_id=None: calls.append((key, group_id)) or {},
+            ):
+                service.get_championship_view("2026-02", group_id="group-1")
+
+        self.assertEqual(calls, [("2026-02", "group-1")])
 
 
 if __name__ == "__main__":

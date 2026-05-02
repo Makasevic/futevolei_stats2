@@ -75,8 +75,12 @@ def _empty_stats() -> Dict[str, int]:
     }
 
 
-def _state_for_championship(championship_key: str) -> Dict[str, Any]:
-    return {"matches": fetch_scores_for_championship(championship_key)}
+def _state_for_championship(
+    championship_key: str,
+    *,
+    group_id: str | None = None,
+) -> Dict[str, Any]:
+    return {"matches": fetch_scores_for_championship(championship_key, group_id=group_id)}
 
 
 def _list_group_matches(group_id: str, team_ids: List[str]) -> List[Dict[str, Any]]:
@@ -417,7 +421,7 @@ def get_championship_view(championship_key: str, group_id: str | None = None) ->
             team_group_colors[team_id] = unique_palette[palette_idx]
 
     matches = _build_matches(template)
-    state = _state_for_championship(championship_key)
+    state = _state_for_championship(championship_key, group_id=group_id)
     _apply_saved_scores(matches, state.get("matches", {}))
     matches_by_id = {match["id"]: match for match in matches}
 
@@ -632,7 +636,7 @@ def save_match_score(championship_key: str, match_id: str, score_a_raw: str | No
     # Limpeza de placar deve ser sempre permitida, mesmo se o confronto
     # de mata-mata ainda nao tiver adversarios definidos.
     if score_a is None and score_b is None:
-        delete_score(championship_key, match_id)
+        delete_score(championship_key, match_id, group_id=group_id)
         return
 
     if target["phase"] in {"quarterfinals", "semifinals", "final"}:
@@ -641,4 +645,4 @@ def save_match_score(championship_key: str, match_id: str, score_a_raw: str | No
         if score_a is not None and score_b is not None and score_a == score_b:
             raise ValueError("Mata-mata nao pode terminar empatado.")
 
-    upsert_score(championship_key, match_id, score_a, score_b)
+    upsert_score(championship_key, match_id, score_a, score_b, group_id=group_id)

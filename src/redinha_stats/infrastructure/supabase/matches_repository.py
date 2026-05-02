@@ -73,34 +73,44 @@ def update_match(
     updates: Dict[str, Any],
     *,
     id_field: str = "id",
+    group_id: Optional[str] = None,
 ) -> MutableMapping[str, Any]:
     """Update an existing match identified by ``match_id``."""
 
     if match_id is None:
         raise ValueError("match_id é obrigatório para atualização")
 
-    response = (
+    query = (
         _get_client()
         .table(MATCHES_TABLE)
-            .update(_sanitize_match_payload(updates))
+        .update(_sanitize_match_payload(updates))
         .eq(id_field, match_id)
-        .execute()
     )
+    if group_id is not None:
+        query = query.eq("group_id", group_id)
+
+    response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao atualizar partida no Supabase: {response.error}")
 
     data = response.data or []
+    if group_id is not None and not data:
+        raise ValueError("Partida nao encontrada neste grupo.")
     return data[0] if data else {}
 
 
-def delete_match(match_id: Any, *, id_field: str = "id") -> None:
+def delete_match(match_id: Any, *, id_field: str = "id", group_id: Optional[str] = None) -> None:
     """Remove uma partida do Supabase pelo identificador fornecido."""
 
     if match_id is None:
         raise ValueError("match_id é obrigatório para exclusão")
 
-    response = (
-        _get_client().table(MATCHES_TABLE).delete().eq(id_field, match_id).execute()
-    )
+    query = _get_client().table(MATCHES_TABLE).delete().eq(id_field, match_id)
+    if group_id is not None:
+        query = query.eq("group_id", group_id)
+
+    response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao excluir partida no Supabase: {response.error}")
+    if group_id is not None and not (response.data or []):
+        raise ValueError("Partida nao encontrada neste grupo.")

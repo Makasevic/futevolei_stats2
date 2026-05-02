@@ -1,7 +1,7 @@
-"""Repositório de jogadores cadastrados no Supabase.
+"""Repositorio de jogadores cadastrados no Supabase.
 
-Substitui player_registry_store.py (JSON local).
-Jogadores são vinculados a um grupo via group_members.
+Substitui ``player_registry_store.py`` (JSON local).
+Jogadores sao vinculados a um grupo via ``group_members``.
 """
 
 from __future__ import annotations
@@ -52,53 +52,58 @@ def fetch_players_for_group(group_id: str) -> List[str]:
     return sorted(names, key=str.casefold)
 
 
-def add_player_to_group(group_id: str, name: str, role: str = "player") -> Optional[Dict[str, Any]]:
+def add_player_to_group(
+    group_id: str,
+    name: str,
+    role: str = "player",
+    *,
+    user_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     """Cadastra um novo jogador no grupo.
 
-    1. Cria (ou reutiliza) o usuário pelo nome.
-    2. Cria o vínculo em group_members.
-    Retorna o registro de group_members criado, ou None se o jogador já estava no grupo.
+    Quando ``user_id`` e informado, ele e reutilizado explicitamente para
+    evitar colisoes por nome em fluxos de convite e cadastro.
     """
 
     normalized = _normalize_player_name(name)
     if not normalized:
-        raise ValueError("Nome do jogador não pode ser vazio.")
+        raise ValueError("Nome do jogador nao pode ser vazio.")
 
     client = _get_client()
+    resolved_user_id = user_id
 
-    # Busca usuário existente pelo nome (sem email por enquanto)
-    user_resp = (
-        client.table(USERS_TABLE)
-        .select("id")
-        .eq("name", normalized)
-        .limit(1)
-        .execute()
-    )
-    if getattr(user_resp, "error", None):
-        raise RuntimeError(f"Erro ao buscar usuário: {user_resp.error}")
-
-    user_data = user_resp.data or []
-    if user_data:
-        user_id = user_data[0]["id"]
-    else:
-        # Cria usuário sem email (email gerado como placeholder único)
-        import uuid
-        placeholder_email = f"{uuid.uuid4()}@placeholder.local"
-        create_resp = (
+    if resolved_user_id is None:
+        user_resp = (
             client.table(USERS_TABLE)
-            .insert({"name": normalized, "email": placeholder_email})
+            .select("id")
+            .eq("name", normalized)
+            .limit(1)
             .execute()
         )
-        if getattr(create_resp, "error", None):
-            raise RuntimeError(f"Erro ao criar usuário: {create_resp.error}")
-        user_id = (create_resp.data or [{}])[0]["id"]
+        if getattr(user_resp, "error", None):
+            raise RuntimeError(f"Erro ao buscar usuario: {user_resp.error}")
 
-    # Verifica se já é membro
+        user_data = user_resp.data or []
+        if user_data:
+            resolved_user_id = user_data[0]["id"]
+        else:
+            import uuid
+
+            placeholder_email = f"{uuid.uuid4()}@placeholder.local"
+            create_resp = (
+                client.table(USERS_TABLE)
+                .insert({"name": normalized, "email": placeholder_email})
+                .execute()
+            )
+            if getattr(create_resp, "error", None):
+                raise RuntimeError(f"Erro ao criar usuario: {create_resp.error}")
+            resolved_user_id = (create_resp.data or [{}])[0]["id"]
+
     member_resp = (
         client.table(GROUP_MEMBERS_TABLE)
         .select("id")
         .eq("group_id", group_id)
-        .eq("user_id", user_id)
+        .eq("user_id", resolved_user_id)
         .limit(1)
         .execute()
     )
@@ -106,11 +111,11 @@ def add_player_to_group(group_id: str, name: str, role: str = "player") -> Optio
         raise RuntimeError(f"Erro ao verificar membro: {member_resp.error}")
 
     if member_resp.data:
-        return None  # já é membro
+        return None
 
     insert_resp = (
         client.table(GROUP_MEMBERS_TABLE)
-        .insert({"group_id": group_id, "user_id": user_id, "role": role})
+        .insert({"group_id": group_id, "user_id": resolved_user_id, "role": role})
         .execute()
     )
     if getattr(insert_resp, "error", None):
@@ -120,14 +125,28 @@ def add_player_to_group(group_id: str, name: str, role: str = "player") -> Optio
     return data[0] if data else {}
 
 
-def _find_user_ids_by_name(client: Client, name: str) -> List[str]:
-    """Retorna todos os ``users.id`` cujo nome (case-insensitive) bate com *name*."""
-    target = name.casefold()
+def is_user_member_of_group(user_id: str, group_id: str) -> bool:
+    """Retorna ``True`` quando o usuario participa do grupo informado."""
+
     response = (
-        client.table(USERS_TABLE)
-        .select("id, name")
+        _get_client()
+        .table(GROUP_MEMBERS_TABLE)
+        .select("id")
+        .eq("group_id", group_id)
+        .eq("user_id", user_id)
+        .limit(1)
         .execute()
     )
+    if getattr(response, "error", None):
+        raise RuntimeError(f"Erro ao verificar membro do grupo: {response.error}")
+    return bool(response.data)
+
+
+def _find_user_ids_by_name(client: Client, name: str) -> List[str]:
+    """Retorna todos os ``users.id`` cujo nome bate com *name*."""
+
+    target = name.casefold()
+    response = client.table(USERS_TABLE).select("id, name").execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao buscar usuarios por nome: {response.error}")
     return [
@@ -138,7 +157,8 @@ def _find_user_ids_by_name(client: Client, name: str) -> List[str]:
 
 
 def _name_exists_in_matches(client: Client, name: str) -> bool:
-    """True se *name* aparece em qualquer dos 4 campos de time em qualquer match."""
+    """True se *name* aparece em qualquer dos 4 campos de time."""
+
     for field in TEAM_FIELDS:
         response = (
             client.table(MATCHES_TABLE)
@@ -159,13 +179,8 @@ def _update_matches_player_name(
     old_name: str,
     new_name: str,
 ) -> int:
-    """Substitui *old_name* por *new_name* nos campos de time de todas as matches.
+    """Substitui *old_name* por *new_name* nos campos de time de todas as matches."""
 
-    Escopo global: como ``users.id`` e unico por pessoa em todo o app, o nome
-    deve ser consistente em todos os grupos onde a pessoa jogou.
-
-    Retorna o numero de partidas atualizadas (somatorio por campo).
-    """
     total_updated = 0
     for field in TEAM_FIELDS:
         response = (
@@ -183,19 +198,8 @@ def _update_matches_player_name(
 
 
 def rename_player(old_name: str, new_name: str) -> Dict[str, Any]:
-    """Renomeia um jogador globalmente.
+    """Renomeia um jogador globalmente."""
 
-    Atualiza ``users.name`` (em todas as linhas de users com o nome antigo,
-    case-insensitive) e ``matches.{winner1,winner2,loser1,loser2}`` em todas
-    as matches do app onde o nome antigo aparece literalmente.
-
-    O jogador e identificado pelo nome — funciona mesmo que ele exista apenas
-    nas matches (sem registro em ``users``/``group_members``), caso comum
-    para dados legados.
-
-    Bloqueia se o novo nome ja existir em ``users`` ou em alguma match —
-    nesses casos use ``merge_players``.
-    """
     old = _normalize_player_name(old_name)
     new = _normalize_player_name(new_name)
     if not old:
@@ -238,18 +242,14 @@ def rename_player(old_name: str, new_name: str) -> Dict[str, Any]:
 
 
 def merge_players(kept_name: str, removed_name: str) -> Dict[str, Any]:
-    """Funde dois jogadores globalmente: tudo que era de *removed_name* passa a ser de *kept_name*.
+    """Funde dois jogadores globalmente."""
 
-    - Atualiza ``matches`` em todos os grupos trocando o nome.
-    - Apaga todas as memberships e o registro de ``users`` do *removed* (em todos os grupos).
-    - Funciona mesmo se um dos lados existir apenas em matches (sem registro em users).
-    """
     kept = _normalize_player_name(kept_name)
     removed = _normalize_player_name(removed_name)
     if not kept or not removed:
         raise ValueError("Informe os dois nomes para fundir.")
     if kept.casefold() == removed.casefold():
-        raise ValueError("Os dois nomes sao iguais — nada a fundir.")
+        raise ValueError("Os dois nomes sao iguais - nada a fundir.")
 
     client = _get_client()
 

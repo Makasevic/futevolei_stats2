@@ -1,31 +1,39 @@
-"""Middleware Flask para resolução de grupos multi-tenant.
-
-O padrão de URL é /g/<slug>/... — o slug identifica o grupo.
-O before_request resolve o grupo via Supabase e injeta em flask.g.current_group.
-Retorna 404 automaticamente se o slug não existir.
-"""
+"""Middleware Flask para resolucao de grupos multi-tenant."""
 
 from __future__ import annotations
 
-from flask import abort, g, request
+from flask import abort, g, request, session
 
 from src.redinha_stats.infrastructure.supabase.groups_repository import fetch_group_by_slug
 
 
+def _clear_cross_group_sessions(group_id: str) -> None:
+    """Limpa sessoes de admin e jogador quando pertencem a outro grupo."""
+
+    player_group_id = session.get("player_group_id")
+    if player_group_id and player_group_id != group_id:
+        session.pop("player_user_id", None)
+        session.pop("player_name", None)
+        session.pop("player_group_id", None)
+
+    admin_group_id = session.get("admin_group_id")
+    if admin_group_id and admin_group_id != group_id:
+        session.pop("admin_authenticated", None)
+        session.pop("admin_role", None)
+        session.pop("admin_group_id", None)
+        session.pop("tournament_edit_keys", None)
+
+
 def resolve_current_group() -> None:
-    """Extrai o slug da URL atual e injeta o grupo em flask.g.current_group.
+    """Extrai o slug da URL atual e injeta o grupo em ``flask.g.current_group``."""
 
-    Deve ser registrado como before_request no blueprint de grupo.
-    Só age em rotas que contêm '/g/<slug>' — ignora demais requests.
-    """
-
-    # O Flask já decompôs a URL; o view_args contém 'slug' para rotas do blueprint.
     slug = request.view_args and request.view_args.get("slug")
     if not slug:
-        return  # rota fora do blueprint de grupo — não faz nada
+        return
 
     group = fetch_group_by_slug(slug)
     if group is None:
-        abort(404, description=f"Grupo '{slug}' não encontrado.")
+        abort(404, description=f"Grupo '{slug}' nao encontrado.")
 
     g.current_group = group
+    _clear_cross_group_sessions(group["id"])

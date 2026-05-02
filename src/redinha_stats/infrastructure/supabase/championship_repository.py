@@ -19,8 +19,9 @@ def _get_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 
-def _db_championship_key(championship_key: str) -> str:
-    """Normaliza chave para compatibilidade com constraints antigas no banco."""
+def _normalized_base_key(championship_key: str) -> str:
+    """Normaliza a chave para compatibilidade com dados antigos."""
+
     raw = str(championship_key or "").strip()
     digits = "".join(ch for ch in raw if ch.isdigit())
     if len(digits) == 6:
@@ -28,26 +29,38 @@ def _db_championship_key(championship_key: str) -> str:
     return digits or raw
 
 
-def fetch_scores_for_championship(
+def _db_championship_key(
     championship_key: str,
+    *,
+    group_id: Optional[str] = None,
+) -> str:
+    """Gera a chave persistida no banco.
+
+    Para grupos, usamos namespace por ``group_id`` para evitar colisao entre
+    clientes enquanto ainda existe compatibilidade com dados legados globais.
+    """
+
+    base_key = _normalized_base_key(championship_key)
+    if group_id is None:
+        return base_key
+    return f"{group_id}:{base_key}"
+
+
+def _load_scores_by_key(
+    db_key: str,
+    *,
     group_id: Optional[str] = None,
 ) -> Dict[str, Dict[str, int]]:
-    db_key = _db_championship_key(championship_key)
-    try:
-        query = (
-            _get_client()
-            .table(CHAMPIONSHIP_SCORES_TABLE)
-            .select("match_id,score_a,score_b")
-            .eq("championship_key", db_key)
-        )
-        if group_id is not None:
-            query = query.eq("group_id", group_id)
-        response = query.execute()
-    except APIError as exc:
-        code = getattr(exc, "code", None)
-        if code == "PGRST205":
-            return {}
-        raise
+    query = (
+        _get_client()
+        .table(CHAMPIONSHIP_SCORES_TABLE)
+        .select("match_id,score_a,score_b")
+        .eq("championship_key", db_key)
+    )
+    if group_id is not None:
+        query = query.eq("group_id", group_id)
+
+    response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Erro ao buscar placares de campeonato: {response.error}")
 
@@ -61,6 +74,25 @@ def fetch_scores_for_championship(
     return scores
 
 
+def fetch_scores_for_championship(
+    championship_key: str,
+    group_id: Optional[str] = None,
+) -> Dict[str, Dict[str, int]]:
+    namespaced_key = _db_championship_key(championship_key, group_id=group_id)
+    try:
+        scores = _load_scores_by_key(namespaced_key, group_id=group_id)
+        if scores or group_id is None:
+            return scores
+
+        legacy_key = _db_championship_key(championship_key)
+        return _load_scores_by_key(legacy_key, group_id=group_id)
+    except APIError as exc:
+        code = getattr(exc, "code", None)
+        if code == "PGRST205":
+            return {}
+        raise
+
+
 def upsert_score(
     championship_key: str,
     match_id: str,
@@ -68,7 +100,7 @@ def upsert_score(
     score_b: int,
     group_id: Optional[str] = None,
 ) -> None:
-    db_key = _db_championship_key(championship_key)
+    db_key = _db_championship_key(championship_key, group_id=group_id)
     payload: Dict[str, Any] = {
         "championship_key": db_key,
         "match_id": match_id,
@@ -96,23 +128,38 @@ def upsert_score(
         raise RuntimeError(f"Erro ao salvar placar de campeonato: {response.error}")
 
 
+def _delete_score_by_key(
+    db_key: str,
+    *,
+    match_id: str,
+    group_id: Optional[str] = None,
+) -> None:
+    query = (
+        _get_client()
+        .table(CHAMPIONSHIP_SCORES_TABLE)
+        .delete()
+        .eq("championship_key", db_key)
+        .eq("match_id", match_id)
+    )
+    if group_id is not None:
+        query = query.eq("group_id", group_id)
+
+    response = query.execute()
+    if getattr(response, "error", None):
+        raise RuntimeError(f"Erro ao remover placar de campeonato: {response.error}")
+
+
 def delete_score(
     championship_key: str,
     match_id: str,
     group_id: Optional[str] = None,
 ) -> None:
-    db_key = _db_championship_key(championship_key)
+    namespaced_key = _db_championship_key(championship_key, group_id=group_id)
     try:
-        query = (
-            _get_client()
-            .table(CHAMPIONSHIP_SCORES_TABLE)
-            .delete()
-            .eq("championship_key", db_key)
-            .eq("match_id", match_id)
-        )
+        _delete_score_by_key(namespaced_key, match_id=match_id, group_id=group_id)
         if group_id is not None:
-            query = query.eq("group_id", group_id)
-        response = query.execute()
+            legacy_key = _db_championship_key(championship_key)
+            _delete_score_by_key(legacy_key, match_id=match_id, group_id=group_id)
     except APIError as exc:
         code = getattr(exc, "code", None)
         if code == "PGRST205":
@@ -120,5 +167,3 @@ def delete_score(
                 "Tabela championship_scores nao encontrada no Supabase. Rode o SQL de criacao/migracao."
             ) from exc
         raise
-    if getattr(response, "error", None):
-        raise RuntimeError(f"Erro ao remover placar de campeonato: {response.error}")

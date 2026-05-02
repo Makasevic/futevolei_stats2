@@ -12,6 +12,7 @@ def admin_page_response(
     *,
     admin_password: str | None,
     entry_password: str | None,
+    auth_scope_id: str | None,
     set_admin_feedback: Callable[[str, str], None],
     available_championship_keys: Callable[[], list[str]],
     get_championship_edit_password: Callable[[str], str | None],
@@ -42,7 +43,16 @@ def admin_page_response(
     requires_auth = bool(admin_password or entry_password)
 
     feedback = session.pop("admin_feedback", None)
-    authenticated = session.get("admin_authenticated") or not requires_auth
+    authenticated = (
+        (
+            session.get("admin_authenticated")
+            and (
+                auth_scope_id is None
+                or session.get("admin_group_id") == auth_scope_id
+            )
+        )
+        or not requires_auth
+    )
     role = session.get("admin_role", "full") if authenticated else None
 
     if request.method == "POST":
@@ -53,10 +63,16 @@ def admin_page_response(
             if admin_password and password == admin_password:
                 session["admin_authenticated"] = True
                 session["admin_role"] = "full"
+                if auth_scope_id is not None:
+                    session["admin_group_id"] = auth_scope_id
+                    session["tournament_edit_keys"] = []
                 set_admin_feedback("success", "Acesso liberado como administrador completo.")
             elif entry_password and password == entry_password:
                 session["admin_authenticated"] = True
                 session["admin_role"] = "limited"
+                if auth_scope_id is not None:
+                    session["admin_group_id"] = auth_scope_id
+                    session["tournament_edit_keys"] = []
                 set_admin_feedback("success", "Acesso liberado para lancamentos.")
             else:
                 set_admin_feedback("error", "Senha incorreta. Tente novamente.")
@@ -65,6 +81,8 @@ def admin_page_response(
         if action == "logout":
             session.pop("admin_authenticated", None)
             session.pop("admin_role", None)
+            session.pop("admin_group_id", None)
+            session.pop("tournament_edit_keys", None)
             set_admin_feedback("success", "Sessao encerrada.")
             return redirect_to_admin()
 

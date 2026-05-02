@@ -151,7 +151,11 @@ def resgatar_convite(token: str):
 
                     # Vincula ao grupo se ainda não estiver
                     if user_id and invitation.get("group_id"):
-                        add_player_to_group(invitation["group_id"], name)
+                        add_player_to_group(
+                            invitation["group_id"],
+                            name,
+                            user_id=user_id,
+                        )
 
                     mark_invitation_used(token)
                     redirect_url = f"/g/{group_slug}/" if group_slug else "/"

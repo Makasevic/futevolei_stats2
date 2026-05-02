@@ -4,8 +4,3 @@ numpy
 supabase
 gunicorn
 bcrypt
-python-dotenv
-pdfplumber
-openpyxl
-xlrd
-msoffcrypto-tool

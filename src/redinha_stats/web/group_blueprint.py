@@ -31,6 +31,7 @@ from src.redinha_stats.infrastructure.supabase.matches_repository import (
 from src.redinha_stats.infrastructure.supabase.players_repository import (
     add_player_to_group,
     fetch_players_for_group,
+    is_user_member_of_group,
     merge_players,
     rename_player,
 )
@@ -67,11 +68,12 @@ bp.before_request(resolve_current_group)
 def inject_group_context():
     """Injeta group_slug, base_url e dados do jogador logado em todos os templates do blueprint."""
     slug = getattr(g, "current_group", {}).get("slug", "")
+    player_logged_in = _player_session_active()
     return {
         "group_slug": slug,
         "base_url": f"/g/{slug}" if slug else "",
-        "player_logged_in": bool(session.get("player_user_id")),
-        "player_name": session.get("player_name", ""),
+        "player_logged_in": player_logged_in,
+        "player_name": session.get("player_name", "") if player_logged_in else "",
     }
 
 
@@ -84,6 +86,10 @@ _TEAM_FIELDS = ("winner1", "winner2", "loser1", "loser2")
 
 def _group_id() -> str:
     return g.current_group["id"]
+
+
+def _player_session_active() -> bool:
+    return bool(session.get("player_user_id")) and session.get("player_group_id") == _group_id()
 
 
 def _fetch_base_dataframe() -> pd.DataFrame:
@@ -335,6 +341,7 @@ def admin(slug: str):
     return admin_page_response(
         admin_password=ADMIN_PASSWORD,
         entry_password=MATCH_ENTRY_PASSWORD,
+        auth_scope_id=gid,
         set_admin_feedback=_set_admin_feedback,
         available_championship_keys=lambda: available_championship_keys(group_id=gid),
         get_championship_edit_password=lambda key: get_championship_edit_password(key, group_id=gid),
@@ -350,9 +357,11 @@ def admin(slug: str):
         serialize_payload=lambda payload: web_helpers.serialize_payload(payload, _TEAM_FIELDS),
         parse_form_date=admin_helpers.parse_form_date,
         update_match=lambda match_id, payload, id_field: update_match(
-            match_id, payload, id_field=id_field
+            match_id, payload, id_field=id_field, group_id=gid
         ),
-        delete_match=lambda match_id, id_field: delete_match(match_id, id_field=id_field),
+        delete_match=lambda match_id, id_field: delete_match(
+            match_id, id_field=id_field, group_id=gid
+        ),
         rename_player=lambda old, new: rename_player(old, new),
         merge_players=lambda kept, removed: merge_players(kept, removed),
         is_valid_identifier=admin_helpers.is_valid_identifier,
@@ -375,7 +384,7 @@ def convite_gerar(slug: str):
     gid = _group_id()
     group_name = g.current_group.get("name", slug)
 
-    if not session.get("admin_authenticated"):
+    if not session.get("admin_authenticated") or session.get("admin_group_id") != gid:
         return redirect(url_for("group.admin", slug=slug))
 
     invite_url = None
@@ -490,7 +499,7 @@ def login(slug: str):
     from flask import request as req
     import bcrypt
 
-    if session.get("player_user_id"):
+    if _player_session_active():
         return redirect(url_for("group.perfil", slug=slug))
 
     error = None
@@ -513,9 +522,12 @@ def login(slug: str):
                     error = "Email ou senha incorretos."
                 elif not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
                     error = "Email ou senha incorretos."
+                elif not is_user_member_of_group(user["id"], _group_id()):
+                    error = "Voce nao faz parte deste grupo."
                 else:
                     session["player_user_id"] = user["id"]
                     session["player_name"] = user["name"]
+                    session["player_group_id"] = _group_id()
                     return redirect(url_for("group.perfil", slug=slug))
             except Exception as exc:
                 error = f"Erro ao autenticar: {exc}"
@@ -532,13 +544,14 @@ def login(slug: str):
 def logout(slug: str):
     session.pop("player_user_id", None)
     session.pop("player_name", None)
+    session.pop("player_group_id", None)
     return redirect(url_for("group.home", slug=slug))
 
 
 @bp.route("/<slug>/perfil")
 def perfil(slug: str):
     player_name = session.get("player_name")
-    if not player_name:
+    if not _player_session_active() or not player_name:
         return redirect(url_for("group.login", slug=slug))
 
     from urllib.parse import urlencode

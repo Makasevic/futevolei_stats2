@@ -533,6 +533,7 @@ def admin():
     return admin_page_response(
         admin_password=ADMIN_PASSWORD,
         entry_password=MATCH_ENTRY_PASSWORD,
+        auth_scope_id=None,
         set_admin_feedback=lambda level, message: _set_admin_feedback(level, message),
         available_championship_keys=lambda: available_championship_keys(),
         get_championship_edit_password=lambda key: get_championship_edit_password(key),
